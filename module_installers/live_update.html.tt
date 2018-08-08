@@ -1,0 +1,5 @@
+[%
+USE Api1;
+Api1.live_exec("LangMods", "update", [FORM.lang, FORM.item('mod')] );
+%]
+

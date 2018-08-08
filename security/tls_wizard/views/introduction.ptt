@@ -1,0 +1,35 @@
+<div class="row">
+    <div class="col-xs-12 hidden-xs hidden-sm">
+        <div class="alert alert-info alert-dismissable main-instructions-block">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true" ng-click="introduction_dismissed()">&times;</button>
+            <span class="glyphicon glyphicon-info-sign"></span>
+            <div class="alert-message">
+                <h4>[% locale.maketext('What is an [output,acronym,SSL,Secure Sockets Layer] certificate, and why do I want one?') %]</h4>
+                <p>[% locale.maketext('An [asis,SSL] certificate allows visitors to communicate with your websites over secure connections—for example, to submit credit card payment information.') %]</p>
+                <p>
+                    <h4>[% locale.maketext('What is this interface for?') %]</h4>
+
+                    [% locale.maketext("Use this interface to purchase and install [output,abbr,SSL,Secure Sockets Layer] certificates for your account.") %]
+                    [%
+                        USE Api2;
+
+                        SET cpdomain = CPANEL.CPDATA.DOMAIN;
+
+                        SET parked = Api2.exec('Park','listparkeddomains');
+                        IF CPANEL.CPERROR.park;
+                            THROW undef CPANEL.CPERROR.park;
+                        END;
+                    -%]
+
+                    [% IF parked.size -%]
+                        [% locale.maketext("Note that multiple domain names can refer to the same website. For example, the domain names “[_1]” and “[_2]” both refer to your account’s primary website.", cpdomain.html(), parked.0.domain.html() ) %]<br />
+                    [% ELSE -%]
+                        [% locale.maketext("Note that multiple domain names can refer to the same website. For example, domains that you configure in [asis,cPanel]’s “[output,url,_1,_2]” interface will refer to your account’s primary website.", ('../../park/'), locale.maketext('Aliases') ) %]<br />
+                    [% END -%]
+
+                    [% locale.maketext("We recommend that each [output,abbr,SSL,Secure Sockets Layer]-secured website have a certificate that secures all of the website’s domains.") -%]
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

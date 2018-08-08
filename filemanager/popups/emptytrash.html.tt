@@ -1,0 +1,17 @@
+<div style="display:none;" id="emptytrash">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Empty Trash") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="emptytrash-filecontent">
+            <form>
+                [% locale.maketext("Are you sure you want to empty the Trash?") %]
+                <br>
+                [% locale.maketext("[output,strong,Non-Reversible Action]: This will remove ALL files within the trash directory!") %]
+            </form>
+        </div>
+    </div>
+</div>
+

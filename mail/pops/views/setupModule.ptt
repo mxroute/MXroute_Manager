@@ -1,0 +1,20 @@
+<div>
+    <a id="email_table_menu_configure_email_{{ :: $index }}"
+        class="btn btn-link"
+        href="../clientconf.html?acct={{ :: emailAccount.email | encodeURIComponent }}"
+        title="{{ :: emailAccount.email | emailLocaleString:'Set Up Mail Client for “[_1]”' }}"
+        target="_blank">
+        <span class="fas fa-external-link-alt"></span>
+        [% LANG.set_up_email_client %]
+    </a>
+    <a id="email_table_config_cal_and_contacts_{{::$index}}"
+        class="btn btn-link"
+        ng-if="showCalAndContacts"
+        title="{{ ::emailAccount.email | emailLocaleString:'Configure calendars and contacts for “[_1]”.' }}"
+        href="../calendars_and_contacts/index.html.tt?user={{ ::emailAccount.email | encodeURIComponent }}"
+        target="_blank">
+        <span class="fas fa-external-link-alt"></span>
+        [% LANG.configure_calcard_client %]
+    </a>
+    <a class="btn btn-link" ng-click="cancelAction()">[% LANG.close %]</a>
+</div>

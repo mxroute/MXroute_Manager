@@ -1,0 +1,37 @@
+[% SET CPANEL.CPVAR.dprefix="../"  %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'site_software',
+    page_stylesheets = [
+        'addoncgi/styles.css',
+    ],
+    page_scripts = [
+        'libraries/jquery/3.2.0/jquery-3.2.0.js',
+        'addoncgi/script.js',
+        'libraries/bootstrap/optimized/js/bootstrap.js'
+    ],
+%]
+<div class="body-content">
+    <div class="section">
+        <div id="cpaddon" class="row">
+            <div class="col-xs-12">
+        [% IF CPANEL.is_dnsonly() %]
+                <div class="alert alert-danger">
+                    <span class="glyphicon glyphicon-remove-sign"></span>
+                    <div class="alert-message">
+                        <strong>[% locale.maketext('Error:') %]</strong>
+                        [% locale.maketext('This feature is disabled for [asis,DNSONLY] servers.') %]
+                    </div>
+                </div>
+        [% ELSE;
+               # Render the addon UI.
+               Api1.pre_exec("cPAddons", "mainpg");
+               Api1.exec("cPAddons", "mainpg", [FORM]);
+               Api1.post_exec("cPAddons", "mainpg");
+           END;
+        %]
+            </div>
+        </div>
+    </div>
+</div><!-- end body-content -->
+[% END #wrapper %]

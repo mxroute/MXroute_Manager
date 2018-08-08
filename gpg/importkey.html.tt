@@ -1,0 +1,28 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+%]
+
+<div class="body-content">
+
+    <form action="import.html" method="post">
+        <div class="form-group">
+            <label id="lblPasteGPG" for="txtGPG">
+                [% locale.maketext("Paste the [output,acronym,GPG,GNU Privacy Guard] or [output,acronym,PGP,Pretty Good Privacy] data below.") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <textarea id="txtGPG" cols="70" rows="15" name="gpgdata" class="form-control" ></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <input id="btnImport" type="submit" class="btn btn-primary" value="[% locale.maketext("Import") %]" >
+        </div>
+    </form>
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END %]

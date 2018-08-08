@@ -1,0 +1,132 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext("Bandwidth")
+    app_key = 'bandwidth'
+-%]
+
+[%
+USE CPDate;
+
+SET months = 'Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec';
+SET month_index = {};
+FOR m = months.split(' ');
+    month_index.$m = loop.index;
+END;
+
+SET form_month = RAW_FORM('mon');
+
+SET timezone = CPANEL.cookies.timezone;
+
+SET starttime = CPDate.timezone_timelocal(
+    timezone,
+    0, 0, 0, 1, month_index.$form_month, RAW_FORM('year')
+);
+
+SET endtime = CPDate.add_local_interval(
+    starttime,
+    1, 'month',
+    timezone,
+) - 1;
+
+SET form_target = RAW_FORM('target');
+SET query_specific_domain_yn = (form_target != CPANEL.authuser);
+
+SET bwdata = execute(
+    'Bandwidth',
+    'query',
+    {
+        timezone => timezone,
+        grouping => 'protocol|year_month_day_hour',
+        domains => query_specific_domain_yn ? form_target : '',
+        protocols => 'http',
+        interval => 'hourly',
+        start => starttime,
+        end => endtime,
+    },
+);
+
+SET month_name = CPDate.month_stand_alone_wide.${month_index.$form_month};
+
+PROCESS '_bandwidth_graph_include.tmpl';
+-%]
+
+<!-- TODO: put somewhere separately -->
+<style type="text/css">
+.data-descriptor {
+    text-align: center;
+}
+</style>
+
+<div class="body-content">
+
+    <p class="description">[% your_timezone_is() %]</p>
+
+    <div>
+        <h4 class="data-descriptor">[% RAW_FORM('domain').html() %] — [% month_name.html() %] [% RAW_FORM('year').html() %]</h4>
+
+        <div class="bw-time-graph" id="bwgraph_el"></div>
+
+        <fieldset>
+            <legend>
+                [% locale.maketext("Bandwidth by Day") %]
+            </legend>
+            <table id="bw_by_day" class="table table-striped table-condensed">
+                <tr>
+                    <td>
+                        <b>[% locale.maketext("Day") %]</b>
+                    </td>
+                    <td>
+                        <b>[% locale.maketext("All Traffic") %]</b>
+                    </td>
+                    <td>
+                        <b>[% locale.maketext("HTTP Traffic") %]</b>
+                    </td>
+                </tr>
+                [%
+                    Api1.pre_exec("Bandwidth", "displaybw");
+                    Api1.exec(
+                        "Bandwidth",
+                        "displaybw",
+                        [
+                            FORM.item('domain'),
+                            FORM.item('target'),
+                            FORM.item('mon'),
+                            FORM.item('year'),
+                            1,
+                            CPANEL.cookies.timezone,
+                        ]
+                    );
+                    Api1.post_exec("Bandwidth", "displaybw")
+                %]
+            </table>
+        </fieldset>
+        [% locale.maketext("[output,strong,Note:] Click a number to view more bandwidth information for that day. This only covers bandwidth information for the past [quant,_1,day,days].", 30) %]
+        <br><br>
+        [% INCLUDE _assets/return_link.html.tt return_location='javascript:history.go(-1)' return_link_text=locale.maketext('Go Back') %]
+    </div>
+</div>
+
+<script>
+//XXX: LOCALE’s CLDR isn’t loading correctly on page load.
+wait_for_CLDR_to_load( function() {
+    var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
+        domain: [% JSON.stringify(RAW_FORM('domain')) %],
+        time_format: function(t) { return LOCALE.numf(t.getDate()) },
+        container_path: "#bwgraph_el",
+        min_date: [% "${starttime}000" %],
+        max_date: [% "${endtime}000" %],
+        resolution: "hourly",
+        api_protocol_data: [% JSON.stringify(bwdata.data) %]
+    } );
+    [% IF !query_specific_domain_yn -%]
+        if (did_sth) {
+            Bandwidth_Graph.draw_protocols_time_graph_key("#bwgraph_el");
+        }
+    [% END -%]
+} );
+
+CPTimezone.show_cookie_timezone_mismatch_nodes();
+</script>
+
+[% END #wrapper -%]

@@ -1,0 +1,146 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+[%
+    Api2.pre_exec("SSH", "listkeys");
+    SET listkeys =  Api2.exec("SSH", "listkeys", {"types"=>"pub"} );
+    Api2.post_exec("SSH", "listkeys");
+
+    Api2.pre_exec("SSH", "listkeys");
+    SET list_priv_keys =  Api2.exec("SSH", "listkeys", {"types"=>"priv"} );
+    Api2.post_exec("SSH", "listkeys");
+
+    SET locale_attributes = execute( "Locale", "get_attributes", {} ).data;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+-%]
+<div class="body-content">
+    <h2 id="hdrKeys">
+        [% locale.maketext("Manage SSH Keys") %]
+    </h2>
+
+    <a id="lnkGenerateKey" href="addkey.html" class="btn btn-primary">
+        <span class="glyphicon glyphicon-plus"></span>
+        [% locale.maketext("Generate a New Key") %]
+    </a>
+    <a id="lnkImportKey" href="importkey.html" class="btn btn-primary">
+        <span class="glyphicon glyphicon-import"></span>
+        [% locale.maketext("Import Key") %]
+    </a>
+
+    <div class="section">
+        <h2 id="hdrKeyDescs">
+            [% locale.maketext("Key Descriptions") %]
+        </h2>
+        <p id="descKeyPair" class="description">
+            [% locale.maketext("The public and private key are similar to a puzzle. They are created together to use during the login/authentication process. The public key resides on the server (the remote location). The private key resides locally on your computer/server. When you attempt to login to a server, the public and private key are compared. If they match, then you will be allowed to login to the server location.") %]
+        </p>
+        <p id="descClients" class="description">
+            ** [% locale.maketext("You can download the private/public keys here and import into [output,url,_1,PuTTY,target,_2] (or other SSH clients) if you prefer using something else for SSH connections. Or, if you have been using PuTTY, you can import the public/private keys by clicking on Import Key. You can also download your key in PuTTY’s ppk format under View/Download.", 'https://go.cpanel.net/putty', '_blank') %]
+        </p>
+    </div>
+    <div class="section">
+        <h2 id="hdrPubKeys">
+            [% locale.maketext("Public Keys") %]
+        </h2>
+        <table id="pubkeytbl" class="sortable table table-striped">
+        <thead>
+            <tr>
+                <th class="cell" scope="col">
+                    [% locale.maketext("Name") %]
+                </th>
+                <th class="cell" scope="col">
+                    [% locale.maketext("Authorization Status") %]
+                </th>
+                <th class="cell" scope="col" nonsortable="true">
+                    [% locale.maketext("Actions") %]
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            [% IF listkeys.size %]
+               [% FOREACH keys IN listkeys %]
+                <tr>
+                    <td>
+                        [% keys.name.html() %]
+                    </td>
+                    <td>
+                        [% keys.authstatus.html() %]
+                    </td>
+                    <td>
+                        <a class="btn btn-link" href="delkey.html?key=[% keys.name | uri %]&pub=1">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext("Delete") %]
+                        </a>
+                        <a class="btn btn-link" href="editkey.html?key=[% keys.name | uri %]&pub=1">
+                            <span class="fas fa-download"></span>
+                            [% locale.maketext("View/Download") %]
+                        </a>
+                        <a class="btn btn-link" href="authkey.html?key=[% keys.key | uri %]&pub=1">
+                            <span class="fas fa-wrench"></span>
+                            [% locale.maketext("Manage") %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+            <tr>
+                <td colspan="3">
+                    [% locale.maketext("No Public Keys installed.") %]
+                </td>
+            </tr>
+            [% END %]
+        </tbody>
+        </table>
+        <p id="authorizeInformationMsg">
+            [% locale.maketext("[output,strong,NOTE]: If you authorize a key that is identical to other keys, those keys may also become authorized.") %]
+        </p>
+    </div>
+    <div class="section">
+        <h2 id="hdrPrivKeys">
+            [% locale.maketext("Private Keys") %]
+        </h2>
+        <table id="privkeytbl" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th class="cell" scope="col">
+                        [% locale.maketext("Name") %]
+                    </th>
+                    <th class="cell" scope="col" nonsortable="true">
+                        [% locale.maketext("Actions") %]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                [% IF list_priv_keys.size; %]
+                   [% FOREACH priv_keys IN list_priv_keys %]
+                    <tr>
+                        <td>
+                            [%  priv_keys.name.html() %]
+                        </td>
+                        <td>
+                            <a class="btn btn-link" href="delkey.html?key=[% priv_keys.name | uri %]">
+                                <span class="glyphicon glyphicon-trash"></span>
+                                [% locale.maketext("Delete") %]
+                            </a>
+                            <a class="btn btn-link" href="editkey.html?key=[% priv_keys.name | uri %]">
+                                <span class="fas fa-download"></span>
+                                [% locale.maketext("View/Download") %]
+                            </a>
+                        </td>
+                    </tr>
+                    [% END %]
+                [% ELSE %]
+                    <tr>
+                        <td colspan="2">
+                            [% locale.maketext("No Private Keys installed.") %]
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='../index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,546 @@
+[%
+
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    Api1.pre_exec("Mysql", "initcache");
+    Api1.exec("Mysql", "initcache", [undef]);
+    Api1.post_exec("Mysql", "initcache");
+
+    IF FORM.item('itemsperpage');
+        SET CPANEL.CPVAR.itemsperpage = FORM.item('itemsperpage');
+    END;
+    IF (!( FORM.item('itemsperpage')) || !( CPANEL.CPVAR.item('itemsperpage')));
+        SET CPANEL.CPVAR.itemsperpage = "10";
+    END;
+
+    USE CpanelDB;
+    PROCESS '_assets/resource_usage_macro.html.tt';
+
+    IF ExpVar.expand('$mysqlrunning') && ExpVar.expand('$mysql_sane');
+        SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+        SET dbprefix = ExpVar.expand('$dbprefix');
+
+        SET database_max_length = 64 - dbownerprefix.length() - dbprefix;
+        SET user_max_length = CpanelDB.MAX_MYSQL_DBUSER_LENGTH - dbownerprefix.length();
+
+        Api2.pre_exec("PasswdStrength", "get_required_strength");
+        required_strength_result = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"mysql"} );
+        Api2.post_exec("PasswdStrength", "get_required_strength");
+        SET required_strength = required_strength_result.0.strength;
+
+        Api2.pre_exec("MysqlFE", "listusers");
+        SET listusers = Api2.exec("MysqlFE", "listusers", {} );
+        Api2.post_exec("MysqlFE", "listusers");
+
+        SET mysql_server_info = execute("Mysql", "get_server_information", {});
+
+        # Needed to setup CPVAR mysql_number_of_dbs variable used below.
+        Api1.pre_exec("Mysql", "number_of_dbs");
+        SET number_of_dbs = Api1.exec("Mysql", "number_of_dbs", [undef]);
+        Api1.post_exec("Mysql", "number_of_dbs");
+
+        # Needed to setup CPVAR mysql_number_of_users and mysql_number_of_dbs
+        Api1.pre_exec("Mysql", "number_of_users");
+        SET number_of_users = Api1.exec("Mysql", "number_of_users", [undef]);
+        Api1.post_exec("Mysql", "number_of_users");
+
+        Api1.pre_exec("Mysql", "listdbsopt");
+        SET list_dbs_opts = Api1.exec("Mysql", "listdbsopt", [undef]);
+        Api1.post_exec("Mysql", "listdbsopt");
+
+        Api2.pre_exec("MysqlFE", "listdbs");
+        SET databases = Api2.exec("MysqlFE", "listdbs", {
+                "api2_paginate_size"  => CPANEL.CPVAR.item('itemsperpage').html(),
+                "api2_paginate"       => "1",
+                "regex"               => RAW_FORM.item('searchregex'),
+                "api2_paginate_start" =>(FORM.item('api2_paginate_start'))
+            });
+        Api2.post_exec("MysqlFE", "listdbs");
+    END;
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'mysql_databases'
+ -%]
+
+[% PROCESS '_assets/_ajaxapp_header.html.tt' -%]
+
+<div class="body-content">
+    [% IF !CPANEL.feature('mysql') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+
+        [% IF !ExpVar.expand('$mysqlrunning') %]
+        <div id="mysqlOfflineWarning" class="alert alert-warning">
+            <span id="mysqlOfflineWarningImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            <span id="mysqlOfflineWarningMsg">[% locale.maketext("The MySQL server is currently [boolean,_1,online,offline].",ExpVar.expand('$mysqlrunning')) %]</span>
+        </div>
+        [% END %]
+
+        [% IF CPANEL.CPERROR.item('mysql') %]
+        <div id="mysqlError" class="alert alert-danger">
+            <span id="mysqlErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            <span id="mysqlErrorMsg">[% CPANEL.CPERROR.item('mysql').html %]</span>
+        </div>
+        [% END %]
+
+        [% IF !ExpVar.expand('$mysql_sane') %]
+        <div id="mysqlError" class="alert alert-danger">
+            <span id="mysqlErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            <span id="mysqlErrorMsg">[% ExpVar.expand('$mysql_sane_errmsg') %]</span>
+        </div>
+        [% END %]
+
+        [% IF ExpVar.expand('$mysqlrunning') && ExpVar.expand('$mysql_sane') %]
+            [% PROCESS my_sql_content %]
+        [% END %]
+
+    [% END %]
+</div>
+[% END #wrapper -%]
+
+[% BLOCK my_sql_content %]
+
+<p id="descMysql" class="description">
+    [% locale.maketext("Manage large amounts of information over the web easily. MySQL databases are necessary to run many web-based applications, such as bulletin boards, content management systems, and online shopping carts. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/MySql", "_blank", "lnkMySqlDocumentation") %]
+</p>
+
+<div id="cjt_pagenotice_container"></div>
+
+<a name="mysqldbs" id="mysqldbs"></a>
+<div class="clearfix">
+    <div class="pull-right">
+        <img id="imgJumpUsers" src="../images/arrow-down.gif" alt="jump-down" class="jump-down" />
+        <a id="lnkJumpUsers" href="#mysqlusers">[% locale.maketext("Jump to MySQL Users") %]</a>
+    </div>
+</div>
+
+    <div class="section">
+        <h2 id="hdrCreateDb">
+            [% locale.maketext("Create New Database") %]
+        </h2>
+        [%
+            # Note: a MACRO was not used here because we need to be able
+            # to access resource_usage_limits after the block runs
+            SET resource_usage_key = 'mysqldatabases';
+            SET resource_usage_percent_used_to_warn = 80;
+            PROCESS resource_usage_block;
+         IF !resource_usage_limits || !resource_usage_limits.is_maxed
+        %]
+        <form method="post" action="addb.html" name="mainform" id="mainform">
+            <div class="form-group">
+                <label id="lblDbName" for="dbname">
+                    [% locale.maketext("New Database:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% IF dbownerprefix %]
+                        <div class="input-group">
+                            <span class="input-group-addon">
+                                [% dbownerprefix %]
+                            </span>
+                            <input type="text" class="form-control" name="db" id="dbname" maxlength="[% database_max_length %]" />
+                        </div>
+                        [% ELSE %]
+                        <input type="text" class="form-control" name="db" id="dbname"  maxlength="[% database_max_length %]" />
+                        [% END %]
+                    </div>
+                    <div id="dbname_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" id="submit_dbname" value="[% locale.maketext("Create Database") %]" class="btn btn-primary" />
+            </div>
+        </form>
+      [% END %]
+    </div>
+
+[% IF mysql_server_info.data.is_remote %]
+    <div class="section">
+        <h2 id="hdrRemoteHost">
+            [% locale.maketext("Remote MySQL Host") %]
+        </h2>
+        <p id="mysqlAddrInformationMsg">
+            [% locale.maketext("The mysql server’s address is [output,stron,_1].", mysql_server_info.data.host ) %]
+            [% locale.maketext("When connecting to the mysql server you must specify this host.") %]
+        </p>
+    </div>
+[% END %]
+
+[% IF !(CPANEL.CPVAR.item('mysql_number_of_dbs') == "0") %]
+    <div class="section">
+        <h2 id="hdrModifyDb">
+            [% locale.maketext("Modify Databases") %]
+        </h2>
+        <form method="post" action="checkdb.html" name="checkform">
+            <div class="form-group">
+                <label id="lblCheckDb" for="checkdb">
+                    [% locale.maketext("Check Database") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="db" id="checkdb" class="form-control">
+                            [% list_dbs_opts %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="btnCheckDb" type="submit" value="[% locale.maketext("Check Database") %]" class="btn btn-primary" />
+                    </div>
+                </div>
+            </div>
+        </form>
+        <form method="post" action="repairdb.html" name="checkform">
+            <div class="form-group">
+                <label id="lblRepairDb" for="repairdb">
+                    [% locale.maketext("Repair Database") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="db" id="repairdb" class="form-control">
+                            [% list_dbs_opts %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="btnRepairDb" type="submit" value="[% locale.maketext("Repair Database") %]" class="btn btn-primary" />
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+[% END %]
+
+    <div class="section">
+        <h2 id="hdrCurrentDbs">
+            [% locale.maketext("Current Databases") %]
+        </h2>
+
+        <div class="search-panel">
+            <form method="get" action="">
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-xs-8 col-sm-6 col-md-6 col-lg-6">
+                            <input id="txtSearchRegex" type="text" class="form-control" size="15" name="searchregex" value="[% FORM.item('searchregex') %]" placeholder="[% locale.maketext("Search")  %]"/>
+                        </div>
+                        <div class="col-xs-4">
+                            <input id="btnSearchGo" type="submit" class="btn btn-primary" value="[% locale.maketext("Go") %]" />
+                            <input id="hidSearchItemsPerPage" type="hidden" name="itemsperpage" value="[% CPANEL.CPVAR.item('itemsperpage').html() %]" />
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <table id="sql_db_tbl" class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Database") %]</th>
+                    <th>[% locale.maketext("Size") %]</th>
+                    <th>[% locale.maketext("Privileged Users") %]</th>
+                    <th class="sorttable_nosort">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF databases.size();
+                FOREACH db_info IN databases %]
+                <tr>
+                    <td data-title="[% locale.maketext('Database') %]">[% db_info.db.html() %]</td>
+                    <td data-title="[% locale.maketext('Size') %]">[% db_info.sizemeg.html() %] [% locale.maketext("MB") %]</td>
+                    <td data-title="[% locale.maketext('Privileged Users') %]">
+                    [% FOREACH user IN db_info.item('userlist'); %]
+                        <table class="sql">
+                            <tr>
+                                <td class="nobrd">
+                                    <a title="[% locale.maketext('Manage Privileges') %]" href="userrights/?user=[% user.user FILTER uri %]&amp;db=[% user.db FILTER uri %]">
+                                        [% user.user.html %]
+                                    </a>
+                                </td>
+                                <td class="nobrd">
+                                    <a title="[% locale.maketext('Revoke this user’s access to this database.') %]" href="deluserfromdbconfirm.html?user=[% user.user FILTER uri %]&amp;db=[% user.db FILTER uri %]">
+                                    </a>
+                                    <a href="deluserfromdbconfirm.html?user=[% user.user FILTER uri %]&amp;db=[% user.db FILTER uri %]">
+                                    <span class="glyphicon glyphicon-trash"></span>
+                                    </a>
+                                </td>
+                            </tr>
+                        </table>
+                    [% END %]
+                    </td>
+                    <td class="actions" data-title="[% locale.maketext('Actions') %]">
+                        <a class="btn btn-link" title="[% locale.maketext('Rename this database.') %]" href="javascript:void(0)" onclick='SQLUI.show_rename_form("db",this,[% db_info.db.json().html() %])'>
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext('Rename') %]
+                        </a>
+                        <a class="btn btn-link" title="[% locale.maketext('Delete this database.') %]" href="deldbconfirm.html?db=[% db_info.db.uri() %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext('Delete') %]
+                        </a>
+                    </td>
+                </tr>
+                [%  END %]
+            [% ELSE %]
+                <tr>
+                    <td id="mysqlNoDbsError" class="empty-row info" colspan="4">
+                        [% IF FORM.item('searchregex') %]
+                        <span id="mysqlNoDbsErrorMsg">[% locale.maketext("No databases found.") %]</span>
+                        [% ELSE %]
+                        <span id="mysqlNoDbsErrorMsg">[% locale.maketext("There are no databases associated with your account.") %]</span>
+                        [% END %]
+                    </td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+
+        [% INCLUDE _assets/paginate.html.tt %]
+
+    </div>
+
+    <div class="clearfix">
+        <a name="mysqlusers" id="mysqlusers"></a>
+        <div class="pull-right">
+            <img id="imgJumpDbs" src="../images/arrow-up.gif" alt="jump-up" class="jump-up" />
+            <a id="lnkJumpDbs" href="#mysqldbs">[% locale.maketext("Jump to MySQL Databases") %]</a>
+        </div>
+    </div>
+    <div class="section">
+        <h2 id="hdrMysqlUsers">
+            [% locale.maketext("MySQL Users") %]
+        </h2>
+
+        <form method="post" action="adduser.html" name="userform" id="userform">
+            <!-- prevent password autofill -->
+            <input type="text" style="display:none">
+            <input type="password" autocomplete='off' style="display:none">
+            <div class="formbox">
+                <h2 id="hdrAddUser">
+                    [% locale.maketext("Add New User") %]
+                </h2>
+                <div class="form-group">
+                    <label id="lblUsername" for="user">
+                        [% locale.maketext("Username") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            [% IF dbownerprefix %]
+                            <div class="input-group">
+                                <span class="input-group-addon">
+                                    [% dbownerprefix %]
+                                </span>
+                                <input type="text" class="form-control" size="[% CpanelDB.MAX_MYSQL_DBUSER_LENGTH %]" name="user" id="user" maxlength=[% user_max_length %] />
+                            </div>
+                            [% ELSE %]
+                            <input type="text" class="form-control" size="[% CpanelDB.MAX_MYSQL_DBUSER_LENGTH %]" name="user" id="user" maxlength=[% user_max_length %] />
+                            [% END %]
+                        </div>
+                        <div id="user_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblPassword" for="password">
+                        [% locale.maketext("Password") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input size="15" type="password" autocomplete='off' name="pass" id="password" class="form-control"/>
+                        </div>
+                        <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblPassword2" for="password2">
+                        [% locale.maketext("Password (Again)") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input type="password" autocomplete='off' size="15" name="pass2" id="password2" class="form-control"/>
+                        </div>
+                        <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblStrength">
+                        [% locale.maketext("Strength") %]
+                        <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                    </label>
+                    [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <div id="password_strength" class="password_strength"></div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input type="button" id="create_strong_password"
+                                class="btn btn-default" value="[% locale.maketext("Password Generator") %]"
+                                tabindex="-1" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="submit" value="[% locale.maketext("Create User") %]" class="btn btn-primary" id="submit_new_user" />
+                </div>
+            </div>
+        </form>
+    </div>
+
+    [% IF (!( (CPANEL.CPVAR.item('mysql_number_of_users')) == "0") && !( (CPANEL.CPVAR.item('mysql_number_of_dbs')) == "0")) %]
+    <div class="section">
+        <form method="post" action="userrights/" name="dbuserform" style="margin-top:25px;">
+            <h2 id="hdrAddUserToDb">[% locale.maketext("Add User To Database") %]</h2>
+            <div class="form-group">
+                <label id="lblAddUserUser" for="add_user_users">
+                    [% locale.maketext("User") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="user" id="add_user_users" class="form-control">
+                            [% Api1.pre_exec("Mysql", "listusersopt") ;   Api1.exec("Mysql", "listusersopt", [undef]) ;  Api1.post_exec("Mysql", "listusersopt") %]
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblAddUserDb" for="add_user_dbs">
+                    [% locale.maketext("Database") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="db" id="add_user_dbs" class="form-control">
+                            [% Api1.pre_exec("Mysql", "listdbsopt") ;   Api1.exec("Mysql", "listdbsopt", [undef]) ;  Api1.post_exec("Mysql", "listdbsopt") %]
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="btnAddUserToDb" type="submit" value="[% locale.maketext("Add") %]" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+    [% END %]
+
+    <div class="section">
+        <h2 id="hdrCurrentUsers">[% locale.maketext("Current Users") %]</h2>
+        <table  class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Users") %]</th>
+                    <th class="sorttable_nosort" colspan="2">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF listusers.size; %]
+                [% FOREACH user IN listusers; %]
+                <tr>
+                    <td data-title="[% locale.maketext('Users') %]">[% user.user.html() %]</td>
+                    <td class="actions" data-title="[% locale.maketext('Actions') %]">
+                        <a class="btn btn-link" title="[% locale.maketext('Give this user a new password.') %]" href="changepasswd.html?user=[% user.user.uri() %]">
+                            <span class="fas fa-key"></span>
+                            [% locale.maketext('Change Password') %]
+                        </a>
+                        <a class="btn btn-link" title="[% locale.maketext('Rename this user.') %]" href="javascript:void(0)" onclick='SQLUI.show_rename_form("user",this,[% user.user.json() %])'>
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext('Rename') %]
+                        </a>
+                        <a class="btn btn-link" title="[% locale.maketext('Delete this user.') %]" href="deluserconfirm.html?user=[% user.user.uri() %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext('Delete') %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td class="empty-row info" colspan="2">
+                        [% locale.maketext("There are no users associated with your account.") %]
+                    </td>
+                </tr>
+            [% END %]
+        </tbody>
+    </table>
+</div>
+
+[% PROCESS '_assets/_ajaxapp_footer.html.tt' -%]
+
+<style type="text/css">
+td.actions {
+    white-space: nowrap;
+}
+</style>
+
+[% PROCESS 'sqlui.tmpl'
+    db_engine => 'mysql',
+-%]
+
+[% END %]
+
+[% BLOCK js_block %]
+
+    [% IF mysql_server_info.data.version %]
+        <script type="text/javascript">
+            var dbprefix = [% JSON.stringify(dbownerprefix) -%];
+            var SERVER_USES_PREFIXING = !!dbprefix;
+
+            var DB_MAX_LENGTH = SERVER_USES_PREFIXING ? ( 64-(dbprefix.length) ) : ( 64 );
+
+            var MYSQL_SERVER_VERSION = [% JSON.stringify(mysql_server_info.data.version) -%];
+
+        [% IF !statsbar_mysqldatabases_maxed %]
+            /**
+            * Initialize the validation for the database form.
+            */
+            var init_newdb_validation = function() {
+                var dbname_validator = new CPANEL.validate.validator("New Database");
+
+                dbname_validator.add_thrower( "dbname", function(el) {
+                    return CPANEL.sql.verify_mysql_database_name(el.value)
+                } );
+                dbname_validator.attach();
+
+                CPANEL.validate.attach_to_form("submit_dbname", dbname_validator);
+            };
+            YAHOO.util.Event.onDOMReady(init_newdb_validation);
+        [% END %]
+            var REQUIRED_PASSWORD_STRENGTH = Number([% required_strength.json() %]) || 0;
+            var hasPrefix = parseInt([% dbprefix.json() %], 10) ? true: false;
+            var max_length = [% user_max_length %];
+
+            /**
+             * Validate that the user name does not start with a number.
+             * Only used when database prefixing is turned off.
+             * @return {Boolean} false the user name starts with a number, true otherwise.
+             */
+            var leadingnumeric = function() {
+                val = document.getElementById('user').value;
+                if (/^\d/.test(val)) {
+                    return false
+                }
+                return true;
+            }
+
+            /**
+             * Initialize the user name validation
+             */
+            var init_user_validation = function() {
+                var user_validator = new CPANEL.validate.validator("MySQL Username");
+                user_validator.add("user", "sql_alphanumeric", '[% locale.maketext("Username must be alphanumeric characters.")  %]');
+                if (!hasPrefix) {
+                   user_validator.add("user", leadingnumeric, '[% locale.maketext("Username cannot begin with a number.")  %]');
+                }
+                user_validator.add("user", "max_length(%input%, " + max_length + ")", LOCALE.maketext('Username cannot be longer than [quant,_1,character,characters].', max_length) );
+                user_validator.attach();
+
+                var password_validators = CPANEL.password.setup("password", "password2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+                password_validators.push(user_validator);
+                CPANEL.validate.attach_to_form("submit_new_user", password_validators);
+            };
+
+            YAHOO.util.Event.onDOMReady(init_user_validation);
+        </script>
+    [% END %]
+
+[% END %]

@@ -1,0 +1,76 @@
+
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    IF (ExpVar.expand('$appname') == "webmail") && !FORM.item('account');
+        SET FORM.item('account') = CPANEL.authuser;
+    END;
+
+IF (FORM.item('form') == "verify.txt");
+    SET editing_file = "verify.txt";
+END;
+IF (FORM.item('form') == "blacklist.txt");
+    SET editing_file = "blacklist.txt";
+END;
+IF (FORM.item('form') == "returnverify.txt");
+    SET editing_file = "returnverify.txt";
+END;
+IF (FORM.item('form') == "verifyreleased.txt");
+    SET editing_file = "verifyreleased.txt";
+END;
+%]
+
+[%
+    Api1.pre_exec("BoxTrapper", "editmsg");
+    SET edit_msg = Api1.exec("BoxTrapper", "editmsg", [RAW_FORM.item("account"), RAW_FORM.item("form")]);
+    Api1.post_exec("BoxTrapper", "editmsg");
+
+    Api1.pre_exec("BoxTrapper", "fetchcfgfile");
+    SET fetch_cfg_file = Api1.exec("BoxTrapper", "fetchcfgfile", [RAW_FORM.item("account"), "msg", RAW_FORM.item("form")]);
+    Api1.post_exec("BoxTrapper", "fetchcfgfile");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+%]
+<div class="body-content">
+
+
+    <div class="section">
+        <h2 id="descBoxtrapperMessage">
+            [% locale.maketext("[asis,BoxTrapper] message for “[output,class,_1,status]”.", FORM.item('account')) %]
+        </h2>
+
+        <p id="descEditingMsg">
+            [% locale.maketext("When editing the verify message, you must leave “verify#%msgid%” in the subject line exactly as it appears. If you change this part of the subject line, BoxTrapper will not function correctly.")  %]
+        </p>
+        [% edit_msg %]
+        <form action="savefile.html" method="post">
+            <input id="hidAccount" type="hidden" name="account" value="[% FORM.item('account') %]">
+            <input id="hidFileType" type="hidden" name="filetype" value="msg">
+            <input id="hidDir" type="hidden" name="dir" value="[% FORM.item('emaildir') %]">
+            <input id="hidFile" type="hidden" value="[% FORM.item('form') %]" name="file">
+
+            <div class="form-group">
+                <label id="lblConfig" for="txtConfigFile">
+                    [% locale.maketext("You are editing: [output,strong,_1]", editing_file) %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <textarea id="txtConfigFile" name="page" rows="20" class="form-control">[% fetch_cfg_file %]</textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="btnSave" type="submit" value="[% locale.maketext("Save") %]" class="btn btn-primary">
+            </div>
+
+        </form>
+</div>
+
+[%
+    SET return_link = 'editmsgs.html?account=' _ FORM.account.uri();
+    INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back')
+%]
+</div>
+[% END %]

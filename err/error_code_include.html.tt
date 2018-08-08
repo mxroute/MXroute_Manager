@@ -1,0 +1,190 @@
+[%
+    SET docroot = Api2.exec("DomainLookup" , "getdocroot" , {"domain" =>FORM.domain}).0.docroot;
+%]
+<div class="tab-pane active" id="tab1">
+    <p id="error1p">[% locale.maketext("Click one of the common error pages below to edit:") %]</p>
+
+    <ul class="list-unstyled errorpagelist" id="error1">
+        <li>
+            <a id="lnkEdit400" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=400.shtml&desc=[% locale.maketext("(Bad request)") %]">
+                [% locale.maketext("[output,strong,400] (Bad request)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnkEdit401" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=401.shtml&desc=[% locale.maketext("(Authorization required)") %]">
+                [% locale.maketext("[output,strong,401] (Authorization required)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnkEdit403" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=403.shtml&desc=[% locale.maketext("(Forbidden)") %]">
+                [% locale.maketext("[output,strong,403] (Forbidden)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnkEdit404" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=404.shtml&desc=[% locale.maketext("(Not found)") %]">
+                [% locale.maketext("[output,strong,404] (Not found)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnkEdit500" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=500.shtml&desc=[% locale.maketext("(Internal server error)") %]">
+                [% locale.maketext("[output,strong,500] (Internal server error)") %]
+            </a>
+        </li>
+    </ul>
+</div>
+<div class="tab-pane" id="tab2">
+    <p>[% locale.maketext("Click one of the error pages below to edit:") %]</p>
+
+    <ul class="list-unstyled errorpagelist">
+        <li>
+            <a id="lnk400" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=400.shtml&desc=[% locale.maketext("(Bad request)") %]">
+                [% locale.maketext("[output,strong,400] (Bad request)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk401" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=401.shtml&desc=[% locale.maketext("(Authorization required)") %]">
+                [% locale.maketext("[output,strong,401] (Authorization required)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk402" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=402.shtml&desc=[% locale.maketext("(Payment required)") %]">
+                [% locale.maketext("[output,strong,402] (Payment required)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk403" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=403.shtml&desc=[% locale.maketext("(Forbidden)") %]">
+                [% locale.maketext("[output,strong,403] (Forbidden)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk404" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=404.shtml&desc=[% locale.maketext("(Not found)") %]">
+                [% locale.maketext("[output,strong,404] (Not found)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk405" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=405.shtml&desc=[% locale.maketext("(Method not allowed)") %]">
+                [% locale.maketext("[output,strong,405] (Method not allowed)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk406" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=406.shtml&desc=[% locale.maketext("(Not acceptable)") %]">
+                [% locale.maketext("[output,strong,406] (Not acceptable)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk407" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=407.shtml&desc=[% locale.maketext("(Proxy authentication required)") %]">
+                [% locale.maketext("[output,strong,407] (Proxy authentication required)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk408" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=408.shtml&desc=[% locale.maketext("(Request timeout)") %]">
+                [% locale.maketext("[output,strong,408] (Request timeout)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk409" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=409.shtml&desc=[% locale.maketext("(Conflict)") %]">
+                [% locale.maketext("[output,strong,409] (Conflict)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk410" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=410.shtml&desc=[% locale.maketext("(Gone)") %]">
+                [% locale.maketext("[output,strong,410] (Gone)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk411" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=411.shtml&desc=[% locale.maketext("(Length required)") %]">
+                [% locale.maketext("[output,strong,411] (Length required)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk412" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=412.shtml&desc=[% locale.maketext("(Precondition failed)") %]">
+                [% locale.maketext("[output,strong,412] (Precondition failed)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk413" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=413.shtml&desc=[% locale.maketext("(Request entity too large)") %]">
+                [% locale.maketext("[output,strong,413] (Request entity too large)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk414" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=414.shtml&desc=[% locale.maketext("(Request URI too large)") %]">
+                [% locale.maketext("[output,strong,414] (Request URI too large)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk415" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=415.shtml&desc=[% locale.maketext("(Unsupported media type)") %]">
+                [% locale.maketext("[output,strong,415] (Unsupported media type)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk416" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=416.shtml&desc=[% locale.maketext("(Request range not satisfiable)") %]">
+                [% locale.maketext("[output,strong,416] (Request range not satisfiable)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk417" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=417.shtml&desc=[% locale.maketext("(Expectation failed)") %]">
+                [% locale.maketext("[output,strong,417] (Expectation failed)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk422" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=422.shtml&desc=[% locale.maketext("(Unprocessable entity)") %]">
+                [% locale.maketext("[output,strong,422] (Unprocessable entity)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk423" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=423.shtml&desc=[% locale.maketext("(Locked)") %]">
+                [% locale.maketext("[output,strong,423] (Locked)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk424" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=424.shtml&desc=[% locale.maketext("(Failed dependency)") %]">
+                [% locale.maketext("[output,strong,424] (Failed dependency)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk500" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=500.shtml&desc=[% locale.maketext("(Internal server error)") %]">
+                [% locale.maketext("[output,strong,500] (Internal server error)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk501" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=501.shtml&desc=[% locale.maketext("(Not Implemented)") %]">
+                [% locale.maketext("[output,strong,501] (Not Implemented)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk502" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=502.shtml&desc=[% locale.maketext("(Bad gateway)") %]">
+                [% locale.maketext("[output,strong,502] (Bad gateway)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk503" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=503.shtml&desc=[% locale.maketext("(Service unavailable)") %]">
+                [% locale.maketext("[output,strong,503] (Service unavailable)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk504" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=504.shtml&desc=[% locale.maketext("(Gateway timeout)") %]">
+                [% locale.maketext("[output,strong,504] (Gateway timeout)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk505" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=505.shtml&desc=[% locale.maketext("(HTTP version not supported)") %]">
+                [% locale.maketext("[output,strong,505] (HTTP version not supported)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk506" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=506.shtml&desc=[% locale.maketext("(Variant also negotiates)") %]">
+                [% locale.maketext("[output,strong,506] (Variant also negotiates)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk507" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=507.shtml&desc=[% locale.maketext("(Insufficient storage)") %]">
+                [% locale.maketext("[output,strong,507] (Insufficient storage)") %]
+            </a>
+        </li>
+        <li>
+            <a id="lnk510" href="erredit.html?dir=[% docroot | url %]/&domain=[% RAW_FORM.domain.uri() %]&file=510.shtml&desc=[% locale.maketext("(Not extended)") %]">
+                [% locale.maketext("[output,strong,510] (Not extended)") %]
+            </a>
+        </li>
+    </ul>
+</div>

@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 48 48" style="enable-background:new 0 0 48 48;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#E0E0E0;}
+	.st1{fill:#262626;}
+	.st2{fill:#4F5B94;}
+	.st3{fill:#15587C;}
+	.st4{fill:none;}
+	.st5{fill:#BCBCBC;}
+	.st6{fill:#FFFFFF;}
+	.st7{fill:#D34231;}
+	.st8{fill:#666666;}
+	.st9{fill:#EDA72B;}
+	.st10{fill:#25323C;}
+	.st11{fill:#336792;}
+	.st12{fill:#32415B;}
+	.st13{fill:#84B556;}
+	.st14{fill:#6A9638;}
+	.st15{fill:#189BD8;}
+	.st16{fill:#BA342A;}
+	.st17{fill:#FF6C2C;}
+	.st18{fill:#8892BF;}
+	.st19{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:0.25;stroke-miterlimit:10;}
+	.st20{fill:#FFFFFF;stroke:#FFFFFF;stroke-miterlimit:10;}
+	.st21{fill:#FF6A1A;}
+	.st22{fill:#00AA17;}
+	.st23{fill:#FA741D;}
+	.st24{fill:none;stroke:#15587C;stroke-miterlimit:10;}
+	.st25{fill:none;stroke:#15587C;stroke-width:1.5;stroke-miterlimit:10;}
+	.st26{fill:none;stroke:#BA342A;stroke-width:5;stroke-miterlimit:10;}
+	.st27{fill:#000004;}
+	.st28{fill:#000004;stroke:#FFFFFF;stroke-width:0.5;stroke-miterlimit:10;}
+	.st29{fill:#017F00;}
+	.st30{fill:none;stroke:#BCBCBC;stroke-miterlimit:10;}
+	.st31{fill:#39FF2A;}
+	.st32{fill:#FF00B3;}
+	.st33{fill:#4DFF00;}
+	.st34{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:1.5;stroke-miterlimit:10;}
+	.st35{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:0.5;stroke-miterlimit:10;}
+	.st36{fill:#FFFFFF;stroke:#BCBCBC;stroke-miterlimit:10;}
+</style>
+<g id="Layer_1">
+	<g>
+		<g>
+			<path class="st5" d="M31.912,15.736v-3.78V9.868C31.912,8.836,31.076,8,30.044,8H1.868C0.836,8,0,8.836,0,9.868v2.088V27.67
+				v5.824h2.297c0.577-3.027,3.236-5.316,6.432-5.316c3.195,0,5.855,2.289,6.432,5.316h16.751V27.67V15.736z"/>
+			<path class="st8" d="M48,23.868c0,0-2.462-5.099-3.341-6.683s-2.286-1.449-2.286-1.449H31.912V27.67v5.824h0.469
+				c0.577-3.027,3.236-5.316,6.432-5.316s5.855,2.289,6.432,5.316H48V23.868z"/>
+			<circle class="st8" cx="38.911" cy="35.093" r="5.109"/>
+			<circle class="st8" cx="8.729" cy="35.093" r="5.109"/>
+			<circle class="st0" cx="8.781" cy="35.041" r="2.408"/>
+			<circle class="st0" cx="38.911" cy="35.041" r="2.408"/>
+			<path class="st6" d="M35.824,18.044h5.846c0,0,0.615-0.088,1.143,0.967c0.527,1.055,1.934,3.868,1.934,3.868v2.352l-4.462-0.022
+				l-1.78-2.066h-3.341v-5.101L35.824,18.044z"/>
+		</g>
+		<path class="st3" d="M24.823,17.119c-3.103-2.069-5.726-0.938-5.726-0.938s-1.275,0.601-2.358,1.584
+			c-1.083,0.982-2.069,0.004-2.069,0.004c-2.213-2.141-4.33-1.901-4.33-1.901c-3.609,0.096-6.76,3.801-6.76,3.801
+			s1.01,0.842,3.368,3.561c2.358,2.719,4.33,2.307,4.33,2.307c1.492,0.166,3.176-1.802,3.176-1.802
+			c1.299-1.01,2.574,0.096,2.574,0.096s0.842,1.468,2.911,1.684c2.069,0.217,3.32-1.275,3.32-1.275l4.499-4.571
+			C26.675,18.491,24.823,17.119,24.823,17.119z M11.07,21.817c-1.54-0.072-2.285-1.443-2.285-1.443s0.842-1.371,2.358-1.347
+			s2.526,1.588,2.526,1.588S12.61,21.889,11.07,21.817z M20.183,21.817c-1.54,0.072-2.598-1.203-2.598-1.203s1.01-1.564,2.526-1.588
+			c1.516-0.024,2.358,1.347,2.358,1.347S21.723,21.745,20.183,21.817z"/>
+	</g>
+</g>
+<g id="remote_x5F_mysql">
+</g>
+<g id="addon_x5F_domains">
+</g>
+<g id="mysql_x5F_database_x5F_wizard">
+</g>
+<g id="multiphp_x5F_ini_x5F_editor">
+</g>
+</svg>

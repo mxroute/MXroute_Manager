@@ -1,0 +1,12 @@
+[%
+    USE Mysql;
+
+    SET mysql_version = Mysql.mysqlversion();
+%]
+
+[% IF Mysql.show_update_warning %]
+    <div id="mysqlVersionError" class="alert alert-danger">
+        <span id="mysqlErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="mysqlErrorMsg">[% locale.maketext('This server is running an unsupported MySQL version ([_1]). Ask your system administrator to upgrade MySQL to improve security and features.', mysql_version) %]</span>
+    </div>
+[% END %]

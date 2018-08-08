@@ -1,0 +1,2 @@
+[% PROCESS _ajaxapp_header.tmpl %]
+[% PROCESS _ajaxapp_footer.tmpl %]

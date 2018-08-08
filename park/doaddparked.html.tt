@@ -1,0 +1,35 @@
+[%
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+Api1.pre_exec("Park", "park");
+SET resp = Api1.exec("Park", "park", [RAW_FORM.domain]);
+Api1.post_exec("Park", "park");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'aliases'
+ -%]
+
+<div class="body-content">
+    [% IF !CPANEL.CPERROR.park %]
+    <div class="alert alert-success" id="parkSuccess">
+        <span class="glyphicon glyphicon-ok-sign" id="parkSuccessImg"></span>
+        <span class="alert-message" id="parkSuccessMsg">
+            [% locale.maketext("You successfully created the alias, “[_1]”.", FORM.domain) %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div class="alert alert-danger" id="parkError">
+        <span class="glyphicon glyphicon-remove-sign" id="parkErrorImg"></span>
+        <span class="alert-message" id="parkErrorMsg">
+            [% locale.maketext("There was an error when the system attempted to create the alias.") %]
+            [% CPANEL.CPERROR.park.html %]
+        </span>
+    </div>
+[% END %]
+
+[% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

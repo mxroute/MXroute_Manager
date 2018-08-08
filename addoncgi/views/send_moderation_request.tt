@@ -1,0 +1,19 @@
+<h4>
+[% locale.maketext('Preparing your moderation request…') %]
+</h4>
+[% IF !notices.has() %]
+<p>
+    [% locale.maketext('The system successfully sent the moderation request for [_1].', module.display_app_name.html()) %]
+</p>
+[% ELSE %]
+    [% PROCESS 'addoncgi/views/notices.tt' notices %]
+[% END %]
+
+<p align="center" id="back">
+    [% SET back_url = to_uri(environment, 'addon=' _ module.name) %]
+    [<a href="[% back_url | url %]">[% locale.maketext('Back') %]</a>]
+</p>
+<p align="center" id="home">
+    [% SET home_url = to_uri(environment) %]
+    [<a href="[% home_url | url %]">[% locale.maketext('Home') %]</a>]
+</p>

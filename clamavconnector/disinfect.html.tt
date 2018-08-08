@@ -1,0 +1,95 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'virus_scanner'
+    page_js = js_code
+-%]
+<div class="body-content">
+    <h2>[% locale.maketext("Cleanup Process") %]</h2>
+
+    <div class="section">
+        <form action="dodisinfect.html" method="post" onsubmit="window.onbeforeunload=function () {}">
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>[% locale.maketext("File") %]</th>
+                        <th>[% locale.maketext("Virus") %]</th>
+                        <th id='disinfectLabel'>[% locale.maketext("Disinfect") %] *</th>
+                        <th>[% locale.maketext("Quarantine") %]</th>
+                        <th>[% locale.maketext("Destroy") %]</th>
+                        <th>[% locale.maketext("Ignore") %]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    [%
+                        Api1.pre_exec("ClamScanner", "disinfectlist");
+                        Api1.exec("ClamScanner", "disinfectlist", [undef]);
+                        Api1.post_exec("ClamScanner", "disinfectlist")
+                    %]
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>&nbsp;</th>
+                        <th>&nbsp;</th>
+                        <th id='disinfectButton'>
+                            <input type='button' class="btn btn-default" value='Select All' onclick='selectAll("x")' id="btnDisinfect" />
+                        </th>
+                        <th>
+                            <input type='button' class="btn btn-default" value='[% locale.maketext("Select All") %]' onclick='selectAll("q")' id="btnAllQ" />
+                        </th>
+                        <th>
+                            <input type='button' class="btn btn-default" value='[% locale.maketext("Select All") %]' onclick='selectAll("d")' id="btnAllD" />
+                        </th>
+                        <th>
+                            <input type='button' class="btn btn-default" value='[% locale.maketext("Select All") %]' onclick='selectAll("i")' id="btnAllI" />
+                        </th>
+                    </tr>
+                </tfoot>
+            </table>
+            <input type="submit" class="btn btn-primary" value="[% locale.maketext("Process Cleanup") %]" onclick="removeOnload()" id="btnProcess" />
+        </form>
+    </div>
+
+    <div id="mailboxNotice">* [% locale.maketext("Only mailboxes can be disinfected.") %]</div>
+
+</div><!-- end body-content -->
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    // cleanup the table
+    var cells = document.getElementsByTagName('td');
+    var disinfect = 0;
+    for (var i=0; i<cells.length; i++) {
+        if (cells[i].firstChild) {
+            if (/input/i.test(cells[i].firstChild.tagName)) {
+                if (/x/i.test(cells[i].firstChild.value)) disinfect++;
+            }
+        }
+    }
+    if (!disinfect) {
+        document.getElementById('disinfectButton').innerHTML='&nbsp;';
+        document.getElementById('disinfectLabel').innerHTML='&nbsp;';
+        document.getElementById('mailboxNotice').innerHTML='&nbsp;';
+    }
+
+    var selectAll = function (v) {
+       var cells = document.getElementsByTagName('input');
+       for (var i=0; i<cells.length; i++) {
+            if (cells[i].value==v) {
+                cells[i].checked=true;
+            }
+        }
+    }
+
+    window.onbeforeunload = function () {
+        return "[% locale.maketext('You should not leave this page without hitting the “[_1]” button!', locale.maketext('Process Cleanup')) %]\n\n[% locale.maketext('Please press the “[_1]” button.', locale.maketext('Cancel')) %]";
+    }
+
+    var removeOnload = function () {
+       window.onbeforeunload = null;
+    }
+</script>
+[% END %]
+

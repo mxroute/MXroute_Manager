@@ -1,0 +1,39 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.headerimg = "../images/topsubdomains.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+SET subdomain_delete_subdomain =  Api2.exec("SubDomain", "delsubdomain", {"domain"=>FORM.domain} ).0;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'subdomains'
+ -%]
+
+<div class="body-content">
+
+    [% IF (!( CPANEL.CPERROR.subdomain) && !( CPANEL.CPERROR.addondomain)) %]
+        <div id="deleteSuccess" class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                <strong>[% locale.maketext("Success:") %]</strong>
+                [% locale.maketext("The subdomain “[_1]” has been successfully removed.", FORM.domain.split('_').item(0) _ '.' _ FORM.domain.split('_').item(1)) %]
+            </div>
+        </div>
+    [% END %]
+    [% IF (CPANEL.CPERROR.subdomain || CPANEL.CPERROR.addondomain) %]
+        <div id="deleteError" class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("There was a problem removing the subdomain “[_1]”.", FORM.domain.split('_').item(0) _ '.' _ FORM.domain.split('_').item(1)) %]
+                <div>
+                    [% CPANEL.CPERROR.subdomain.html _ " " _ CPANEL.CPERROR.addondomain.html %]
+                </div>
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

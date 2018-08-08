@@ -1,0 +1,437 @@
+[%
+    USE JSON;
+    USE Api2;
+
+    # list domains
+    Api2.pre_exec("Email", "listmaildomains");
+    SET domains_response = Api2.exec("Email", "listmaildomains", {} );
+    Api2.post_exec("Email", "listmaildomains");
+
+    PROCESS '_assets/resource_usage_macro.html.tt';
+%]
+
+[% CPANEL.CPVAR.dprefix = '../' %]
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = "ftp_accounts"
+    feature = "ftpaccts"
+    page_js = js_code
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_scripts = CPANEL.is_debug_mode_enabled() ?
+        [ 'libraries/handlebars/handlebars.js', 'js2/ftp/list_ftp.js' ] :
+        [ 'libraries/handlebars/handlebars.min.js', 'js2-min/ftp/list_ftp.js' ]
+    page_stylesheets = [ "css2-min/ftp.css" ]
+-%]
+
+
+
+
+<div class="body-content">
+    <p class="description" id="descFtpAccounts">
+        [% locale.maketext("Add and configure FTP Accounts to get your website on the internet fast.") %]
+        [% locale.maketext("FTP allows you to manage the files that are associated with your website through an FTP client such as [output,url,_1,FileZilla,target,_2,id,_3].", "//filezilla-project.org", "_blank", "lnkFilezillaDocumentation") %]
+        [% locale.maketext("For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/FtpAccounts", "_blank", "lnkFtpAccountsDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2>[% locale.maketext("Add FTP Account") %]</h2>
+        <script type="text/javascript">
+        var FTP_ACCOUNTS_MAXED = false;
+        </script>
+
+        [%
+            # Note: a MACRO was not used here because we need to be able
+            # to access resource_usage_limits after the block runs
+            SET resource_usage_key = 'ftpaccounts';
+            SET resource_usage_percent_used_to_warn = 80;
+            PROCESS resource_usage_block;
+             IF resource_usage_limits && resource_usage_limits.is_maxed;
+              SET accounts_maxed = 1;
+        %]
+              <script type="text/javascript">
+              FTP_ACCOUNTS_MAXED = true;
+              </script>
+              <style type="text/css">
+              .highlight {display:none;}
+              </style>
+
+        [% END -%]
+
+        <div id="new_ftp_account_input_div"
+            [% IF accounts_maxed %]
+                hidden
+            [% END %]>
+            <div class="form-group">
+                <label for="login">
+                    [% locale.maketext("Log In") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="login" id="login" onchange="updatedir()" />
+                            [% IF domains_response.size() == 1; %]
+                            <span id="spanAddEmailAccountDomains" class="input-group-addon">
+                                @[%- CPANEL.CPDATA.DNS -%]
+                                <input id="domain" name="domain" type="hidden" value="[%  CPANEL.CPDATA.DNS %]" />
+                            </span>
+                            <span id="domain_error" style="display:none"></span>
+                            [% ELSE %]
+                            <span id="atSign" class="input-group-addon">
+                                @
+                            </span>
+                            [% END %]
+                        </div>
+                    </div>
+                    <div id="login_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            [% IF domains_response.size() > 1 %]
+            <div class="form-group">
+                <label id="lblDomain" for="domain">
+                    [% locale.maketext("Domain")  %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="domain" class="form-control" onchange="updatedir()">
+                            [% IF domains_response.size(); %]
+                                [% FOREACH domain_record IN domains_response; %]
+                                    <option value="[%  domain_record.domain.html() %]">
+                                        [%  domain_record.domain.html() %]
+                                    </option>
+                                [% END %]
+                            [% END %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="domain_error" style="display:none"></div>
+                    </div>
+                </div>
+            </div>
+            [% END %]
+            <div class="form-group">
+                <!-- prevent password autofill -->
+                <input type="text" style="display:none">
+                <input type="password" autocomplete='off' style="display:none">
+                <label for="password">
+                    [% locale.maketext("Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" name="password" id="password" class="form-control"/>
+                    </div>
+                    <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password2">
+                    [% locale.maketext("Password (Again)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' name="password2" id="password2" class="form-control"/>
+                    </div>
+                    <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                    <label for="password_strength">
+                        [% locale.maketext("Strength") %]
+                        <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                    </label>
+                    [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <div id="password_strength" class="password_strength"></div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input type="button" id="create_strong_password" class="btn btn-default" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                        </div>
+                    </div>
+            </div>
+            <div class="form-group">
+                [% CPANEL.CPVAR.autoinput = 'homedir' %]
+                [% CPANEL.CPVAR.autodirsonly = 1 %]
+                [% CPANEL.CPVAR.autofunc = 'dirComplete' %]
+                <label for="[% CPANEL.CPVAR.autoinput %]">
+                    [% locale.maketext("Directory") %]
+                </label>
+                <script type="text/javascript">
+                    function dirComplete(inputObj) {modeddir=1;}
+                </script>
+                [% PROCESS 'autodir/dirbox.html.tt' input_group_addon_text=ExpVar.expand('$homedir') _ "/" %]
+            </div>
+            <div id="add_new_quota_row" class="form-group">
+                <label for="quota">
+                    [% locale.maketext("Quota") %]
+                </label>
+                <div class="row">
+                    <div class="col-sm-6 col-md-3">
+                        <div class="form-inline">
+                            <input type="radio" name="quota" value="250" id="quota_number" onclick="toggle_add_account_quota()" />
+                            <input type="text" class="form-control" id="quota_value" size="7" maxlength="9" value="2000" onclick="toggle_add_account_quota(true)" />
+                            <span>MB</span>
+                        </div>
+                    </div>
+                    <div id="quota_value_error" class="col-sm-6 col-md-9">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-sm-6 col-md-9">
+                        <label class="form-inline">
+                            <input type="radio" name="quota" value="unlimited" id="quota_unlimited" checked="checked" onclick="toggle_add_account_quota()" />
+                            <span>[% locale.maketext("Unlimited") %]</span>
+                        </label>
+                    </div>
+                    <div id="quota_unlimited_error" class="col-sm-6 col-md-9">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="button" class="btn btn-primary" id="ftp_create_submit" value="[% locale.maketext("Create FTP Account") %]" />
+                <div id="add_ftp_status"></div>
+            </div>
+            <div style="height: 5px"></div>
+            <div id="add_ftp_status_bar" class="cjt_status_bar"></div>
+        </div><!-- end highlight -->
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("FTP Accounts") %]</h2>
+        <div class="row">
+            <div class="col-xs-12 col-sm-8">
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-xs-6 col-sm-8">
+                            <input id="search_input" type="text" class="form-control" placeholder="[% locale.maketext("Search") %]" value="" />
+                        </div>
+                        <div class="col-xs-6 col-sm-4">
+                            <input type="submit" id="search_button" class="btn btn-primary" value="[% locale.maketext("Go") %]" onclick="search_accounts()" />
+                            <input type="button" id="clear_search" class="btn btn-primary" value="[% locale.maketext("Clear") %]" style="display: none" onclick="clear_search()" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xs-12 col-sm-4 hidden-xs">
+                <div class="pagination-container">
+                    <div class="page-size">
+                        <label for="items_per_page" class="title">[% locale.maketext('Page Size') %]</label>
+                        <select id="items_per_page" class="form-control" onchange="change_items_per_page()">
+                            <option value="10">10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <table class="nonsortable table responsive-table" id="tblFtpAccounts">
+            <thead>
+                <tr id="pure_table_header">
+                    <th class="col1">
+                        <a id="pure_sort_serverlogin" class="sort-link"
+                            onclick="toggle_sort('serverlogin')"
+                            href="javascript:void(0)">
+                            <span>[% locale.maketext("Log In") %]</span>
+                            <input type="hidden" id="pure_sort_direction_serverlogin" value="asc" />
+                            <span id="pure_sort_direction_serverlogin_img"></span>
+                        </a>
+                    </th>
+                    <th class="col2">
+                        <a id="pure_sort_dir" class="sort-link"
+                            onclick="toggle_sort('dir')"
+                            href="javascript:void(0)">
+                            <span>[% locale.maketext("Path") %]</span>
+                            <input type="hidden" id="pure_sort_direction_dir" value="asc" />
+                            <span id="pure_sort_direction_dir_img"></span>
+                        </a>
+                    </th>
+                    <th class="col3">
+                        <a id="pure_sort_diskused" class="sort-link"
+                            onclick="toggle_sort('diskused')"
+                            href="javascript:void(0)">
+                            <span>[% locale.maketext("Usage") %]</span>
+                            <input type="hidden" id="pure_sort_direction_diskused" value="asc" />
+                            <span id="pure_sort_direction_diskused_img"></span>
+                        </a>
+                        <span>/</span>
+                        <a id="pure_sort_diskquota" class="sort-link"
+                            onclick="toggle_sort('diskquota')"
+                            href="javascript:void(0)">
+                            <span>[% locale.maketext("Quota") %]</span>
+                            <input type="hidden" id="pure_sort_direction_diskquota" value="asc" />
+                            <span id="pure_sort_direction_diskquota_img"></span>
+                        </a>
+                    </th>
+                    <th>
+                        [% locale.maketext("Actions") %]
+                    </th>
+                </tr>
+                <tr style="display: none" id="pro_table_header">
+                    <th class="pro_col1">
+                        <a id="pro_sort_serverlogin" class="sort-link"
+                            onclick="toggle_sort('serverlogin')"
+                            href="javascript:void(0)">
+                            <span>[% locale.maketext("Log In") %]</span>
+                            <input type="hidden" id="pro_sort_direction_serverlogin" value="asc" />
+                            <span id="pro_sort_direction_serverlogin_img"></span>
+                        </a>
+                    </th>
+                    <th class="pro_col2" >
+                        <a id="pro_sort_dir" class="sort-link"
+                            onclick="toggle_sort('dir')"
+                            href="javascript:void(0)">
+                            <span>[% locale.maketext("Path") %]</span>
+                            <input type="hidden" id="pro_sort_direction_dir" value="asc" />
+                            <span id="pro_sort_direction_dir_img"></span>
+                        </a>
+                    </th>
+                    <th >
+                        [% locale.maketext("Actions") %]
+                    </th>
+                </tr>
+            </thead>
+            <tbody id="accounts_div"></tbody>
+        </table>
+        <div id="pagination"></div>
+    </div>
+
+    <div class="section">
+        <h2>
+            [% locale.maketext("Special FTP Accounts") %]
+        </h2>
+        <p>
+            [% locale.maketext("Special FTP Accounts are linked to administrative aspects of your hosting account and cannot be deleted. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/FtpSpecial", "_blank", "lnkFtpSpecialDocumentation") %]
+        </p>
+
+        <table class="nonsortable table responsive-table" id="tblSpecialFtpAccounts">
+            <thead>
+                <tr id="pure_special_table_header">
+                    <th class="special_col1">[% locale.maketext("Type") %]</th>
+                    <th class="special_col2">[% locale.maketext("Log In") %]</th>
+                    <th class="special_col3">[% locale.maketext("Path") %]</th>
+                    <th class="special_col4">[% locale.maketext("Usage") %] / [% locale.maketext("Quota") %]</th>
+                    <th>[% locale.maketext("Actions") %]</th>
+                </tr>
+                <tr style="display: none" id="pro_special_table_header">
+                    <th class="pro_special_col1">[% locale.maketext("Type") %]</th>
+                    <th class="pro_special_col2">[% locale.maketext("Log In") %]</th>
+                    <th class="pro_special_col3">[% locale.maketext("Path") %]</th>
+                    <th>[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody id="special_accounts_div"></tbody>
+        </table>
+
+        <input type="hidden" id="list_of_anonymous_account_ids" value="" />
+
+        <div style="display: none">
+            <div id="special_log_description">
+                [% locale.maketext("Log access accounts allow you to download your website’s raw access logs.") %]
+            </div>
+            <div id="special_anon_description">
+                [% locale.maketext('Anonymous FTP lets users connect to your site without logging in. Anonymous FTP access is controlled through Setup Anonymous FTP Access in the FTP Manager. The existence of an anonymous FTP account does not mean that anonymous access is enabled.') %]
+            </div>
+            <div id="special_main_description">
+                [% locale.maketext("Your main account gives FTP access to all files in your web hosting account.") %]
+            </div>
+        </div>
+    </div>
+
+    [% INCLUDE ftp/change_password.html.tt %]
+    [% INCLUDE ftp/change_quota.html.tt %]
+    [% INCLUDE ftp/delete_account.html.tt %]
+    [% INCLUDE ftp/configure_client.html.tt %]
+
+    [% BLOCK js_block %]
+    <script type="text/javascript">
+
+    var CPANEL_USER = [% CPANEL.user.json() %];
+    var SFTP_PORT = [% execute("SSH", "get_port").data.port %];
+    var FTP_SERVER = 'ftp.[% CPANEL.CPDATA.DNS %]';
+    var FTP_PORT = [% execute("Ftp", "get_port").data.port %];
+    var DNS = '[% CPANEL.CPDATA.DNS %]';
+    var REQUIRED_PASSWORD_STRENGTH = parseInt('[% execute("PasswdStrength", "get_required_strength", { app='ftp' }).data.strength %]') || 0;
+    var LOG_ICON = '[% theme_magic_url("images/logaccess.gif") %]';
+    var MAIN_ICON = '[% theme_magic_url("images/main.gif") %]';
+    var ANON_ICON = '[% theme_magic_url("images/anonymous.gif") %]';
+    var HOME_DIR = '[% ExpVar.expand('$homedir') %]';
+
+    var public_html_only = [% CPANEL.CPCONF.publichtmlsubsonly ? "true" : "false" %];
+
+    var updatedir = function() {
+        suggest_homedir(public_html_only);
+    }
+
+    [% IF ExpVar.expand('$hasdedicatedip') -%]
+    var DEDICATED_IP = true;
+    [% ELSE -%]
+    var DEDICATED_IP = false;
+    [% END -%]
+    var SERVER_TYPE = '[% execute("Ftp", "server_name").data %]';
+    (SERVER_TYPE.search(/pro/i) == -1) ? SERVER_TYPE = "PURE" : SERVER_TYPE = "PRO"; // pro has no quotas
+
+    var LANG = {
+        ftp_login : "[% locale.maketext("FTP Login") %]",
+        ftp_domain : "[% locale.maketext("[asis,FTP] Domain") %]",
+        directory_path : "[% locale.maketext("Directory Path") %]",
+        validation_directory_paths : [% locale.maketext("Directory paths cannot contain the following characters: [output,chr,92] ? % * : | [output,quot] [output,gt] [output,lt]").json %],
+        quota : "[% locale.maketext("Quota") %]",
+        email_quota_number : "[% locale.maketext("Quota must be a positive integer.") %]",
+        no_accounts_found : "[% locale.maketext("No accounts found.") %]",
+        unlimited : "[% locale.maketext("unlimited") %]",
+        change_br_password : "[% locale.maketext('Change Password') %]",
+        change_br_quota : "[% locale.maketext('Change Quota') %]",
+        Delete : "[% locale.maketext("Delete") %]",
+        configure_ftp_client : "[% locale.maketext('Configure FTP Client') %]",
+        paginate_prev : "[% locale.maketext("Prev") %]",
+        paginate_next : "[% locale.maketext("Next") %]",
+        not_applicable : '[% locale.maketext("[output,acronym,N/A,Not Applicable]") | json %]',
+        Password : "[% locale.maketext("Password") %]",
+        Password_again : "[% locale.maketext("Password (Again)") %]",
+        Strength : "[% locale.maketext("Strength") %]",
+        Password_Generator : "[% locale.maketext("Password Generator") %]",
+        Change_Password : "[% locale.maketext("Change Password") %]",
+        FTP_Quota : "[% locale.maketext("FTP Quota") %]",
+        Unlimited : "[% locale.maketext("Unlimited") %]",
+        Change_Quota : "[% locale.maketext("Change Quota") %]",
+        Delete_account : "[% locale.maketext("Delete Account") %]",
+        Delete_Account : "[% locale.maketext("Delete Account") %]",
+        Delete_Account_and_Files : "[% locale.maketext("Delete Account and Files") %]",
+        Manual_Settings : "[% locale.maketext("Manual Settings") %]",
+        FTP_Username : "[% locale.maketext('FTP username') %]",
+        FTP_Server : "[% locale.maketext('FTP server') %]",
+        FTP_Server_Port : "[% locale.maketext('FTP [output,amp] explicit FTPS port') %]",
+        SFTP_Server_Port : "[% locale.maketext('SFTP port') %]",
+        Configuration_Files : "[% locale.maketext("Configuration Files") %]",
+        for_Windows : "[% locale.maketext("For [asis,Windows]") %]",
+        for_Mac : "[% locale.maketext("For [asis,Mac]") %]",
+        Instructions_new_window : "[% locale.maketext("Instructions (new window)") %]",
+        FTP_Configuration_File : "[% locale.maketext("FTP Configuration File") %]",
+        SFTP_Configuration_File : "[% locale.maketext("SFTP Configuration File") %]",
+        quota_positive_integer : "[% locale.maketext("Quota must be a positive integer.") %]",
+        Account_Created : "[% locale.maketext("Account Created") %]",
+        creating_account : "[% locale.maketext("Creating Account …") %]",
+        Changed_Password : "[% locale.maketext("Changed Password") %]",
+        changing_password : "[% locale.maketext("Changing Password …") %]",
+        Changed_Quota : "[% locale.maketext("Changed Quota") %]",
+        changing_quota : "[% locale.maketext("Changing Quota …") %]",
+        deleting_account : "[% locale.maketext("Deleting Account …") %]",
+        deleting_account_and_files : "[% locale.maketext("Deleting Account and Files …") %]",
+        Search_Accounts : "[% locale.maketext("Search Accounts") %]",
+        anon_quotas_share : "[% locale.maketext("Note: all anonymous FTP accounts share the same quota.") %]"
+    };
+
+    </script>
+    [% END %]
+    <span style="position: absolute; left: -5000; top: -5000" id="get_path_width"></span>
+</div><!-- end body-content -->
+
+[% END #wrapper -%]
+

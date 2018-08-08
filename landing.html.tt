@@ -1,0 +1,49 @@
+[%
+    #A generic landing page for a single UAPI call.
+    #
+    #Please do NOT use this unless for some reason you can’t do
+    #an in-page AJAX call.
+    #
+    #Parameters:
+    #   - uapi_module    (for the UAPI call)
+    #   - uapi_func
+    #   - uapi_data      (JSON-encoded)
+    #
+
+    SET api = execute(
+        RAW_FORM.uapi_module,
+        RAW_FORM.uapi_func,    #hack, but this is a landing page, after all
+        JSON.parse( RAW_FORM.uapi_data ),
+    );
+
+
+    # app_key should *never* be allowed to be set by the client, see SEC-405
+    WRAPPER '_assets/master.html.tt'
+        app_key = 'email_accounts'
+    ;
+-%]
+
+<div class="body-content">
+    [% IF api.status %]
+    <div id="success" class="alert alert-success">
+        <span id="successImg" class="glyphicon glyphicon-ok-sign"></span>
+        <span id="successMsg" class="text">
+            [% locale.maketext("Success!") %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="error" class="alert alert-danger">
+        <span id="errorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="errorMsg" class="text">
+            [% FOREACH q = api.errors %]
+                [% q.html() %]
+            [% END %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='javascript:history.go(-1)' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+[% END #wrapper -%]

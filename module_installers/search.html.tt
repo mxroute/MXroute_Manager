@@ -1,0 +1,164 @@
+[%
+USE Api2;
+USE CPScalar;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = "main.html?lang=" _ FORM.lang.uri();
+
+PROCESS 'supported_langs.html.tt';
+SET is_supported = FORM.defined('lang') AND supported_langs.grep('^' _ CPScalar.quotemeta(FORM.lang) _ '$').size;
+IF is_supported;
+    SET lang_mods_get_key_names = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "names"} ).0;
+    SET lang_mods_get_key_name = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "name"} ).0;
+
+    IF FORM.itemsperpage;
+        SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+    END;
+    IF (!FORM.itemsperpage || !CPANEL.CPVAR.itemsperpage);
+        SET CPANEL.CPVAR.itemsperpage = "100";
+    END;
+
+    IF (FORM.searchtype == "0");
+        SET lang_mods_list = Api2.exec("LangMods", "list_available", {
+            "api2_paginate_size" => CPANEL.CPVAR.itemsperpage,
+            "want" => "32768",
+            "skip" => FORM.skip,
+            "lang" => FORM.lang,
+            "api2_paginate" => "1",
+            "regex" => FORM.searchterm,
+            "api2_paginate_start" => (RAW_FORM.api2_paginate_start)
+        });
+    ELSE;
+        SET lang_mods_list =  Api2.exec("LangMods", "search", {
+            "api2_paginate_size" => CPANEL.CPVAR.item('itemsperpage'),
+            "want" => "32768",
+            "skip" => FORM.item('skip'),
+            "lang" => FORM.item('lang'),
+            "api2_paginate" => "1",
+            "regex" => FORM.item('searchterm'),
+            "api2_paginate_start" => (RAW_FORM.item('api2_paginate_start'))
+        });
+    END;
+END;
+%]
+
+[% IF NOT is_supported %]
+    [% PROCESS 'not_supported.html.tt' lang=FORM.lang %]
+[% ELSE %]
+
+[% PROCESS installer_app_key.html.tt %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = installer_app_key
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrKeyNames">[% lang_mods_get_key_names.key.html() %]</h2>
+
+    <div class="search-panel">
+        [% IF (FORM.searchtype == "0") %]
+            [% locale.maketext("Available for Installation") %]
+        [% ELSE %]
+            [% locale.maketext("Search Results for “[_1]”", FORM.searchterm) %]
+        [% END %]
+        <form action="search.html" method="get">
+            <div class="form-group">
+                <label id="lblSearchterm" for="searchterm" class="sr-only">
+                    [% locale.maketext("Search") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-4">
+                        <input type="hidden" name="lang" id="searchLang" value="[% FORM.lang %]" />
+                        <input type="hidden" name="searchtype" id="searchType" value="1" />
+                        <input name="searchterm" type="text" id="searchTerm" class="form-control" value="[% FORM.searchterm %]" />
+                        <input type="hidden" name="itemsperpage" id="searchItemsPerPage" value="[% CPANEL.CPVAR.itemsperpage.html %]" />
+                    </div>
+                    <div class="col-xs-2">
+                        <input class="btn btn-primary" type="submit" id="searchSubmit" value="[% locale.maketext("Go") %]" />
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="table-responsive">
+      <table id="searchtbl" class="sortable truncate-table table table-striped">
+        <thead>
+            <tr>
+                <th>[% locale.maketext("Module Name") %]</th>
+                <th>[% locale.maketext("Description") %]</th>
+                <th nonsortable="true">[% locale.maketext("Actions") %]</th>
+            </tr>
+        </thead>
+
+        [% IF lang_mods_list.size %]
+            [% FOREACH hashref IN lang_mods_list %]
+                <tr>
+                    <td class="cell truncate" truncate="25">
+                        [% hashref.module.html() %]&nbsp;([% hashref.latest.html() %])
+                    </td>
+                    <td class="cell truncate" truncate="75">
+                        [% hashref.info.html() %]
+                    </td>
+                    <td nowrap>
+                        <a id="lnkInstall[% hashref.module | uri %]" href="install.html?lang=[% FORM.lang | uri %]&mod=[% hashref.module | uri %]" class="btn btn-link">
+                        <span class="fas fa-download"></span> [% locale.maketext("Install") %]
+                        </a>
+                        <a id="lnkDocs[% hashref.docurl | url %]" href="[% hashref.docurl | url %]" target="_blank" class="btn btn-link">
+                        <span class="fas fa-search"></span> [% locale.maketext("Show Docs") %]
+                        </a>
+                    </td>
+                </tr>
+            [% END %]
+        [% ELSE %]
+            <tr>
+                <td colspan="4">
+            [% IF (FORM.searchtype == "0") %]
+                [% locale.maketext("There was a problem fetching the list of available modules.") %]
+            [% ELSE %]
+                [% locale.maketext("No Modules matched your search terms.") %]
+            [% END %]
+                </td>
+            </tr>
+        [% END %]
+
+      </table>
+    </div>
+
+    [%# IMPORTANT: Recalculate the itemsperpage since the ::search() method does weird stuff to it. %]
+    [% IF FORM.itemsperpage %]
+        [% SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage %]
+    [% END %]
+    [% IF (!FORM.itemsperpage || !CPANEL.CPVAR.itemsperpage) %]
+        [% SET CPANEL.CPVAR.itemsperpage = "100" %]
+    [% END %]
+
+    [% INCLUDE '_assets/paginate.html.tt' %]
+
+    <div class="section">
+        <h2 id="hdrSearch">[% locale.maketext("Search") %]</h2>
+        <div class="search-panel">
+            <form action="search.html" method="get">
+                <div class="form-group">
+                    <label id="lblSearchterm2" for="searchterm" class="sr-only">
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-4">
+                            <input type="hidden" name="lang" id="searchLang2" value="[% FORM.lang %]" />
+                            <input type="hidden" name="searchtype" id="searchType2" value="1" />
+                            <input name="searchterm" id="searchTerm2" type="text" class="form-control" value="[% FORM.searchterm %]" />
+                            <input type="hidden" name="itemsperpage" id="searchItemsPerPage2" value="[% CPANEL.CPVAR.itemsperpage.html %]" />
+                        </div>
+                        <div class="col-xs-2">
+                            <input class="btn btn-primary" type="submit" id="searchSubmit2" value="[% locale.maketext("Go") %]" />
+                        </div>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]
+[% END %]

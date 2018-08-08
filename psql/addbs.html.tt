@@ -1,0 +1,44 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    Api1.pre_exec("Postgres", "adddb");
+    SET adddb_result = Api1.exec("Postgres", "adddb", [RAW_FORM.item('db')]);
+    Api1.post_exec("Postgres", "adddb");
+
+    SET new_db = (ExpVar.expand('$dbownerprefix') _ RAW_FORM.item('db'));
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    [% IF CPANEL.CPDATA.item('DEMO') %]
+    <div id="demo" class="alert alert-warning">
+        <span id="demoImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="demoMsg">
+            [% locale.maketext("This feature is disabled in demo mode.") %]
+        </span>
+    </div>
+    [% END %]
+
+    [% IF !CPANEL.CPERROR.item('postgres') %]
+    <div id="details" class="alert alert-success">
+        <span id="detailsImg" class="glyphicon glyphicon-info-sign"></span>
+        <span id="detailsMsg">
+            [% locale.maketext("Added the database “[_1]”.",new_db.html()) %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="addDbError" class="alert alert-danger">
+        <span id="addDbErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="addDbErrorMsg">
+            [% CPANEL.CPERROR.item('postgres').html() %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

@@ -1,0 +1,15 @@
+[% Api1.exec("relinclude", ["charset.html"]) %]
+
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('css/yui-core.css') %]" />
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('css/yui-custom.css') %]" />
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap/optimized/css/bootstrap.min.css') %]" />
+    [% IF locale_attributes.direction == 'rtl' %]
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap-rtl/optimized/dist/css/bootstrap-rtl.min.css') %]" />
+    [% END %]
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/ui-fonts/open_sans/optimized/open_sans.min.css') %]" />
+<style type="text/css">
+#headbox {
+    border-bottom: 1px solid;
+    width: 98%;
+}
+</style>

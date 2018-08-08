@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+[%  SET CPANEL.CPVAR.dprefix = "../";
+        detect_encoding =  FORM.file_charset == "_DETECT_";
+    SET use_legacy_editor = (FORM.use_legacy_editor) ? 1 : 0;
+%]
+
+[%
+    Api2.pre_exec("Encoding", "guess_file_opts");
+    IF detect_encoding;
+        SET encoding_guess_file_opts = Api2.exec("Encoding" , "guess_file_opts" , {"file" => RAW_FORM.dir _ "/"  _ RAW_FORM.file});
+    ELSE;
+        SET encoding_guess_file_opts = Api2.exec("Encoding" , "guess_file_opts" , {"file_charset" =>RAW_FORM.file_charset, "file" => RAW_FORM.dir _ "/"  _ RAW_FORM.file });
+    END;
+    Api2.post_exec("Encoding", "guess_file_opts");
+%]
+
+[%  Api2.pre_exec("Fileman", "getedittype");
+    SET edittype_info = Api2.exec("Fileman" , "getedittype" , {"file" => RAW_FORM.file, "dir" => RAW_FORM.dir}).0.type.html();
+    Api2.post_exec("Fileman", "getedittype");
+
+    IF edittype_info.size;
+        SET edit_type = edittype_info.0.type.html();
+    END;
+%]
+
+[%
+    Api2.pre_exec("Fileman", "getedittype");
+    SET editor_info = Api2.exec("Fileman" , "getedittype" , {"editor" =>"editarea" , "file" =>RAW_FORM.file, "dir" =>RAW_FORM.dir});
+    Api2.post_exec("Fileman", "getedittype");
+
+    IF editor_info.size;
+        SET editor_edit_type = editor_info.0.type.html();
+    END;
+%]
+
+[%
+    Api1.pre_exec("Fileman", "fmpushfile");
+    SET file_info = Api1.exec("Fileman", "fmpushfile", [RAW_FORM.dir, RAW_FORM.file, RAW_FORM.file_charset]);
+    Api1.post_exec("Fileman", "fmpushfile");
+%]
+
+[%  Api2.pre_exec("NVData", "get");
+    SET nvdata_info = Api2.exec("NVData" , "get" , {"names" =>"editor_nowrap|editor_fontsize" , "html_encoded" =>"1" });
+    Api2.post_exec("NVData", "get");
+
+    SET nvdataObj = {};
+
+    IF nvdata_info.size;
+        FOREACH nvdata IN nvdata_info;
+            SET key = nvdata.name.html();
+            nvdataObj.$key = nvdata.value.uri();
+        END;
+    END;
+%]
+<html>
+    <head>
+        <title>[% FORM.file.remove("\n").remove("\r") %] - [% locale.maketext("cPanel File Manager v3") %]</title>
+        [% Api1.exec("relinclude", ["charset.html"]) %]
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap/optimized/css/bootstrap.min.css') %]" />
+        [% IF locale_attributes.direction == 'rtl' %]
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap-rtl/optimized/dist/css/bootstrap-rtl.min.css') %]" />
+        [% END %]
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/ui-fonts/open_sans/optimized/open_sans.min.css') %]" />
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/fontawesome/web-fonts-with-css/css/fontawesome-all.min.css') %]" />
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('filemanager/css/tree_styles2_optimized.css') %]" />
+
+        <script type="text/javascript" src="[% theme_magic_url('/yui-gen/utilities_container/utilities_container.js') %]"></script>
+        <script type="text/javascript" src="[% CPANEL.get_cjt_url() %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('js/filemanager_editors_optimized.js') %]"></script>
+
+        [% INCLUDE _assets/_ajaxapp_header.html.tt %]
+        <style type="text/css">
+            html, body, #maintbl {
+                height: 100%;
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                background: none !important;
+            }
+
+            form { margin: 0 }
+
+            #maintbl, #maintbl tr, #maintbl td {
+                margin:0;
+                padding:0;
+                border-collapse: collapse;
+                border: none;
+            }
+
+            .cjt_progress_overlay .bd {
+                background: transparent;
+            }
+
+            /* Suppress inherited styles from global style sheets. */
+            .yui-panel .hd,
+            .yui-panel .bd,
+            .yui-panel .ft {
+                background-image: none;
+                font-size: 100%;
+
+            }
+            .yui-panel .ft {
+                background-color: #CCCCCC;
+            }
+
+            /* overrides from tree_styles2_optimized.css */
+            p {
+                line-height: normal;
+            }
+            .header {
+                background: #333333;
+                color: #FFFFFF;
+                padding: 5px;
+            }
+            .button-group .default {
+                background: none !important;
+                padding: 0;
+            }
+
+            .action-buttons {
+                text-align: right;
+            }
+
+            .editor-area {
+                position: absolute !important;
+                top: 94px;
+                right: 0;
+                left: 0;
+                bottom: 20px;
+                border: 1px solid #CCCCCC;
+            }
+
+            .editor-toolbar {
+                padding-top: 5px;
+                padding-bottom: 5px;
+            }
+
+            .editor-toolbar .fa-terminal {
+                font-size: inherit;
+            }
+
+            .btn-group-ddl {
+                padding: 1px;
+            }
+
+            .help-link {
+                padding: 14px;
+                display: block;
+            }
+
+            @media (max-width: 503px) {
+                .editor-area {
+                    top: 245px;
+                }
+                .action-buttons {
+                    text-align: left;
+                }
+            }
+
+            @media (min-width: 504px) and (max-width: 768px) {
+                .editor-area {
+                    top: 200px;
+                }
+            }
+
+            @media (min-width: 769px) and (max-width: 1074px) {
+                .editor-area {
+                    top: 130px;
+                }
+            }
+        </style>
+
+        <!--[if IE]>
+        <style type="text/css">
+            #legacy_codewindow {
+                width: 99.5%;
+            }
+        </style>
+        <![endif]-->
+
+    </head>
+    <body class="nomargins yui-skin-sam">
+        <form action="javascript:void(0)" name="sform" onsubmit="loadfdata('sform_submit'); return false;" class="form-inline">
+            <table border="0" id="maintbl">
+                <tr class="header">
+                    <td style="padding: 5px">
+                        <div class="row">
+                            <div class="col-xs-12 col-md-8">
+                                <label style="font-weight: 900; font-size:13px;">
+                                    [% locale.maketext("Editing") %]:
+                                    <input  id="path" name="path" value="[% FORM.dir.remove("\n").remove("\r") %]/[% FORM.file.remove("\n").remove("\r") %]" class="form-control">
+                                </label>
+                                <label >[% locale.maketext("Encoding:") %]
+                                    <select id="charset" name="charset" class="form-control">
+                                    [% IF encoding_guess_file_opts.size; %]
+                                        [% FOREACH file_opt IN encoding_guess_file_opts; %]
+                                            <option value="[% file_opt.map.html() %]" [% file_opt.selected.html() %]>
+                                                [% file_opt.map.html() %]
+                                            </option>
+                                        [% END; %]
+                                    [% END %]
+                                    </select>
+                                </label>
+                                <input type="button" onclick="loadfile(this);" class="btn btn-default" value="[% locale.maketext("Re-open") %]" id="btnReOpen">
+                            </div>
+                            <div class="col-xs-12 col-md-4 action-buttons">
+                                <button type="button" class="btn btn-default" id="switch_editor_control" onclick="try {toggle_EditArea(this)} catch(e) {} return false" title="[% locale.maketext('Switch to legacy editor.') %]">
+                                    [% locale.maketext("Use legacy editor[comment,button title]") %]
+                                </button>
+                                &nbsp;
+                                <button type="submit" id="sform_submit" class="btn btn-primary" style="font-weight:bold">
+                                    [% locale.maketext("Save Changes") %]
+                                </button>
+                                <input type="button" onclick="confirm_close(this);" class="btn btn-default" value="[% locale.maketext("Close") %]" id="btnClose" />
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="show-ace-editor">
+                    <td>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-4">
+                                <a href="https://github.com/ajaxorg/ace/wiki/Default-Keyboard-Shortcuts"
+                                    target="_blank" class="help-link">
+                                    <span class="fas fa-external-link-alt"></span>
+                                    [% locale.maketext("Keyboard shortcuts[comment,hyperlink title]") %]
+                                </a>
+                            </div>
+                            <!-- Editor Toolbar -->
+                            <div class="col-xs-12 col-sm-8">
+                                <div class="btn-toolbar editor-toolbar" role="toolbar">
+                                    <div class="btn-group" role="group">
+                                        <button id="btnSearch"
+                                            type="button"
+                                            onclick="toolbarActions('search')"
+                                            class="btn btn-default"
+                                            title="[% locale.maketext('Search') %]">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                        <button id="btnGoto"
+                                            type="button"
+                                            onclick="toolbarActions('goto')"
+                                            class="btn btn-default"
+                                            title="[% locale.maketext('Go to line.') %]">
+                                            <i class="fas fa-terminal"></i>
+                                        </button>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button id="btnUndo"
+                                            type="button"
+                                            onclick="toolbarActions('undo')"
+                                            class="btn btn-default"
+                                            title="[% locale.maketext('Undo') %]">
+                                            <i class="fas fa-undo"></i>
+                                        </button>
+                                        <button id="btnRedo"
+                                            type="button"
+                                            onclick="toolbarActions('redo')"
+                                            class="btn btn-default"
+                                            title="[% locale.maketext('Redo') %]">
+                                            <i class="fas fa-redo"></i>
+                                        </button>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <button id="btnLineWrap"
+                                            type="button"
+                                            onclick="toolbarActions('linewrap')"
+                                            class="btn btn-default"
+                                            title="[% locale.maketext('Wrap') %]">
+                                            <i class="fas fa-arrows-alt-h"></i>
+                                        </button>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <select id="ddlFontSizes"
+                                            class="btn btn-default form-control btn-group-ddl">
+                                        </select>
+                                    </div>
+                                    <div class="btn-group" role="group">
+                                        <select id="ddlModes"
+                                            class="btn btn-default form-control btn-group-ddl">
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td id="codewindow_container">
+                        <!-- Editor -->
+                        <div id="codewindow" class="show-ace-editor editor-area"></div>
+                        <textarea id="legacy_codewindow" class="codepress [% edit_type %]" style="visibility:hidden" wrap="soft" name="page"></textarea>
+                    </td>
+                </tr>
+            </table>
+        </form>
+
+        <script type="text/plain" id="general_encoding_changed_template">
+            <p>
+                [% SET exectag0="{old_charset}";
+                    locale.maketext("The system was unable to save your document in “[_1]” encoding. Most likely, your document contains characters incompatible with “[_1]”.", exectag0) %]
+            </p>
+
+            <p>
+                [%
+                    SET exectag0="{new_charset}";
+                    locale.maketext("[asis,cPanel] has upgraded your document to “[_1]” encoding. Please verify that the file opens correctly in your application.", exectag0) %]
+            </p>
+
+            <p>
+                [%
+                    SET exectag0="https://go.cpanel.net/encoding";
+                    locale.maketext("To learn more about file encoding, visit [output,url,_1,_1].", exectag0)
+                %]
+            </p>
+        </script>
+
+        [% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+        <script type="text/javascript">
+            var savedContent = "";
+            var CHARSET = document.sform.charset.value;
+            var USE_LEGACY_EDITOR = ([% use_legacy_editor %]) ? true : false;
+            if ( !window.LEXICON ) {
+                LEXICON = {};
+            }
+
+            LEXICON.charset_changed = "[% locale.maketext("Character Encoding Change") %]";
+            LEXICON.confirm_close   = "[% locale.maketext("You have unsaved changes. Are you sure you want to close this window?") %]";
+            LEXICON.reloading       = "[% locale.maketext("Reloading…") %]";
+
+            function loadfile(clicked_el) {
+                var isFileEdited = false;
+                if(ace_editor){
+                    isFileEdited = !ace_editor.getSession().getUndoManager().isClean();
+                }
+
+                if(isFileEdited){
+                    var sure = confirm("[% locale.maketext("Are you sure you wish to open a new file? You will lose any changes you have made.") %]");
+                    if (!sure) {
+                        return;
+                    }
+                }
+
+                var filen = document.sform.path.value;
+                var fpath = filen.split('/');;
+                var filename = fpath.pop();
+                var dir = fpath.join('/');
+                var sdir = encodeURIComponent(dir);
+                var sfilename = encodeURIComponent(filename);
+                var charset = document.getElementById('charset').value;
+
+                var pp = new CPANEL.ajax.Progress_Panel( DOM.generateId(), {
+                    status_html : "[% locale.maketext("Reloading…") %]",
+                    effect: CPANEL.ajax.FADE_MODAL
+                } );
+
+                if (clicked_el) {
+                    pp.show_from_source(clicked_el);
+                }
+                else {
+                    pp.show();
+                }
+                var tt_value = (USE_LEGACY_EDITOR) ? 1 : 0;
+                document.location.href="?dir=" + sdir + "&file=" + sfilename + '&file_charset=' + charset + '&use_legacy_editor=' + tt_value;
+                // update the title
+                document.title = filename.replace(/\n|\r/, "").html_encode() + " - [% locale.maketext('cPanel File Manager v3') %]"
+            }
+
+            var LAST_NOTICE = null;
+
+            function loadfdata(clicked_el) {
+                var path     = DOM.get("path");
+                var changedContent = "";
+                var isFileEdited = true;
+                if(USE_LEGACY_EDITOR){
+                    changedContent = editAreaLoader.getValue(editAreaEl);
+                } else {
+                    var aceSession = ace_editor.getSession();
+                    changedContent = aceSession.getValue();
+                }
+
+                if ( changedContent === savedContent && path.value === path.defaultValue ) {
+                    isFileEdited = false;
+                }
+
+                if(!isFileEdited) {
+                    LAST_NOTICE = new CPANEL.ajax.Dynamic_Notice({content:"[% locale.maketext("You have made no changes to save.") %]", level:"info", replaces:LAST_NOTICE});
+                    return;
+                }
+
+                var match = path.value.match(/^(.+)\/([^\/]+)$/);
+                if ( !match ) {
+                    LAST_NOTICE = new CPANEL.ajax.Dynamic_Notice({content:"[% locale.maketext("Invalid path.") %]", level:"error", replaces:LAST_NOTICE});
+                    return;
+                }
+
+                var api_params = {
+                    module:   "Fileman",
+                    func:     "savefile",
+                    data:     {
+                        dir:           match[1],
+                        filename:      match[2],
+                        content:       changedContent,
+                        utf8_fallback: 1,
+                        charset:       CHARSET
+                    },
+                    progress_panel: {
+                        zIndex:      2500,
+                        show_status: true,
+                        source_el:   clicked_el,
+                        status_html: "[% locale.maketext("Saving “[_1]” …", "{the_file}") %]".replace('{the_file}',match[2].html_encode()),
+                        success_notice_options: { replaces:LAST_NOTICE },
+                        before_success: function(result) {
+                            savedContent = (USE_LEGACY_EDITOR) ? editAreaLoader.getValue(editAreaEl) : ace_editor.getValue();
+                            return check_for_encoding_change.call(
+                                this,
+                                CPANEL.ajax.templates.general_encoding_changed_template,
+                                result.cpanel_data
+                            );
+                        }
+                    },
+                    callback: {
+                        success: function() { LAST_NOTICE = req.notice }
+                    }
+                };
+
+                var req = CPANEL.api( api_params );
+
+                return false;
+            }
+        </script>
+
+        <script type="text/javascript" charset="utf-8"
+                src="[% theme_magic_url("libraries/ace-editor/optimized/src-min-noconflict/ace.js") %]">
+        </script>
+        <script type="text/javascript" charset="utf-8"
+                src="[% theme_magic_url("libraries/ace-editor/optimized/src-min-noconflict/ext-modelist.js") %]">
+        </script>
+        <script type="text/javascript" src="[% theme_magic_url("libraries/editarea/0.8.2/edit_area/edit_area_full.js") %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url("js/edit_area_resizer.js") %]"></script>
+
+        <script type="text/javascript" src="[% theme_magic_url('libraries/jquery/3.2.0/jquery-3.2.0.min.js') %]"></script>
+        <script>
+        [%# file_info is already coming as HTML encoded. So we do not need to worry about the JS syntax by having double quotes("") in there. %]
+        var file_content = "[% file_info | replace('\\\\', '\\\\') | replace('\r', '\r') | replace('\n', '\n') %]";
+        // Using jquery way of decoding the html content.
+        // Tried to use '_' version of unescape method but it
+        // did not decode encoded version of apostrophe (')
+        // where the code is &#39;
+        var htmlContent = $("<div/>").html(file_content).text();
+
+        var fileName = "[% RAW_FORM.file | replace('\\\\', '\\\\') | html %]";
+        var editAreaEl = "";
+        var lastResizeTime = 0;
+        var lastResizeRequestTime = 0;
+        var NVData = [% nvdataObj.json() %];
+
+        function load_EditArea(workingContent) {
+            workingContent = workingContent;
+            if(USE_LEGACY_EDITOR){
+                showAceEditorElements(false);
+
+                editAreaEl = 'legacy_codewindow';
+                CODEWINDOW = DOM.get(editAreaEl);
+                editAreaLoader.show(editAreaEl);
+                loadLegacyEditor(editAreaEl, workingContent);
+            } else {
+                editAreaLoader.hide(editAreaEl);
+
+                editAreaEl = 'codewindow';
+                CODEWINDOW = DOM.get(editAreaEl);
+                showAceEditorElements(true);
+                loadAceEditor(editAreaEl, workingContent);
+            }
+        }
+
+        function showAceEditorElements(show){
+            if(show){
+                $(".show-ace-editor").show();
+            } else {
+                $(".show-ace-editor").hide();
+            }
+        }
+
+        function loadLegacyEditor(editAreaId, editContent){
+            // Setting up the ids in js/edit_area_resizer.js file to
+            // use it for resizing purposes.
+            setElementIds(editAreaId);
+            var EditArea_config = {
+                id: editAreaEl,
+                start_highlight: true,
+                allow_resize: "both",
+                allow_toggle: false,
+                language: "en",
+                toolbar: "search, go_to_line, |, undo, redo, |, select_font, |, syntax_selection, |, change_smooth_selection, highlight, reset_highlight, word_wrap, |, help",
+                syntax: "[% editor_edit_type %]",
+                word_wrap: true
+            };
+            editAreaLoader.setValue(editAreaId, editContent);
+
+            editAreaLoader.init(EditArea_config);
+            doResizeSoon();
+        }
+
+        function loadAceEditor(editAreaEl, editContent){
+            ace_editor = ace.edit(editAreaEl);
+            // The line below is added to disable a
+            // warning message as required by ace editor
+            // script.
+            ace_editor.$blockScrolling = Infinity;
+            ace_editor.focus();
+
+            var editSession = ace.createEditSession(editContent);
+            ace_editor.setSession(editSession);
+            if(typeof(editSession) !== "undefined"){
+                var defaultFontSize = parseInt(NVData.editor_fontsize, 10) || 13;
+                // Load the modelist extension to identify the file
+                // type of the given file and open the file in that
+                // editor mode.
+                var modelist = ace.require("ace/ext/modelist");
+                var modeObj = modelist.getModeForPath(fileName);
+
+                ace_editor.setOptions({
+                    "fontSize": defaultFontSize,
+                    "mode": modeObj.mode,
+                    "theme": "ace/theme/chrome"
+                });
+                updateWordWrapInterface();
+
+                // Fill mode list dropdown in the toolbar.
+                var $modeEl = $('#ddlModes');
+                fillModesDropdown($modeEl, modelist);
+                $modeEl.val(modeObj.name);
+                // Bind change event.
+                $modeEl.change(function(){
+                    var selectedMode = $modeEl.find( "option:selected" ).first().val();
+                    ace_editor.getSession().setMode(modelist.modesByName[selectedMode].mode);
+                });
+
+                // Fill font size dropdown.
+                var $fontEl = $('#ddlFontSizes');
+                fillFontsDropdown($fontEl);
+                $fontEl.val(defaultFontSize);
+                // Bind change event.
+                $fontEl.change(function(){
+                    var selectedSize = parseInt($fontEl.find( "option:selected" ).first().val());
+                    SetNvData("editor_fontsize", selectedSize);
+                    ace_editor.setFontSize(selectedSize);
+                });
+            }
+        }
+
+        function fillFontsDropdown($el) {
+            var arr = [10, 11, 12, 13, 14, 16, 18, 20, 24].map(function(size){
+                return {val: size, text: size + "px"};
+            });
+            arr.forEach(function(val){
+                $el.append($("<option>", val));
+            });
+        }
+
+        function fillModesDropdown($el, modeList) {
+            var arr = modeList.modes.map(function(oMode){
+                return {val: oMode.name, text: oMode.caption};
+            });
+            arr.forEach(function(val){
+                $el.append($("<option>", val));
+            });
+        }
+
+        function toolbarActions(action){
+            switch(action){
+                case "search":
+                ace_editor.execCommand("find");
+                break;
+                case "goto":
+                ace_editor.execCommand("gotoline");
+                break;
+                case "undo":
+                ace_editor.undo();
+                break;
+                case "redo":
+                ace_editor.redo();
+                break;
+                case "linewrap":
+                toggleWordWrap();
+                break;
+            }
+        }
+
+        function toggleWordWrap() {
+            if (NVData.editor_nowrap) {
+                SetNvData("editor_nowrap", 0);
+            } else {
+                SetNvData("editor_nowrap", 1);
+            }
+            updateWordWrapInterface();
+        }
+
+        function updateWordWrapInterface() {
+            var btnEl = document.querySelector("#btnLineWrap");
+
+            if (btnEl && NVData.editor_nowrap) {
+                ace_editor.setOption("wrap", false);
+                btnEl.classList.remove("active");
+            } else {
+                ace_editor.setOption("wrap", 80);
+                btnEl.classList.add("active");
+            }
+        }
+
+        /*
+         * This function detects if the browser is in a mobile
+         * environment.
+         * Note: This is used to open the editor in legacy editor mode
+         * until Ace editor comes with the fixes for issues described in
+         * ZC-2558.
+        */
+        function detectmobile() {
+         if( navigator.userAgent.match(/Android/i)
+         || navigator.userAgent.match(/webOS/i)
+         || navigator.userAgent.match(/iPhone/i)
+         || navigator.userAgent.match(/iPad/i)
+         || navigator.userAgent.match(/iPod/i)
+         || navigator.userAgent.match(/BlackBerry/i)
+         || navigator.userAgent.match(/Windows Phone/i)
+         ){
+            return true;
+          }
+         else {
+            return false;
+          }
+        }
+
+        function toggle_EditArea(link) {
+            var workingContent = "";
+            if(USE_LEGACY_EDITOR){
+                USE_LEGACY_EDITOR = false;
+                // send working content to not loose working data
+                // when user switches between two editors.
+                workingContent = (editAreaLoader) ? editAreaLoader.getValue(editAreaEl) : "";
+            } else {
+                USE_LEGACY_EDITOR = true;
+                // Reset the word wrap
+                toggleWordWrap();
+                // send working content to not loose working data
+                // when user switches between two editors.
+                workingContent = (ace_editor) ? ace_editor.getSession().getValue() : "";
+            }
+            toggleSwitchButtonAttr(link);
+            load_EditArea(workingContent);
+        }
+
+        function toggleSwitchButtonAttr(btnEl) {
+            var $switchButton = $(btnEl);
+            if(USE_LEGACY_EDITOR){
+                $switchButton.text("[% locale.maketext('Use latest editor[comment,button title]') %]").prop("title", "[% locale.maketext('Switch to latest editor.') %]");
+            } else {
+                $switchButton.text("[% locale.maketext('Use legacy editor[comment,button title]') %]").prop("title", "[% locale.maketext('Switch to legacy editor.') %]");
+            }
+        }
+
+        var CODEWINDOW;
+        var ace_editor;
+
+        EVENT.throwErrors = true;
+
+        YAHOO.util.Event.addListener(window, "load", function(){
+            savedContent = htmlContent;
+            if(detectmobile()){
+                USE_LEGACY_EDITOR = true;
+            }
+            toggleSwitchButtonAttr(DOM.get("switch_editor_control"));
+            load_EditArea(savedContent);
+        });
+        $(window).resize(function(e) {
+            doResize();
+        });
+        </script>
+
+    </body>
+</html>

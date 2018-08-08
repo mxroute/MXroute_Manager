@@ -1,0 +1,184 @@
+<div class="panel" ng-class="{
+    'panel-default': !conflictResolutionRequired || !needsConflictResolution(),
+    'panel-warning': conflictResolutionRequired && (needsConflictResolution() || isLinking),
+    'panel-success': service.willLink && !isLinking,
+    'panel-danger': service.willDismiss
+}">
+    <div class="panel-heading">
+        <label>[% locale.maketext('FTP') %]</label>
+        <span class="pull-right flip ng-hide" ng-show="showToggle">
+            <toggle-switch id="toggleFTP"
+                       ng-model="service.enabled"
+                       no-spinner="true"
+                       label-position="left"
+                       on-toggle="toggleService()"
+                       enabled-label="[% locale.maketext('Enabled') %]"
+                       disabled-label="[% locale.maketext('Disabled') %]"
+                       ng-disabled="isDisabled || hasConflict() && isResolved() && !isLinking"
+                       ng-hide="(hasConflict() && !isResolved()) || isLinking">
+            </toggle-switch>
+        </span>
+        <span class="fas fa-exclamation-triangle" id="ftp-has-conflicts-warning" ng-show=" conflictResolutionRequired && (needsConflictResolution() || isLinking)" title="[% locale.maketext('The system detected a service account with the same username.') %] [% locale.maketext('You must select an action.') %]"></span>
+        <span class="fas fa-info-circle"          id="ftp-has-conflicts-info"    ng-show="!conflictResolutionRequired && (needsConflictResolution() || isLinking)" title="[% locale.maketext('The system detected a service account with the same username.') %]"></span>
+    </div>
+    <div class="panel-body">
+        <!-- Handle merge candidates -->
+        <div ng-class="{ 'text-warning': conflictResolutionRequired }" ng-show="needsConflictResolution() || isLinking">
+            <p>[% locale.maketext('An [asis,FTP] service account with the same username and domain as this [asis,subaccount] already exists.') %]</p>
+
+            <div class="well well-sm existing-service-summary" ng-show="needsConflictResolution() || isLinking">
+                <div id="ftp-details-expander" class="text-center existing-service-summary-header" ng-click="toggleConflictSummary()">
+                    <label>[% locale.maketext('Existing Account Summary') %]</label>
+                    <span class="fas fa-fw fa-caret-down" ng-class="{ 'fa-rotate-180': !isSummaryCollapsed }"></span>
+                </div>
+                <div class="existing-service-summary-body" uib-collapse="isSummaryCollapsed">
+                    <hr>
+                    <ul>
+                        <li id="existing-ftp-homedir">
+                            <label>[% locale.maketext('Home Directory') %]:</label>
+                            <span ng-bind-html="service.homedir | wrap:'':5"></span>
+                        </li>
+                        <li id="existing-ftp-quota">
+                            <label>[% locale.maketext('Quota') %]:</label>
+                            <span ng-show="service.quota">{{ service.quota }} MB</span>
+                            <span ng-show="!service.quota">[% locale.maketext('Unrestricted') %]</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <p>[% locale.maketext('You cannot create a duplicate [asis,FTP] service account. To manage their settings jointly, link the [asis,FTP] account to the [asis,subaccount].') %]</p>
+            <div class="conflict-button-container text-center">
+                <button id="ftp-conflict-link"
+                        type="button"
+                        ng-disabled="isInProgress()"
+                        cp-action="runLinkAction()"
+                        button-ng-class="{ 'btn-warning': conflictResolutionRequired, 'btn-small': !conflictResolutionRequired, 'btn-default': !conflictResolutionRequired }">
+                    <span class="fas fa-link" ng-hide="isLinking"></span>
+                    [% locale.maketext('Link') %]
+                </button>
+                <button class="btn btn-warning"
+                        id="ftp-conflict-dismiss"
+                        type="button"
+                        ng-click="setDismiss()"
+                        ng-show="showConflictDismiss">
+                    <span class="fas fa-unlink"></span>
+                    [% locale.maketext('Dismiss') %]
+                </button>
+            </div>
+        </div>
+
+        <div class="text-success" ng-show="service.willLink && !isLinking">
+            <p>[% locale.maketext('The system will link this [asis,FTP] service account to the [asis,subaccount].') %]</p>
+            <div class="conflict-button-container text-center">
+                <button class="btn btn-link"
+                        id="ftp-link-undo"
+                        type="button"
+                        ng-click="clearConflictResolution()">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext('Undo') %]
+                </button>
+            </div>
+        </div>
+        <div class="text-danger" ng-show="service.willDismiss">
+            <p>[% locale.maketext('This [asis,subaccount] will not have [asis,FTP] access.') %] [% locale.maketext('You can edit this setting later in the User Manager interface.') %]</p>
+            <div class="conflict-button-container text-center">
+                <button class="btn btn-link"
+                        id="ftp-dismiss-undo"
+                        type="button"
+                        ng-click="clearConflictResolution()">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext('Undo') %]
+                </button>
+            </div>
+        </div>
+
+        <!-- Normal configuration settings -->
+        <div ng-hide="hasConflict()">
+            <div class="ng-hide" cp-alert ng-show="showWarning" id="ftpWarningMessage">
+                {{warningMessage}}
+            </div>
+            <div class="ng-hide" cp-alert ng-show="showInfo" id="ftpInfoMessage" type="info">
+                {{infoMessage}}
+            </div>
+            <div class="form-group" ng-if="daemon.supports.quota">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <label>[% locale.maketext('Quota') %]</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <app-limit id="ftpQuota"
+                                   ng-model="service.quota"
+                                   ng-disabled="!service.enabled"
+                                   units-label="MB"
+                                   unlimited-value="0"
+                                   minimum-value="1"
+                                   maximum-length="9"
+                                   default-value="defaults.ftp.default_quota"
+                                   selected-unit="service.quotaUnit"
+                                   ng-disabled="isDisabled">
+                        </app-limit>
+                    </div>
+                </div>
+            </div>
+            [%- SET quota_required = locale.maketext("You must enter a valid number or select [output,em,Unlimited]."); -%]
+            <div class="col-xs-12 spacing-after">
+                <ul validation-container field-name="ftpQuota_txtLimit">
+                    <li validation-item field-name="ftpQuota_txtLimit" validation-name="required">
+                        [%- quota_required -%]
+                    </li>
+                    <li validation-item field-name="ftpQuota_txtLimit" validation-name="number">
+                        [%- quota_required -%]
+                    </li>
+                    <li validation-item field-name="ftpQuota_txtLimit" validation-name="min">
+                        [%- locale.maketext("Quota must be greater than zero.") -%]
+                    </li>
+                    <li validation-item field-name="ftpQuota_txtLimit" validation-name="integer">
+                        [%- locale.maketext("Quota must be an integer.") -%]
+                    </li>
+                </ul>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <label>[% locale.maketext('Home Directory') %]</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <span class="input-group">
+                            <span class="input-group-addon">
+                                <i class="fas fa-home"></i>
+                                <span>/</span>
+                            </span>
+                            <input id="txtFtpHomeDirectory"
+                               class="form-control"
+                               name="txtFtpHomeDirectory"
+                               ng-model="service.homedir"
+                               ng-disabled="!service.enabled"
+                               uib-typeahead="directory for directory in completeDirectory($viewValue)"
+                               typeahead-template-url="pathSuggester.html"
+                               autocomplete="off"
+                               ng-disabled="isDisabled" />
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="panel-footer ng-hide" ng-show="showUnlink">
+        <div class="row">
+            <div class="col-xs-12">
+                <action-button id="unlinkFTP"
+                               class="btn btn-link btn-xs pull-right"
+                               ng-click="unlinkService()"
+                               ng-disabled="isInProgress()"
+                               title="[% locale.maketext('Unlink this [asis,FTP] service account from this [asis,subaccount].') %]">
+                    <i class="fas fa-unlink"></i>
+                    [% locale.maketext('Unlink') %]
+                </action-button>
+            </div>
+        </div>
+    </div>
+</div>

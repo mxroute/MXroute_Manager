@@ -1,0 +1,31 @@
+[% SET CPANEL.CPVAR.dprefix="../"  %]
+
+[%
+    Api1.pre_exec("DenyIp", "adddenyip");
+    SET add_deny_ip = Api1.exec("DenyIp", "adddenyip", [RAW_FORM.item("ip")]);
+    Api1.post_exec("DenyIp", "adddenyip")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ip_blocker'
+-%]
+<div class="body-content">
+    [% IF !CPANEL.CPERROR.item("denyip") %]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("Users from the IP address(es) “[_1]” will not be able to access your site.", FORM.ip) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% CPANEL.CPERROR.denyip.html() %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper %]

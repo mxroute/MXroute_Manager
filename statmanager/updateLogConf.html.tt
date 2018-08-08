@@ -1,0 +1,13 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'metrics_editor'
+-%]
+
+<div class="body-content">
+
+[% Api1.pre_exec("StatManager", "updateUserConfig") ;   Api1.exec("StatManager", "updateUserConfig", [FORM]) ;  Api1.post_exec("StatManager", "updateUserConfig") %]
+
+[% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

@@ -1,0 +1,52 @@
+
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    IF (ExpVar.expand('$appname') == "webmail") && !FORM.item('account');
+        SET FORM.item('account') = CPANEL.authuser;
+    END;
+
+    Api1.pre_exec("BoxTrapper", "getboxconfdiruri");
+    SET box_conf_uri = Api1.exec("BoxTrapper", "getboxconfdiruri", [RAW_FORM.item("account")]);
+    Api1.post_exec("BoxTrapper", "getboxconfdiruri")
+%]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+    page_stylesheets = ['mail/boxtrapper.css']
+%]
+
+<div class="body-content">
+
+    [% IF (ExpVar.expand('$appname') == "webmail" && !( FORM.item('account') == CPANEL.authuser)) %]
+    <div id="deniedEditText" class="alert alert-danger">
+        [% locale.maketext("You are not allowed to change settings for the user “[output,class,_1,status]”.",FORM.item('account'))  %]
+    </div>
+    [% END %]
+
+
+    [% IF (!( ExpVar.expand('$appname') == "webmail") || FORM.item('account') == CPANEL.authuser) %]
+    <div class="section">
+        <h2 id="hdrBoxtrapperList">[% locale.maketext("[asis,BoxTrapper] lists for “[output,class,_1,status]”.", FORM.item('account')) %]</h2>
+
+        <p>
+            <a id="lnkEditWhitelist" href="whitelist.html?emaildir=[% box_conf_uri %]&account=[% FORM.item("account").uri %]">
+                [% locale.maketext("Edit Whitelist") %]
+            </a>
+        </p>
+        <p>
+            <a id="lnkeditIgnoreList" href="ignorelist.html?emaildir=[% box_conf_uri %]&account=[% FORM.item("account").uri %]">
+                [% locale.maketext("Edit Ignore List") %]
+            </a>
+        </p>
+        <p>
+            <a id="lnkEditBlacklist" href="blacklist.html?emaildir=[% box_conf_uri %]&account=[% FORM.item("account").uri %]">
+                [% locale.maketext("Edit Blacklist") %]
+            </a>
+        </p>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='manage.html?account=' _ RAW_FORM.account.uri _ '' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END %]

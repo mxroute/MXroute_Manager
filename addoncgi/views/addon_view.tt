@@ -1,0 +1,178 @@
+[%
+# Arguments
+# form   - hash -
+# data   - hash -
+# vendor - hash -
+#    name - string - vendor name
+# environment - hash
+#    mysql_version - string
+#    contactemail  - string
+#    script_name   - string - name of the script
+# module - hash -
+#    name - string
+#    version - string
+#    meta - hash - lots of properties
+#    is_3rd_party - boolean
+#    is_modified - boolean
+# settings - hash -
+#    no_modified_cpanel - boolean
+#    no_3rd_party       - boolean
+#
+
+SET show_security = module.meta.security ||
+    (module.meta.security_id && module.meta.security_id_valid) ||
+    (!module.meta.security_rank) ||
+    (module.meta.security_rank < lowest_allowed);
+
+IF FORM.view == 'install';
+    SET install_class = "active ";
+    SET manage_class = "";
+ELSE;
+    SET install_class = has_instances ? "" : "active ";
+    SET manage_class = has_instances ? "active " : "";
+END;
+%]
+<div class="row">
+    <div class="col-xs-12">
+
+        <ul class="breadcrumb">
+            <li><a role="navigation" href="cpaddons.html.tt">[% locale.maketext("Site Software") %]</a></li>
+            <li>[% module.vendor.html() %]</li>
+            <li>[% module.category.html().replace('_', ' ') %]</li>
+            <li>[% module.display_app_name.html() %]</li>
+        </ul>
+
+        <h3 class="cpaddons">
+            [% module.display_app_name.html() %]
+            <span aria-labelledby="software-version" title="[% locale.maketext("Software Version: [_1], Module Version: [_2]", module.meta.version, module.version) %]">[% module.meta.version | html %]</span>
+        </h3>
+
+        <p>
+        [% IF module.is_modified %]
+            [% locale.maketext('This is a modified [_1] module. Contact the maintainer for support.', vendor.name.html()) %]
+        [% ELSIF !module.is_3rd_party %]
+            [% locale.maketext('This is a [_1] packaged module.', vendor.name) %]
+        [% ELSE %]
+            [% locale.maketext('[asis,cPanel, Inc.] does not maintain this module. Contact the maintainer for support.') %]
+        [% END %]
+        </p>
+
+    </div>
+</div>
+
+[% IF (module.supports_action.install && !data.action_has_prerequisites.install) ||
+    (module.supports_action.upgrade && !data.action_has_prerequisites.upgrade) ||
+    (module.supports_action.uninstall && !data.action_has_prerequisites.uninstall) &&
+    data.notices.has('critical_error', 'error') %]
+<div class="row">
+<div class="install-alerts col-xs-12 col-sm-6">
+    [% PROCESS 'addoncgi/views/notices.tt' notices => data.notices %]
+</div>
+</div>
+[% END %]
+
+<div class="row">
+    <div class="col-xs-12">
+        <ul class="nav nav-tabs">
+            <li role="presentation" class="[% install_class %]nav-item">
+                <a id="installTabLink" data-toggle="tab" href="#install">[% locale.maketext("Install") %]</a>
+            </li>
+            <li role="presentation" class="[% manage_class %]nav-item[% data.sorted_instances.size > 0 ? '' : ' disabled' %]">
+                <a id="manageTabLink"
+                    [%- IF data.sorted_instances.size > 0 %]
+                    data-toggle="tab"
+                    title="[% locale.maketext('Manage') %]"
+                    [%- ELSE %]
+                    title="[% locale.maketext('There are no installed instances of this [asis,cPAddon].') %]"
+                    [%- END %]
+                    href="#manage">[% locale.maketext("Manage") %]</a>
+            </li>
+            [% IF module.meta.display.upgrades %]
+            <li role="presentation" class="nav-item[% has_upgradable_instances ? '' : ' disabled' %]">
+                <a id="upgradeTabLink"
+                    [%- IF has_upgradable_instances %]
+                    data-toggle="tab"
+                    title="[% locale.maketext('Upgrade') %]"
+                    [%- ELSE %]
+                    title="[% locale.maketext('No upgradeable instances exist of this [asis,cPAddon].') %]"
+                    [%- END %]
+                    href="#upgrade">[% locale.maketext("Upgrade") %]</a>
+            </li>
+            [% END %]
+            <li role="presentation" class="nav-item[% data.sorted_instances.size > 0 ? '' : ' disabled' %]">
+                <a id="uninstallTabLink"
+                    [%- IF data.sorted_instances.size > 0 %]
+                    data-toggle="tab"
+                    title="[% locale.maketext('Uninstall') %]"
+                    [%- ELSE %]
+                    title="[% locale.maketext('There are no installed instances of this [asis,cPAddon].') %]"
+                    [%- END %]
+                    href="#uninstall">[% locale.maketext("Uninstall") %]</a>
+            </li>
+            <li role="presentation" class="dropdown">
+                <a id="moreMenuLink" class="dropdown-toggle" data-toggle="dropdown" href="#">
+                    [% locale.maketext("More") %]
+                    <span class="caret"></span>
+                </a>
+                <ul class="dropdown-menu">
+                    <li role="presentation" class="nav-item"><a id="summaryTabLink" data-toggle="tab" href="#summary">[% locale.maketext("Details") %]</a></li>
+                    [% IF module.meta.license_text %]
+                    <li role="presentation" class="nav-item"><a id="licenseTermsLink" data-toggle="tab" href="#license-terms">[% locale.maketext("License Terms") %]</a></li>
+                    [% END %]
+                    [% IF show_security %]
+                    <li role="presentation" class="nav-item"><a id="securityInformationTabLink" data-toggle="tab" href="#security-information">[% locale.maketext("Security Information") %]</a></li>
+                    [% END %]
+                </ul>
+            </li>
+        </ul>
+    </div>
+</div>
+<div class="tab-content">
+    <div class="[% install_class %]tab-pane fade in" id="install">
+        [% install_content %]
+    </div>
+    <div class="[% manage_class %]tab-pane fade in" id="manage">
+        [% manage_content %]
+    </div>
+    [% IF upgrade_content %]
+    <div class="tab-pane fade in" id="upgrade">
+        [% upgrade_content %]
+    </div>
+    [% END %]
+    <div class="tab-pane fade in" id="uninstall">
+        [% uninstall_content %]
+    </div>
+    <div class="tab-pane fade in" id="summary">
+        [%- PROCESS 'addoncgi/views/summary_section.tt' -%]
+    </div>
+    [% IF module.meta.license_text %]
+    <div class="tab-pane fade in" id="license-terms">
+        [%- PROCESS 'addoncgi/views/license_section.tt' -%]
+    </div>
+    [% END %]
+    [% IF show_security %]
+    <div class="tab-pane fade in" id="security-information">
+        [%- PROCESS 'addoncgi/views/security_section.tt' -%]
+    </div>
+    [% END %]
+</div>
+
+[% IF meta.specialfunctions;
+    FOR action IN meta.specialfunctions.keys.sort;
+        SET fn_url = to_uri( environment, 'addon=' _ module.name _ '&action=' _ action);
+%]
+<p>
+    <a href="[% fn_url %]" id="special_[% slugify(meta.specialfunctions.$action.name, '_')%]">
+        [% meta.specialfunctions.$action.name %]
+    </a>
+</p>
+[%  END %]
+[% END %]
+
+[% IF !environment.called_from_root;
+    SET back_url = to_uri( environment, 'changevendor=' _ vendor.name );
+%]
+<p align="center">
+    [<a id="main" href="[% back_url | url %]">[% locale.maketext('Main') %]</a>]
+</p>
+[% END %]

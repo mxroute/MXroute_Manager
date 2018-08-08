@@ -1,0 +1,41 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+IF (FORM.loadonboot == "1");
+    SET load_on_boot = 1;
+ELSE;
+    SET load_on_boot = 0;
+END;
+
+Api2.pre_exec("RoR", "changeapp");
+SET change_rails_app_result = Api2.exec("RoR", "changeapp", {
+    "newloadonboot" => load_on_boot,
+    "appname" => FORM.appname
+});
+Api2.post_exec("RoR", "changeapp");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+-%]
+<div class="body-content">
+    [% IF CPANEL.CPERROR.ror %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("The system experienced a problem and your app was [output,strong,NOT] installed. Try again, or contact our support team.") %]
+                [% CPANEL.CPERROR.item('ror').html() %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("The system has successfully changed and saved Load on Boot for the “[_1]” app.", FORM.appname) %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

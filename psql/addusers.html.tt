@@ -1,0 +1,35 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    Api1.pre_exec("Postgres", "adduser");
+    SET adduser_result = Api1.exec("Postgres", "adduser", [RAW_FORM.item('user'),RAW_FORM.item('pass')]);
+    Api1.post_exec("Postgres", "adduser");
+
+    SET new_user = (ExpVar.expand('$dbownerprefix') _ FORM.item('user'));
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    [% IF !CPANEL.CPERROR.item('postgres') %]
+    <div id="addUserSuccess" class="alert alert-success">
+        <span id="addUserSuccessImg" class="glyphicon glyphicon-info-sign"></span>
+        <span id="addUserSuccessMsg">
+            [% locale.maketext("You have successfully created a [asis,PostgreSQL] user named “[output,class,_1,status]”.", new_user.html()) %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="addUserError" class="alert alert-danger">
+        <span id="addUserErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="addUserErrorMsg">
+            [% CPANEL.CPERROR.item('postgres').html() %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

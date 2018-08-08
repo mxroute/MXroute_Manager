@@ -1,0 +1,7 @@
+<html>
+[%
+Api1.pre_exec("ClamScanner", "scanhomedir");
+Api1.live_exec("ClamScanner", "scanhomedir", [RAW_FORM.item("scan")]);
+Api1.post_exec("ClamScanner", "scanhomedir")
+%]
+</html>

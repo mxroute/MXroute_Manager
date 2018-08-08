@@ -1,0 +1,74 @@
+<form class="layout-medium ng-pristine" name="edit_cname_record" novalidate>
+    <div class="modal-header"><h4>{{ cr.modal_header }}</h4></div>
+    <div class="modal-body">
+        <div class="form-group">
+            <label for="CNAME_name">
+                {{ cr.name_label }}
+            </label>
+            <div class="row">
+                <div class="col-xs-12">
+                    <input type="text"
+                        class="form-control"
+                        id="CNAME_name"
+                        name="CNAME_name"
+                        required
+                        zone-name
+                        ng-model="cr.resource.name"
+                        placeholder="{{cr.zone_name_placeholder}}"
+                        convert_to_full_record_name
+                        domain="cr.domain" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <ul validation-container field-name="CNAME_name">
+                        <li validation-item
+                            field-name="CNAME_name"
+                            validation-name="required">{{ cr.required_msg }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="form-group last">
+            <label id="lblCNAMEAddress" for="CNAME_address">
+                {{ cr.cname_label }}
+            </label>
+            <div class="row">
+                <div class="col-xs-12">
+                    <input type="text"
+                        class="form-control"
+                        id="CNAME_address"
+                        name="CNAME_address"
+                        placeholder="example.com"
+                        required
+                        cname
+                        ng-model="cr.resource.cname" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <ul validation-container field-name="CNAME_address">
+                        <li validation-item
+                            field-name="CNAME_address"
+                            validation-name="required">{{ cr.required_msg }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit"
+                id="CNAME_submit"
+                name="CNAME_submit"
+                cp-action="cr.save()"
+                ng-disabled="edit_cname_record.$invalid || edit_cname_record.$pristine"
+                button-class="btn btn-primary btn-sm">
+                {{ cr.submit_label }}</button>
+            <button type="button"
+                id="CNAME_cancel"
+                name="CNAME_cancel"
+                class="btn btn-link btn-sm"
+                ng-click="cr.cancel()">
+                {{ cr.cancel_label }}</button>
+    </div>
+</form>

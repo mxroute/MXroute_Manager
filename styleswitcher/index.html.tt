@@ -1,0 +1,126 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+    SET isReseller =  ExpVar.expand('$isreseller');
+
+    SET styles_list_raw = execute("Styles", "list");
+    IF styles_list_raw.status;
+        SET styles_list = styles_list_raw.data;
+    END;
+%]
+
+
+[% cache_meta = PROCESS cache_meta_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = "change_style"
+    feature = "style"
+    include_legacy_stylesheets = 0
+    page_scripts = CPANEL.is_debug_mode_enabled() ?
+        ['libraries/handlebars/handlebars.js', 'js2/styleswitcher/index.js'] :
+        ['libraries/handlebars/handlebars.min.js', 'js2-min/styleswitcher/index.js']
+    page_stylesheets = ["css2-min/styleswitcher/index.css"]
+    meta = cache_meta
+-%]
+
+        <p id="descChangeStyle" class="description"> [% locale.maketext("Choose a style to customize your [asis,cPanel] interface. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Style", "_blank", "lnkAddonDocumentation" ) %]
+        </p>
+
+        <div id="noticeContainer">
+        </div>
+
+
+        <ul id="styleList" class="list-unstyled styles-list">
+            [% FOREACH style IN styles_list %]
+            <li class="style">
+                [% IF style.selected %]
+                <div id="[% style.name %]Selected" class="panel panel-primary">
+                [% ELSE %]
+                <div id="[% style.name %]" class="panel panel-default">
+                [% END %]
+                    <div class="panel-heading">
+                        <span id="[%style.name%]Name" class="style-name">
+                            [% IF isReseller && style.default %]
+                                <span id="[% style.name %]Default" title="[% locale.maketext("Default Style") %]" class="fas fa-star fa-lg"></span>
+                            [% END %]
+                            [% style.display_name %]
+                        </span>
+                        <span class="pull-right">
+                            [% IF style.selected %]
+                            <span id="[% style.name %]Current" class="badge">
+                                [% locale.maketext("Current") %]
+                            </span>
+                            [% ELSE %]
+                            <button id="[% style.name %]Apply" type="button" class="btn btn-primary btn-xs" onclick="update_style('[% style.name %]','[% style.type %]')">
+                                <span class="fas fa-cog fa-lg"></span>
+                                [% locale.maketext("Apply") %]
+                            </button>
+                            [% END %]
+                        </span>
+                    </div>
+                    <div class="panel-body style-body">
+                        <div class="style-preview">
+                                [% IF style.preview %]
+                                    <img id="[% style.name %]Preview" src="/styled/[% style.type %]/[% style.name %]/preview.png" class="img-thumbnail"/>
+                                [% ELSE %]
+                                    <span id="[% style.name %]PreviewMissing" class="far fa-image fa-5x"></span>
+                                    <div id="[% style.name %]PreviewMissingText" class="preview-missing-text">
+                                        [% locale.maketext("Preview Not Available") %]
+                                    </div>
+                                [% END %]
+                        </div>
+                        [% IF isReseller %]
+                        <div class="style-actions">
+                            <ul class="list-unstyled style-actions">
+                                <li>
+                                    [% IF !style.default && style.type != 'user' %]
+                                        <button id="[% style.name %]SetDefault" type="button" class="btn btn-default btn-block" onclick="set_as_default('[% style.name %]','[% style.type %]')">
+                                            <span class="fas fa-star fa-lg"></span>
+                                            [% locale.maketext("Set as Default") %]
+                                        </button>
+                                    [% ELSIF style.default %]
+                                        <button id="[% style.name %]SetDefault" type="button" class="btn btn-default btn-block" disabled>
+                                            <span class="fas fa-star fa-lg"></span>
+                                            [% locale.maketext("Set as Default") %]
+                                        </button>
+                                    [% END %]
+                                </li>
+                                <!-- <li>
+                                    <button id="[% style.name %]Delete" type="button" class="btn btn-default btn-block" onclick="delete_style('[% style.name %]')">
+                                        <span class="glyphicon glyphicon-trash"></span>
+                                        [% locale.maketext("Delete") %]
+                                    </button>
+                                </li> -->
+                            </ul>
+                        </div>
+                        [% END %]
+                    </div>
+                </div>
+            </li>
+            [% END #foreach %]
+        </ul>
+        <script id="infoLoadingTemplate" type="text/x-handlebars-template">
+            <div class="alert alert-info alert-dismissable" id="{{noticeID}}">
+                 <span class="glyphicon glyphicon-info-sign" id="{{infoImgID}}"></span>
+                <div class="alert-message" id="{{messageID}}">
+                    {{{message_text}}}
+                </div>
+            </div>
+        </script>
+
+        <script id="failureTemplate" type="text/x-handlebars-template">
+            <div class="alert alert-danger" id="{{failureID}}">
+                 <span class="glyphicon glyphicon-remove-sign" id="{{errorImgID}}"></span>
+                <div class="alert-message" id="{{messageID}}">
+                   {{{message_text}}}
+                </div>
+            </div>
+        </script>
+[% END #wrapper %]
+
+[% BLOCK cache_meta_block %]
+
+<meta http-equiv="Cache-control" content="no-cache">
+<meta http-equiv="Expires" content="-1">
+
+[% END #cache_meta_block %]
+

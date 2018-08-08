@@ -1,0 +1,117 @@
+[%-
+# Imports
+USE Api2;
+USE DataURI;
+USE NVData;
+USE JSON;
+
+# Setup the spinner, include the DATAURI optimization
+SET spinner_url = '/images/report-spinner.gif';
+IF CPANEL.ua_is_ie && CPANEL.ua_is_ie < 8;
+    SET spinner_url = MagicRevision(spinner_url);
+    "<img src='$spinner_url' style='display:none'>";
+ELSE;
+    SET spinner_url = DataURI.datauri(spinner_url, 'image/gif');
+END;
+
+# Fetch the NVDATA for this user
+SET nvdata = NVData.get_page_nvdata();
+
+# Setup the titles for each type.
+SET archive_type_titles = {
+    'incoming' => locale.maketext('Incoming Email Messages'),
+    'outgoing' => locale.maketext('Outgoing Email Messages'),
+    'mailman' =>  locale.maketext('Outgoing Mailing List Email Messages'),
+};
+
+#This way, undefined/'' values will default to "on".
+SET show_default_configurator = nvdata.show_default_configurator != 0;
+-%]
+    <script>CPANEL.nvdata.initial = [% nvdata.json() || 'undefined' %]</script>
+
+    <h2 id="hdrDefaultMailArchivingConfiguration">
+        [% locale.maketext('Default Archive Configuration') %]
+    </h2>
+    <span style="display:none;" id="spinner_GLOBAL">
+        <img src="[% spinner_url %]" alt="[% locale.maketext('Wait …') %]"/>
+    </span>
+
+    <div id="default_config_container">
+        <div id="descTheDefaultMailArchive" class="header-text">
+            [% locale.maketext('Used by new domains created on this account via the web interfaces or the domain APIs.') %]
+        </div>
+
+        <div id="archive_status_bar_GLOBAL" class="cjt_status_bar" style="display:none;"></div>
+        <div id="default_config">
+[%
+    # Retreive the complete list of domains
+    SET all_domains = Api2.exec( 'Email', 'listmaildomains', {});
+-%]
+            <script type="text/javascript">
+            var all_archive_domains = [];
+            [% IF all_domains.size -%]
+                [% FOR domain_element = all_domains -%]
+                    all_archive_domains.push([%domain_element.domain.json()%]);
+                [% END %]
+            [% END %]
+            </script>
+
+[%
+# Retreive the default configuration and the list of archive types
+SET default_config = Api2.exec( 'Email', 'get_archiving_default_configuration', {});
+SET archive_types_list = Api2.exec( 'Email', 'get_archiving_types', {} );
+
+IF archive_types_list.size;
+    FOR archive_type = archive_types_list;
+        SET archive_types = archive_type -%]
+        [% FOREACH archive_type IN archive_types.pairs;
+            # Find the current configuration in the list
+            SET current_config = {};
+            IF default_config.size;
+                FOR config = default_config;
+                    IF config.direction == archive_type.key;
+                        SET current_config = config;
+                    END;
+                END;
+            END;
+
+            SET archive_type_key = archive_type.key;
+            SET archive_type_name = archive_type.value;
+            SET archive_type_title = archive_type_titles.$archive_type_key;
+            SET archive_type_enabled = current_config.enabled;
+            SET archive_type_retention = current_config.retention_period;
+            SET archive_type_dom_key = "archive_" _ archive_type.key;
+            SET archive_type_dom_key_retain_days = "archive_" _ archive_type.key _ "_retain_days";
+            SET added_progress = 0 -%]
+
+            <div class="checkbox">
+                <label>
+                    <input type="checkbox" id="archive_[% archive_type_key FILTER html %]_GLOBAL" name="archive_[% archive_type_key FILTER html %]_GLOBAL" [% IF archive_type_enabled %]checked="checked"[% END %] value="1" title="[% archive_type_title %]">
+                    [% archive_type_title %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% SET retention_control_enabled = archive_type_enabled -%]
+                        [% SET retention_control_key = "archive_" _ archive_type_key _ "_retain_days_GLOBAL" -%]
+                        [% SET retention_control_value = archive_type_retention -%]
+                        [% PROCESS mail/retention_control.html.tt -%]
+
+                        [% IF added_progress == 0%]
+                        [% SET added_progress = 1 %]
+                        <div id="archive_progress_bar_GLOBAL"></div>
+                        <div id="archive_progress_bar_message_GLOBAL"></div>
+                        [% END %]
+                    </div>
+                </div>
+            </div>
+        [%- END -%]
+
+        <div class="controls">
+            <button class="btn btn-primary" id="save_and_apply_default_config" title="[% locale.maketext('Apply the default mail archiving configuration to all the domains on my account.') %]">[% locale.maketext('Apply to All My Domains') %]</button>
+        </div>
+    [% END;
+ELSE -%]
+    [% locale.maketext('Unable to retrieve the data from the server!') %]
+[% END -%]
+        </div>
+</div>

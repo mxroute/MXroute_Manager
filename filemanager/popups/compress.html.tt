@@ -1,0 +1,78 @@
+<div style="display:none;" id="compress">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Compress") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="compress-filecontent">
+        <form name="compressform">
+            <div id="compress-type">
+                <label> [% locale.maketext("Compression Type:") %] </label>
+                <div style="display:none;" id="compress-singlefile">
+                    [% IF ExpVar.expand('$haszip') %]
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();" type="radio" name="compresstype" value="zip"> [% locale.maketext("Zip Archive") %]
+                        </label>
+                    </div>
+                    [% END %]
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();"  type="radio" name="compresstype" value="gz"> [% locale.maketext("GZip Archive") %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();"  type="radio" name="compresstype" value="bz2"> [% locale.maketext("Bzip2 Archive") %]
+                        </label>
+                    </div>
+                </div>
+                <div style="display:none;" id="compress-multifile">
+                    [% IF ExpVar.expand('$haszip') %]
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();"  type="radio" name="compresstype" value="zip"> [% locale.maketext("Zip Archive") %]
+                        </label>
+                    </div>
+                    [% END %]
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();"  type="radio" name="compresstype" value="tar"> [% locale.maketext("Tar Archive") %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();"  type="radio" name="compresstype" value="tar.gz"> [% locale.maketext("GZiped Tar Archive") %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                          <input onclick="changeCompression();"  type="radio" name="compresstype" value="tar.bz2"> [% locale.maketext("Bzip2ed Tar Archive") %]
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <label for="compressfilepath">
+                    [% locale.maketext("Files to compress:") %]
+                    <div id="compress-filelist"></div>
+
+                </label>
+            </div>
+            <div class="form-group">
+                <label>[% locale.maketext("Enter the name of the compressed archive and click [output,em,Compress]:") %]</label>
+                <div class="input-group">
+                          <span class="input-group-addon">
+                              <span class="fas fa-home"></span>
+                          </span>
+                          <input type="text" class="form-control" name="compressfilepath" id="compressfilepath" value="/path/to/location/" />
+                    </div>
+            </div>
+        </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>
+
+</div>

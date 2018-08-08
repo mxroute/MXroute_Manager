@@ -1,0 +1,27 @@
+.panel {
+    visibility: visible;
+}
+#module-output-formatted {
+    white-space: pre-wrap;
+}
+.or-separator {
+    margin-right: 25px;
+}
+
+.mod-form-container {
+    margin-bottom: 15px;
+}
+
+.mod-form-input {
+    float: left;
+    margin-right: 10px;
+    margin-bottom: 15px;
+}
+
+.mod-form-input-search {
+    width: 90%;
+}
+
+.mod-form-input-install {
+    width: 67%;
+}

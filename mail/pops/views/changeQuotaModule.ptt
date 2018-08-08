@@ -1,0 +1,79 @@
+<form name="changeQuotaForm" novalidate>
+    <div class="form-group">
+        <span style="display: none"></span>
+        <label for="quota_number_input_{{::$index}}">
+            [% LANG.mailbox_quota  %]
+        </label>
+        <div class="row">
+            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                <div class="form-inline quota-input"  ng-click="quotaChange.quotaType = 'userdefined'">
+                    <span>
+                        <input id="quota_number_{{::$index}}" type="radio" name="quotaType" value="userdefined" ng-model="quotaChange.quotaType"/>
+                    </span>
+                    <bytes-input
+                        ng-click="quotaChange.quotaType = 'userdefined'"
+                        name="quota_number_input_{{::$index}}"
+                        ng-model="quotaChange.quota"
+                        ng-focus="quotaChange.quotaType = 'userdefined'"
+                        display-format="si"
+                        value-format="binary"
+                        default-power="MB"
+                        value-unit="MiB"
+                        ng-required="quotaChange.quotaType === 'userdefined'"
+                        is-disabled="quotaChange.quotaType !== 'userdefined'"
+                        size="11"
+                        bytes-input-min="1"
+                        bytes-input-max="{{::maxQuota}}"/>
+                </div>
+            </div>
+            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                <ul validation-container field-name="quota_number_input_{{::$index}}" id="quota_number_input_{{::$index}}_error_panel">
+                    <li validation-item field-name="quota_number_input_{{::$index}}" validation-name="max" id="val-quota-max-quota">
+                        [%- LANG.mailbox_maxquota -%]
+                    </li>
+                    <li validation-item field-name="quota_number_input_{{::$index}}" validation-name="required" id="val-quota-required">
+                        [%- LANG.quota_required -%]
+                    </li>
+                    <li validation-item field-name="quota_number_input_{{::$index}}" validation-name="number" id="val-quota-number">
+                        [%- LANG.quota_required -%]
+                    </li>
+                    <li validation-item field-name="quota_number_input_{{::$index}}" validation-name="min" id="val-quota-min-quota">
+                        [%- LANG.quota_positive -%]
+                    </li>
+                    <li validation-item field-name="quota_number_input_{{::$index}}" validation-name="integer" id="val-quota-positive-integer">
+                        [%- LANG.quota_positive -%]
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                 <label class="form-inline">
+                    <input type="radio" id="quota_unlimited_{{::$index}}" name="quotaType" value="unlimited" ng-model="quotaChange.quotaType"/>
+                    <span> [% CPANEL.CPDATA.MAX_EMAILACCT_QUOTA && CPANEL.CPDATA.MAX_EMAILACCT_QUOTA != "unlimited" ? LANG.max_quota_label : LANG.unlimited %]</span>
+                </label>
+            </div>
+            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            </div>
+        </div>
+    </div>
+    <div class="form-group">
+        <button id="change_quota_confirm_{{::$index}}"
+            ng-disabled="changeQuotaForm.$invalid"
+            type="submit"
+            class="btn btn-primary"
+            spinner-id="spinnerChangeQuota"
+            cp-action="onClickChangeQuota()"
+            action-active="{{ changingQuota }}">[% LANG.save %]</button>
+        <button class="btn btn-link" ng-click="cancelAction()" ng-class="{ 'hide': changingQuota }">[% LANG.cancel %]</button>
+        <a class="btn btn-link"
+            id="email_table_menu_manage_external_auth_{{::$index}}"
+            ng-if="emailDiskUsageEnabled"
+            title="{{ :: emailAccount.email | emailLocaleString:'Manage disk usage for “[_1]”.' }}"
+            href="../manage_disk_usage/?account={{ :: emailAccount.email | encodeURIComponent }}"
+            target="_blank">
+            <span class="fas fa-external-link-alt"></span>
+            [% LANG.manage_disk_usage %]
+        </a>
+    </div>
+</form>

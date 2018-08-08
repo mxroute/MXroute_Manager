@@ -1,0 +1,44 @@
+[%
+
+# See also list.tt, which is the header for the addon list page (cPanel >> Site Software)
+#
+# Template parameters:
+#
+# addon_list - Hash ref - With the following structure:
+#
+# {
+#     'Category' => {
+#         'Vendor::Category::App' => {
+#             what => 'What type of software it is',
+#             installed_instances => 3,
+#             vendor_display_per_addon => '',
+#             url => '/cpsess1234567890/path/to/configure/addon',
+#             pretty_name => 'My Application'
+#         }
+#     }
+# }
+
+%]
+
+
+[% FOREACH category IN addon_list.keys.sort; %]
+    <div class="row">
+        <div class="col-xs-12">
+            <h4>[% category %]<a name="[% category %]">&nbsp;</a></h4>
+        </div>
+        [% FOREACH addon IN addon_list.$category.keys.sort; %]
+            [% SET addon_data = addon_list.$category.$addon %]
+            <div class="col-xs-12 col-sm-6 col-md-4">
+                <div class="addon-entry">
+                <a href="[% addon_data.url %]">[% addon_data.pretty_name %]</a>
+                [% addon_data.vendor_display_per_addon %]
+                [% IF addon_data.installed_instances > 0; %]
+                    (<span>[% addon_data.installed_instances %]&nbsp;installed</span>)
+                [% END; %]
+                <br>
+                <i>[% addon_data.what %]</i>
+                </div>
+            </div>
+        [% END %]
+    </div>
+[% END; %]

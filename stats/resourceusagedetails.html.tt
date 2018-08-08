@@ -1,0 +1,140 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET liveinfo_usage =  Api2.exec("LVEInfo", "getUsage", {"period"=>FORM.period} ); %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext("Current Usage")
+    app_key = 'cpu_and_concurrent_connection_usage'
+-%]
+
+<div class="body-content">
+
+    <div class="section">
+
+        <table class="table table-striped">
+            <tr>
+                <td title="CPU Usage" nowrap>
+                    [%  locale.maketext("CPU Usage") %]
+                </td>
+                <td>
+                    [% Api1.pre_exec("LVEInfo", "cpu") ;
+                    Api1.exec("LVEInfo", "cpu", [undef]) ;
+                    Api1.post_exec("LVEInfo", "cpu") %]% / 100%
+                </td>
+            </tr>
+            <tr>
+                <td title="Memory Usage" nowrap>
+                    [%  locale.maketext("Memory Usage") %]
+                </td>
+                <td>
+                    [%
+                        Api1.pre_exec("LVEInfo", "mem") ;
+                        Api1.exec("LVEInfo", "mem", [undef]) ;
+                        Api1.post_exec("LVEInfo", "mem") %] / [% Api1.pre_exec("LVEInfo", "mem_limit") ;
+                        Api1.exec("LVEInfo", "mem_limit", [undef]) ;
+                        Api1.post_exec("LVEInfo", "mem_limit")
+                    %]
+                </td>
+            </tr>
+            <tr>
+                <td title="[% locale.maketext('Simultaneously running PHP and CGI scripts, as well as CRON jobs and SHELL sessions.') %]" nowrap>
+                    [%  locale.maketext("Entry Processes") %]</td>
+                <td>
+                    [% Api1.pre_exec("LVEInfo", "mep") ;
+                        Api1.exec("LVEInfo", "mep", [undef]) ;
+                         Api1.post_exec("LVEInfo", "mep") %] / [% Api1.pre_exec("LVEInfo", "mep_limit") ;
+                         Api1.exec("LVEInfo", "mep_limit", [undef]) ;
+                         Api1.post_exec("LVEInfo", "mep_limit")
+                     %]</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Timeframe")  %]</h2>
+        <form method="get">
+            <div class="form-group">
+                <label for="period">
+                    [% locale.maketext("Update Timeframe")  %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id='period' name='period' class="form-control">
+                            <option value='10m'>[% locale.maketext("Last 10 Minutes")  %]</option>
+                            <option value='30m'>[% locale.maketext("Last 30 Minutes")  %]</option>
+                            <option value='1h'>[% locale.maketext("Last Hour")  %]</option>
+                            <option value='4h'>[% locale.maketext("Last 4 Hours")  %]</option>
+                            <option value='1d'>[% locale.maketext("Last 24 Hours")  %]</option>
+                            <option value='today'>[% locale.maketext("Today")  %]</option>
+                            <option value='yesterday'>[% locale.maketext("Yesterday")  %]</option>
+                            <option value='7d'>[% locale.maketext("Last 7 Days")  %]</option>
+                            <option value='30d'>[% locale.maketext("Last 30 Days")  %]</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                 <input type="submit" class="btn btn-primary" value="[% locale.maketext("Submit")  %]" />
+            </div>
+
+        </form>
+
+        <script type="text/javascript">
+            var p = document.getElementById('period');
+            var options = p.options;
+            var period = '[% FORM.period %]';
+            if (period == '') {
+              period='1d';
+            }
+            for (var i = 0; i < options.length; i++) {
+              if (options[i].value == period) {
+                        p.selectedIndex=i;
+                        break;
+              }
+            }
+        </script>
+        <img src="[% CPANEL.ENV.cp_security_token | url %]/3rdparty/lvechart.cgi?period=[% FORM.period | url %]">
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Usage") %]</h2>
+        <table class="sortable table table-striped">
+            <thead>
+                <tr>
+                <th title=[% locale.maketext("Beginning of Period") %]>From</th>
+                <th title=[% locale.maketext("End of Period") %]>To</th>
+                <th title=[% locale.maketext("Average [output,acronym,CPU,Central Processing Unit] Usage:") %]>aCPU</th>
+                <th title=[% locale.maketext("Max [output,acronym,CPU,Central Processing Unit] Usage:") %]>mCpu</th>
+                <th title=[% locale.maketext("Average Entry Processes") %]>aEP</th>
+                <th title=[% locale.maketext("Max Entry Processes") %]>mEP</th>
+                <th title=[% locale.maketext("Entry Processes Limit (simultaneously running [asis,PHP] and [asis,CGI] scripts, as well as [asis,Cron] jobs and shell sessions)") %]>lEP</th>
+                <th title=[% locale.maketext("Average Memory Usage") %]>aMEM</th>
+                <th title=[% locale.maketext("Max Memory Usage") %]>mMEM</th>
+                <th title=[% locale.maketext("Memory Limit") %]>lMEM</th>
+                <th title=[% locale.maketext("Number of times application hasn’t been able to execute correctly due to memory limit.") %]>MemF</th>
+                <th title=[% locale.maketext("Number of times entry processes limit was reached.") %]>MepF</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% IF liveinfo_usage.size; %]
+                    [% FOREACH usage IN liveinfo_usage; %]
+                    <tr class="row-[%  loop.index % 2 == 0 ? 'even' : 'odd' %]" class="erros">
+                        <td>[%  usage.from.html() %]</td>
+                        <td>[%  usage.to.html() %]</td>
+                        <td class="[%  usage.eapcpu.html() %]">[%  usage.apcpu.html() %]</td>
+                        <td class="[%  usage.empcpu.html() %]">[%  usage.mpcpu.html() %]</td>
+                        <td class="[%  usage.eaep.html() %]">[%  usage.aep.html() %]</td>
+                        <td class="[%  usage.emep.html() %]">[%  usage.mep.html() %]</td>
+                        <td>[%  usage.lep.html() %]</td>
+                        <td class="[%  usage.eaMem.html() %]">[%  usage.aMemStr.html() %]</td>
+                        <td class="[%  usage.emMem.html() %]">[%  usage.mMemStr.html() %]</td>
+                        <td>[%  usage.lMemStr.html() %]</td>
+                        <td class="[%  usage.ememf.html() %]">[%  usage.memf.html() %]</td>
+                        <td class="[%  usage.emepf.html() %]">[%  usage.mepf.html() %]</td>
+                    </tr>
+                [% END %]
+            [% END %]
+            </tbody>
+        </table>
+</div>
+[% END #wrapper -%]

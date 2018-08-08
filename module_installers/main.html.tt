@@ -1,0 +1,202 @@
+[%
+USE Api2;
+USE CPScalar;
+USE EasyApache;
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+PROCESS 'supported_langs.html.tt';
+SET is_supported = FORM.defined('lang') AND supported_langs.grep('^' _ CPScalar.quotemeta(FORM.lang) _ '$').size;
+IF is_supported;
+    SET ea_version = EasyApache.get_ea_version();
+    SET lang_mods_get_key_names = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "names"} ).0;
+    SET lang_mods_get_key_name = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "name"} ).0;
+    SET lang_mods_get_magic_status = Api2.exec("LangMods", "magic_status", {"lang" => FORM.lang} ).0;
+    SET lang_mods_get_prefix = Api2.exec("LangMods", "getprefix", {"lang" => FORM.lang} ).0;
+    SET lang_mods_list_installed = Api2.exec("LangMods", "list_installed", {"lang" => FORM.lang} );
+END;
+%]
+
+[% IF NOT is_supported %]
+    [% PROCESS 'not_supported.html.tt' lang=FORM.lang %]
+[% ELSE %]
+
+[% PROCESS installer_app_key.html.tt %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = installer_app_key
+    page_stylesheets = [
+        'module_installers/module.css'
+    ]
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrInstaller">[% locale.maketext("“[_1]” Installer[comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_name.key.html()) %]</h2>
+
+    [% SWITCH FORM.lang %]
+    [% CASE 'perl' %]
+        <p>
+            [% locale.maketext("Perl modules are collections of functions that allow you to perform tasks in Perl. You will need to install a Perl module before you can use it inside a Perl program.") %]
+            [% locale.maketext("[output,strong,Note:] Modules are installed directly from the CPAN repository.") %]
+        </p>
+    [% CASE 'php-pear' %]
+        <p>
+            [% locale.maketext("PEAR packages are collections of functions that allow you to perform tasks in PHP. You will need to install a PEAR package before you can use it inside a PHP program.") %]
+            [% locale.maketext("[output,strong,Note:] Packages are installed directly from the PHP Extensions and Applications repository (PEAR).") %]
+        </p>
+    [% CASE 'ruby' %]
+        <p>
+            [% locale.maketext("Ruby Gems are collections of functions that allow you to perform tasks in Ruby. You will need to install a Gem before you can use it inside a Ruby program.") %]
+            [% locale.maketext("[output,strong,Note:] Gems are installed directly from the RubyForge repository.") %]
+        </p>
+        <div class="alert alert-warning" id="ruby-gems-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext('[output,strong,Warning:] This installer only works for the legacy Ruby installation and does not affect applications that you install with the “[_1]” interface.', locale.maketext('Application Manager')) %]
+            </div>
+        </div>
+    [% END %]
+
+    <div class="section">
+        <h2 id="hdrLocation">[% locale.maketext("Module Include Path") %]</h2>
+        <p>
+            <span>
+                [% locale.maketext("Path: [output,strong,_1]", lang_mods_get_prefix.prefix.html()) %]
+            </span>
+        </p>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrKeyName">[% locale.maketext("Using Your [_1][comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_names.key.html()) %]</h2>
+        [% IF (FORM.lang == "ruby") %]
+            <p>[% locale.maketext("[output,strong,Important]: At this time [asis,Rails 3.0] is not supported and can cause a broken [asis,ruby/rails] environment.") %]</p>
+        [% END %]
+
+        [% IF lang_mods_get_magic_status && (ea_version != 4 || (FORM.lang != 'php-pear')) %]
+            <p>
+                [% locale.maketext("The administrator has enabled auto loading of “[_1]” from “[output,strong,_2]”.", lang_mods_get_key_name.key.html(), lang_mods_get_prefix.prefix.html()) %]
+            </p>
+            <p>
+                [% locale.maketext("You will not need to modify your scripts.") %]
+            </p>
+        [% ELSE %]
+            [% SWITCH FORM.lang %]
+            [% CASE 'php-pear' %]
+                <p>
+                [% locale.maketext("You will need to add “[output,strong,_1]” to the include path.", lang_mods_get_prefix.prefix.html()) %]
+                [% locale.maketext("You can do this by adding the following code to your script:") %]
+                </p>
+                <p>
+                    <code dir="ltr">ini_set("include_path", '[% lang_mods_get_prefix.prefix.html() %]:' . ini_get("include_path")  );</code>
+                </p>
+            [% CASE 'perl' %]
+                <p>
+                    [% locale.maketext("Your Perl script needs to know how to find the modules in your path.")  %]
+                    [% locale.maketext("You can do this by adding one of the two choices below to the top of your script:")  %]
+                </p>
+                <p>
+                <code dir="ltr">
+                #!/usr/bin/perl<br />
+                use cPanelUserConfig;
+                </code>
+                </p>
+                <p>[% locale.maketext("or[comment,this is meant to be a horizontal separator of 2 things stacked vertically]") %]</p>
+                <p>
+                <code dir="ltr">
+                #!/usr/bin/perlml
+                </code>
+                </p>
+            [% CASE 'ruby' %]
+                <p>
+                    [% locale.maketext("You will need to add “[output,strong,_1]” to the include path.", lang_mods_get_prefix.prefix.html()) %]
+                </p>
+                <p>
+                <code dir="ltr">$:.push("[% lang_mods_get_prefix.prefix.html() %]")</code>
+                </p>
+            [% END %]
+        [% END %]
+    </div>
+
+    <div class="section">
+        <h2 id="hdrFindKey">[% locale.maketext("Find a “[_1]”[comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_name.key.html()) %]</h2>
+        <div class="row">
+            <div class="col-xs-12 col-md-6">
+                <form action="search.html" method="get">
+                    <div class="mod-form-container">
+                        <label id="lblSearchterm" for="searchterm" class="sr-only">
+                        </label>
+                        <input type="text" class="form-control mod-form-input mod-form-input-search" id="searchterm" name="searchterm" size="15" placeholder="[% locale.maketext("Search") %]" />
+                        <input type="hidden" name="lang" id="searchlang" value="[% FORM.lang %]" />
+                        <input type="hidden" name="searchtype" id="searchtype" value="1" />
+                        <input class="btn btn-primary" type="submit" id="findAMod" value="[% locale.maketext('Go') %]" />
+                    </div>
+                </form>
+            </div>
+            <div class="col-xs-12 col-md-6">
+                <form action="search.html" method="get">
+                    <div>
+                        <span class="or-separator">
+                            [% locale.maketext("or[comment,this is meant to be a horizontal separator of 2 things stacked vertically]") %]
+                        </span>
+                        <input type="hidden" name="lang" id="langShow" value="[% FORM.lang %]" />
+                        <input type="hidden" name="searchtype" id="searchShow" value="0" />
+                        <input class="btn btn-primary" type="submit" id="showMods" value="[% locale.maketext('Show Available Modules') %]" />
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrInstallKey">[% locale.maketext("Install a [_1][comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_name.key.html()) %]</h2>
+        <div class="row">
+            <div class="col-xs-12 col-sm-8">
+                <form action="install.html" method="get">
+                    <div class="mod-form-container">
+                        <input type="text" class="form-control mod-form-input mod-form-input-install" id="installname" name="mod" />
+                        <input type="hidden" name="lang" id="installLang" value="[% FORM.lang %]" />
+                        <input class="btn btn-primary" type="submit" id="install" value="[% locale.maketext("Install Now") %]" />
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Installed [_1][comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_names.key.html()) %]</h2>
+        <table id="maintbl" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Module Name") %]</th>
+                    <th>[% locale.maketext("Version") %]</th>
+                    <th nonsortable="true">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            [% FOREACH hashref IN lang_mods_list_installed %]
+            <tr>
+                <td>[% hashref.module.html() %]</td>
+                <td>[% hashref.latest.html() %]</td>
+                <td>
+                    <a href="update.html?lang=[% FORM.lang | url %]&mod=[% hashref.module | url %]" id="update_[% loop.count %]" class="btn btn-link">
+                    <span class="fas fa-download"></span> [% locale.maketext("Update") %]
+                    </a>
+                    <a href="reinstall.html?lang=[% FORM.lang | url %]&mod=[% hashref.module | url %]" id="reinstall_[% loop.count %]" class="btn btn-link">
+                    <span class="fas fa-download"></span> [% locale.maketext("Reinstall") %]
+                    </a>
+                    <a href="uninstall.html?lang=[% FORM.lang | url %]&mod=[% hashref.module | url %]" id="uninstall_[% loop.count %]" class="btn btn-link">
+                    <span class="glyphicon glyphicon-trash"></span> [% locale.maketext("Uninstall") %]
+                    </a>
+                    <a href="[% hashref.docurl | url %]" id="docs_[% loop.count %]" target="_blank" class="btn btn-link">
+                    <span class="fas fa-search"></span> [% locale.maketext("Show Docs") %]
+                    </a>
+                </td>
+            </tr>
+            [% END %]
+        </table>
+    </div>
+
+    <div class="section">
+        <a href="syslist.html?lang=[% FORM.lang | url %]" id="showSysMods" class="btn btn-primary">[% locale.maketext("Show System Installed Modules") %]</a>
+    </div>
+</div>
+[% END #wrapper -%]
+[% END %]

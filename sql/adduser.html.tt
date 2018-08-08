@@ -1,0 +1,36 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET has_prefix = ExpVar.expand('$dbprefix');
+SET user = FORM.item('user');
+IF has_prefix;
+    SET user = (ExpVar.expand('$dbownerprefix') _ FORM.user);
+END;
+SET password = RAW_FORM.pass;
+
+SET adduser = execute("Mysql", "create_user", {"name" => user, "password" => password});
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    [% IF adduser.status %]
+        <div id="adduserSuccess" class="alert alert-success">
+            <span id="adduserSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <span id="adduserSuccessMsg">[% locale.maketext("You have successfully created a [asis,MySQL] user named “[output,class,_1,status]”.",user) %]</span>
+        </div>
+    [% ELSE %]
+        <div id="adduserError" class="alert alert-danger">
+            <span id="adduserErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            [% FOREACH q = adduser.errors %]
+                <span id="adduserErrorMsg">[% q %]</span>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

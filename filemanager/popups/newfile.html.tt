@@ -1,0 +1,32 @@
+<div style="display:none;" id="newfile">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("New File") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="newfile-filecontent">
+            <form action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="new-file-name">
+                        [% locale.maketext("New File Name:") %]
+                    </label>
+                    <input type="text" class="form-control" name="name" id="new-file-name" />
+                    <span class="help-block">(ex: file.txt, file.html, file.php)</span>
+                </div>
+                <div class="form-group">
+                    <label for="new-file-path">
+                        [% locale.maketext("New file will be created in:") %]
+                    </label>
+                    <div class="input-group">
+                          <span class="input-group-addon">
+                              <span class="fas fa-home"></span>
+                          </span>
+                          <input type="text" class="form-control" name="path" id="new-file-path" value="/path/to/location/" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>

@@ -1,0 +1,26 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'analog_stats'
+-%]
+
+
+
+<div class="body-content">
+     <section>
+        <h4 id="descViewStatsByMonth">[% locale.maketext("View Statistics by Month") %]</h4>
+        <p id="descSelectMonth">
+            [% locale.maketext("Select the month for which you wish to view statistics for “[_1]”.", FORM.domain) %]
+        </p>
+        <p id="apiOutputListOfMonths">
+            [% Api1.pre_exec("Stats", "analoglist") ;
+                Api1.exec("Stats", "analoglist", [RAW_FORM.domain, RAW_FORM.ssl]);
+                Api1.post_exec("Stats", "analoglist")
+            %]
+        </p>
+    <section>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='analog_landing.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

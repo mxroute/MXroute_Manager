@@ -1,0 +1,89 @@
+[%
+    Api2.pre_exec("CustInfo", "savecontactinfo");
+
+    SET cert_failure_settings = ['all', 'failWarnDefer', 'certFailures'];
+    SET cert_failures = cert_failure_settings.grep(FORM.autosslNotifications).size ? 1 : 0;
+
+    IF CPANEL.appname != "webmail" || CPANEL.authuser == CPANEL.user;
+        SET api2_result_CustInfo_savecontactinfo=Api2.exec(
+            "CustInfo",
+            "savecontactinfo",
+            {
+                "email" =>FORM.email,
+                "notify_account_login" => FORM.notify_account_login,
+                "notify_account_login_for_known_netblock" => FORM.notify_account_login_for_known_netblock,
+                "notify_account_login_notification_disabled" => FORM.notify_account_login_notification_disabled,
+                "notify_bandwidth_limit" => FORM.notify_bandwidth_limit,
+                "notify_contact_address_change" => FORM.notify_contact_address_change,
+                "notify_contact_address_change_notification_disabled" => FORM.notify_contact_address_change_notification_disabled,
+                "notify_disk_limit" =>FORM.notify_disk_limit,
+                "notify_email_quota_limit" =>FORM.notify_email_quota_limit,
+                "notify_password_change" => FORM.notify_password_change,
+                "notify_password_change_notification_disabled" => FORM.notify_password_change_notification_disabled,
+                "notify_account_authn_link" => FORM.notify_account_authn_link,
+                "notify_account_authn_link_notification_disabled" => FORM.notify_account_authn_link_notification_disabled,
+                "notify_twofactorauth_change" => FORM.notify_twofactorauth_change,
+                "notify_twofactorauth_change_notification_disabled" => FORM.notify_twofactorauth_change_notification_disabled,
+                "notify_autossl_renewal" => FORM.autosslNotifications == 'all',
+                "notify_autossl_renewal_coverage" => cert_failures,
+                "notify_autossl_expiry" => cert_failures,
+                "notify_autossl_expiry_coverage" => cert_failures,
+                "notify_autossl_renewal_coverage_reduced" => cert_failures,
+                "notify_autossl_renewal_uncovered_domains" => FORM.autosslNotifications == 'all' || FORM.autosslNotifications == 'failWarnDefer',
+                "notify_ssl_expiry" => FORM.notify_ssl_expiry,
+                "pushbullet_access_token" => FORM.pushbullet_access_token,
+                "second_email" =>FORM.second_email,
+            },
+        );
+    ELSE;
+        SET api2_result_CustInfo_savecontactinfo=Api2.exec(
+            "CustInfo" ,
+            "savecontactinfo" ,
+            {
+                "email" =>FORM.email,
+                "second_email" =>FORM.second_email,
+                "notify_account_login_for_known_netblock" => FORM.notify_account_login_for_known_netblock,
+                "pushbullet_access_token" => FORM.pushbullet_access_token,
+                "notify_account_login" => FORM.notify_account_login,
+                "notify_account_login_notification_disabled" => FORM.notify_account_login_notification_disabled,
+            },
+        );
+    END;
+    Api2.post_exec("CustInfo", "savecontactinfo");
+%]
+
+    [% IF !CPANEL.CPERROR.custinfo %]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("[output,strong,Success]: Your contact information and preferences have been updated.") %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("[output,strong,Error]: Your contact information and preferences have not been updated:") %]
+                <p> [% CPANEL.CPERROR.custinfo.html %] </p>
+            </div>
+        </div>
+    [% END %]
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>[% locale.maketext("Option") %]</th>
+            <th>[% locale.maketext("New Setting") %]</th>
+        </tr>
+    </thead>
+    <tbody>
+    [% IF api2_result_CustInfo_savecontactinfo.size() %]
+        [% FOREACH hashref IN api2_result_CustInfo_savecontactinfo %]
+            <tr>
+                <td>[% hashref.descp %]</td>
+                <td>[% hashref.display_value.html() %]</td>
+            </tr>
+        [% END %]
+    [% END %]
+    </tbody>
+</table>

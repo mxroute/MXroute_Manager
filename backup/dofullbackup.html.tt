@@ -1,0 +1,18 @@
+[% SET CPANEL.CPVAR.dprefix = "../"; %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup'
+-%]
+
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+
+	    [% INCLUDE "dofullbackup-include.html.tt" %]
+
+	    [% INCLUDE _assets/return_link.html.tt return_location="fullbackup.html" return_link_text=locale.maketext("Go Back") %]
+
+    [% END %]
+</div>
+[% END #wrapper -%]

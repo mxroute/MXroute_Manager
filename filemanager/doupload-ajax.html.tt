@@ -1,0 +1,25 @@
+<html>
+    <head>
+        <title>[% locale.maketext("[asis,cPanel X]") %]</title>
+        [% Api1.exec("relinclude", ["charset.html"]) %]
+    </head>
+    <body>
+        <div id="wrap">
+            <h5>[% locale.maketext("Upload") %]</h5>
+            <br />
+            <br />
+            <img src="images/up.gif" border=0>
+            &nbsp;&nbsp;&nbsp;
+            <font class=med>
+                &nbsp;<b>[% locale.maketext("Upload Status") %]</b>
+            </font>
+            <br />
+            [%
+                Api1.pre_exec("Fileman", "uploadfiles");
+                Api1.exec("Fileman", "uploadfiles", [undef]);
+                Api1.post_exec("Fileman", "uploadfiles")
+            %]
+        </div>
+    </body>
+</html>
+

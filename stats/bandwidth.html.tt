@@ -1,0 +1,203 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'bandwidth'
+-%]
+
+[%
+USE CPDate;
+
+PROCESS '_assets/resource_usage_macro.html.tt';
+
+SET timezone = CPANEL.cookies.timezone;
+
+SET now = CPANEL.now();
+
+SET ONE_DAY_AGO = CPDate.add_local_interval( now, -1, 'day', timezone );
+
+#Might as well start sampling on a 5-minute boundary
+ONE_DAY_AGO = ONE_DAY_AGO - ONE_DAY_AGO % (5 * 60);
+
+#Might as well start sampling on an hour boundary
+SET ONE_WEEK_AGO = CPDate.local_startof(
+    CPDate.add_local_interval( now, -7, 'day', timezone ),
+    'hour',
+    timezone,
+);
+
+SET ONE_YEAR_AGO = CPDate.add_local_interval( now, -1, 'year', timezone );
+
+SET last_tick = CPDate.local_startof( now, 'day', timezone );
+SET WEEK_TICKS = [];
+FOR i = [ 0 .. 6 ];
+    WEEK_TICKS.unshift( last_tick * 1000 );
+    last_tick = CPDate.add_local_interval( last_tick, -1, 'day', timezone );
+END;
+
+SET daily_data = execute(
+    'Bandwidth',
+    'query',
+    {
+        timezone => timezone,
+        grouping => "protocol|year_month_day_hour_minute",
+        start => ONE_DAY_AGO,
+        interval => "5min",
+    },
+);
+
+SET weekly_data = execute(
+    'Bandwidth',
+    'query',
+    {
+        timezone => timezone,
+        grouping => "protocol|year_month_day_hour",
+        start => ONE_WEEK_AGO,
+        interval => "hourly",
+    },
+);
+
+SET yearly_data = execute(
+    'Bandwidth',
+    'query',
+    {
+        timezone => timezone,
+        grouping => "protocol|year_month_day",
+        start => ONE_YEAR_AGO,
+        interval => "daily",
+    },
+);
+
+PROCESS '_bandwidth_graph_include.tmpl';
+-%]
+
+<div class="body-content">
+    <span id="bandwidthInformationMsg">
+    [%-
+            # Note: a MACRO was not used here because we need to be able
+            # to access resource_usage_limits after the block runs
+            SET resource_usage_key = 'bandwidthusage';
+            SET resource_usage_percent_used_to_warn = 80;
+            PROCESS resource_usage_block;
+
+    -%]
+    </span>
+    <p id="descBandwidth" class="description">
+        [% locale.maketext("This function allows you to see the bandwidth usage for your site. It shows the current month’s bandwidth usage, as well as your total bandwidth usage. This will include all HTTP (web) and POP (mail) bandwidth usage, and may include FTP bandwidth usage if your system administrator has enabled FTP bandwidth logging.")  %]
+    </p>
+    <p class="description">[% your_timezone_is() %]</p>
+    [% IF CPANEL.CPDATA.BWLIMIT != 0 %]
+        <table width="95%">
+            <tr>
+                <td>
+                    <fieldset>
+                        <legend>
+                            <strong>
+                                [% locale.maketext("Monthly Bandwidth Transfer") %]
+                            </strong>
+                        </legend>
+                        <table>
+                            <tr>
+                                <td>
+                                    <div id="statsBwbarMsg">
+                                        [% Api1.pre_exec("Stats", "bwbar") ;
+                                           Api1.exec("Stats", "bwbar", [undef]) ;
+                                            Api1.post_exec("Stats", "bwbar")
+                                        %]
+                                    </div>
+                                </td>
+                            </tr>
+                        </table>
+                    </fieldset>
+                </td>
+            </tr>
+        </table>
+    [% END %]
+
+    <div class="section">
+        <table id="bw_graphs" width="95%">
+            <tr>
+                <td>
+                    <fieldset>
+                        <legend>[% locale.maketext('Past [quant,_1,hour,hours]',24) -%]</legend>
+                        <div id="daily_container_d3" class="bw-time-graph"></div>
+                    </fieldset>
+                    <br>
+                    <fieldset>
+                        <legend>[% locale.maketext('Past week') -%]</legend>
+                        <div id="weekly_container_d3" class="bw-time-graph"></div>
+                    </fieldset>
+                    <br>
+                    <fieldset>
+                        <legend>[% locale.maketext('Past year') -%]</legend>
+                        <div id="yearly_container_d3" class="bw-time-graph"></div>
+                    </fieldset>
+                    <br>
+                </td>
+            </tr>
+        </table>
+        <br />
+        <table id="bw_by_month" width="95%">
+            <tr>
+                <td>
+                    <span id="statsShowBwMsg">
+                        [% Api1.pre_exec("Stats", "showbandwidth") ;
+                        Api1.exec("Stats", "showbandwidth", [undef]) ;
+                        Api1.post_exec("Stats", "showbandwidth") %]
+                    </span>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script>
+var WEEK_TICKS = [% JSON.stringify(WEEK_TICKS) %].map( function(t) {
+    return new Date(t);
+} );
+
+//XXX: LOCALE’s CLDR isn’t loading correctly on page load.
+wait_for_CLDR_to_load( function() {
+    var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
+        time_format: function(t) { return LOCALE.local_datetime(t, "time_format_short") },
+        container_path: "#daily_container_d3",
+        min_date: [% "${ONE_DAY_AGO}000" %],
+        resolution: "5min",
+        api_protocol_data: [% JSON.stringify(daily_data.data) %]
+    } );
+    if (did_sth) {
+        Bandwidth_Graph.draw_protocols_time_graph_key("#daily_container_d3");
+    }
+
+    var WEEKDAYS = [% CPDate.day_stand_alone_abbreviated().json() %];
+    WEEKDAYS.unshift( WEEKDAYS.pop() );
+
+    var MONTHS = [% CPDate.month_stand_alone_abbreviated().json() %];
+
+    did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
+        time_format: function(t) { return WEEKDAYS[ t.getDay() ] + " (" + LOCALE.numf(t.getDate()) + ")" },
+        time_ticks: WEEK_TICKS,
+        container_path: "#weekly_container_d3",
+        min_date: [% "${ONE_WEEK_AGO}000" %],
+        resolution: "hourly",
+        api_protocol_data: [% JSON.stringify(weekly_data.data) %]
+    } );
+    if (did_sth) {
+        Bandwidth_Graph.draw_protocols_time_graph_key("#weekly_container_d3");
+    }
+
+    did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
+        time_format: function(t) { return MONTHS[t.getMonth()] },
+        container_path: "#yearly_container_d3",
+        min_date: [% "${ONE_YEAR_AGO}000" %],
+        resolution: "daily",
+        api_protocol_data: [% JSON.stringify(yearly_data.data) %]
+    } );
+    if (did_sth) {
+        Bandwidth_Graph.draw_protocols_time_graph_key("#yearly_container_d3");
+    }
+} );
+
+CPTimezone.show_cookie_timezone_mismatch_nodes();
+</script>
+
+[% END #wrapper -%]

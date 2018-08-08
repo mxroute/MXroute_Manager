@@ -1,0 +1,77 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+
+    <h2 id="hdrImportKey">
+        [% locale.maketext("Import SSH Key") %]
+    </h2>
+    <p id="descImportKey">
+        [% locale.maketext("You may have already generated an SSH public/private key pair. If so, you can import them here, simply paste the keys into fields below.") %]
+    </p>
+    <div class="section">
+        <form id="formImportKey" name="keyimport" action="import.html" method="post">
+            <div class="form-group">
+                <label id="lblKeyName" for="keyname">
+                    [% locale.maketext("Choose a name for this key (defaults to id_dsa):") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="keyname" type="text" class="form-control" name="keyname">
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPrivKey" for="privkey">
+                    [% locale.maketext("Paste the private key into the following text box:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea id="privkey" rows="10" name="privkey" class="form-control"></textarea>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPass" for="pass">
+                    [% locale.maketext("Passphrase") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="pass" type="text" class="form-control" name="pass">
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPubKey" for="pubkey">
+                    [% locale.maketext("Paste the public key into the following text box:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea id="pubkey" rows="10" name="pubkey" class="form-control"></textarea>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="btnImport" type="submit" class="btn btn-primary" value="[% locale.maketext("Import") %]">
+            </div>
+        </form>
+    </div>
+
+    <p>
+        [% locale.maketext("[output,strong,Note:] You don’t have to import both keys. It is perfectly acceptable to just import a public OR private key if that is all you need on the server.") %]
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

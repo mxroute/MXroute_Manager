@@ -1,0 +1,26 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("Fileman", "listfiles");
+    SET file_list = Api1.exec("Fileman", "listfiles", [RAW_FORM.dir, "1", "convert.html", "convert.html", "1"]);
+    Api1.post_exec("Fileman", "listfiles");
+%]
+
+[%
+    WRAPPER '_assets/master.html.tt'
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Converter")
+-%]
+
+<div class="body-content">
+    <div class="section">
+        <p id="descConvertIntro"><strong>[% locale.maketext("Select a Folder or File to Convert.") %]</strong></p>
+
+        <p id="descConvertAction">[% locale.maketext("Click a [output,strong,folder icon] to navigate. Click a [output,strong,name] to view its properties.") %]</p>
+        <div id="apiOutputFileList" class="medium">
+            [% file_list %]
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper -%]

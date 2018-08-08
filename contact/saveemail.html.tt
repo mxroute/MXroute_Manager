@@ -1,0 +1,17 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'contact_information'
+%]
+
+<div class="body-content">
+    [%
+        IF !ExpVar.expand('$isarchiveuser');
+            Api1.exec("include", ["savemailinclude.html.tt"]);
+        END;
+    %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+
+[% END #wrapper -%]

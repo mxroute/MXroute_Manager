@@ -1,0 +1,96 @@
+<style>
+    .external-auth-icon {
+        display: inline-block;
+        height: 35px;
+        width: 35px;
+        margin: 3px 10px 3px 0;
+        vertical-align: middle;
+        background-repeat: no-repeat;
+        background-position: center center;
+        background-size: 75% 75%;
+        border: 1px solid #FFF;
+    }
+
+    html[dir="rtl"] .external-auth-icon {
+        margin: 3px 0 3px 10px;
+    }
+
+    .table .provider-username {
+        padding-left: 55px;
+    }
+
+    html[dir="rtl"] .table .provider-username {
+        padding-right: 55px;
+    }
+
+    @media (max-width: 667px) {
+        .external-auth-icon {
+            height: 25px;
+            width: 25px;
+        }
+
+        .table .provider-username {
+            padding-left: 47px;
+        }
+
+        html[dir="rtl"] .table .provider-username {
+            padding-right: 47px;
+        }
+    }
+</style>
+<div class="callout callout-info">
+    <p>[% locale.maketext("You can link your account to credentials at an external authentication provider. This reduces the number of passwords that you need to remember.") %]</p>
+</div>
+<div class="description" ng-controller="ExternalAuthController as ExternalAuth" ng-cloak>
+    <div class="list-container">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% locale.maketext('Service') %]
+                    </th>
+                    <th class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat-start="module in ExternalAuth.PAGE.external_auth_modules">
+                    <td data-title="[% locale.maketext('Service') %]">
+                        <i
+                            class="external-auth-icon"
+                            ng-style="{
+                                'background-color':'#'+module.color,
+                                'background-image': 'url(data:{{module.icon_type}};base64,{{module.icon}})'
+                            }"
+                        >
+                        </i>
+                        <span ng-bind="module.display_name"></span>
+                    </td>
+                    <td data-title="">
+                        <a class="external-auth-link" href="{{module.link}}?action=link&goto_app=Password_Change" >
+                        <button type="button" class="btn btn-primary">
+                            <span class='glyphicon glyphicon-plus'></span>
+                            [% locale.maketext('Link Account') %]
+                        </button>
+                        </a>
+                    </td>
+                </tr>
+                <tr class="fade-out" ng-repeat-end ng-repeat="provider in ( ExternalAuth.PAGE.configured_providers | filter: { 'provider_id' : module.provider_id } )">
+                    <td data-title="{{ locale.maketext('Account') }}" ng-bind="provider.preferred_username" class="provider-username"></td>
+                    <td data-title="">
+                        <button type="button"
+                            button-class="btn-danger"
+                            cp-action="ExternalAuth.remove_link(provider, module.display_name)"
+                            id="remove_{{provider.subject_unique_identifier}}">
+                            <span class='glyphicon glyphicon-trash'></span>
+                            [% locale.maketext('Unlink Account') %]
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div growl></div>
+
+[% # END USER EXTERNAL AUTH CONTROL %]
+

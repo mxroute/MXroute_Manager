@@ -1,0 +1,91 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+Api1.pre_exec("OptimizeWS", "loadoptimizesettings");
+SET res = Api1.exec("OptimizeWS", "loadoptimizesettings", [undef]);
+Api1.post_exec("OptimizeWS", "loadoptimizesettings");
+
+SET apache_1_3 = ((CPANEL.ENV.optimize_apache_version) == "1.3");
+SET deflate_disabled = ((CPANEL.ENV.deflate_selected) == "disabled");
+SET deflate_all = ((CPANEL.ENV.deflate_selected) == "all");
+SET deflate_list = ((CPANEL.ENV.deflate_selected) == "list");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'optimize_website'
+ -%]
+<div class="body-content">
+
+    <p class="description">
+        [% locale.maketext("Optimize the performance of your website by tweaking the way Apache handles requests.") %]
+    </p>
+
+    <div class="alert alert-info">
+        <span class="glyphicon glyphicon-info-sign"></span>
+        <div class="alert-message">
+            <strong>Info:</strong>
+            [% locale.maketext("This setting changes [asis,mod_deflate] usage by [asis,Apache] only.") %]
+            [% IF CPANEL.feature("multiphp_ini_editor") %]
+                [% locale.maketext('Use the [output,url,_1,MultiPHP INI Editor] interface to manage [asis,zlib] compression on [asis,PHP] scripts.', '../multiphp_ini_editor/index.html') %]
+            [% ELSE %]
+                [% locale.maketext('Contact your system administrator about [asis,zlib] compression on [asis,PHP] scripts.') %]
+            [% END %]
+        </div>
+    </div>
+
+    <div class="section">
+        <form action="dooptimize.html">
+            <h2>[% locale.maketext("Compress Content") %]</h2>
+            <p class="description">
+                [% locale.maketext("Apache allows you to compress content before sending it to the visitor’s browser. The types of content to be compressed are specified by [output,acronym,MIME,Multipurpose Internet Mail Extensions] type. This feature requires Apache’s mod_deflate to function correctly.")  %]
+            </p>
+
+            [% IF apache_1_3 %]
+            <p>
+                [% locale.maketext("This functionality is not available with the current server configuration.") %]
+            </p>
+            [% ELSE %]
+
+            <div class="form-group">
+                <div class="radio">
+                    <label>
+                        <input type='radio' name='deflate' id='rbtnDisabled' value='disabled' [% IF deflate_disabled %]checked[% END %] />
+                        [% locale.maketext("Disabled") %]
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="radio">
+                    <label>
+                        <input type='radio' name='deflate' id='rbtnAll' value='all' [% IF deflate_all %]checked[% END %] />
+                        [% locale.maketext("Compress [output,strong,All] Content") %]
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="radio">
+                    <label>
+                        <input type='radio' id='rbtnMimeType' name='deflate' value='list' [% IF deflate_list %]checked[% END %] />
+                        [% locale.maketext("Compress the specified [output,acronym,MIME,Multipurpose Internet Mail Extensions] types.") %]
+                    </label>
+                </div>
+                <div class="row">
+                    <div class="col-xs-offset-1 col-xs-11 col-sm-6 col-md-6 col-lg-6">
+                        <label for="deflate-mime-list">
+                            [% locale.maketext("[output,acronym,MIME,Multipurpose Internet Mail Extensions] Types") %]
+                        </label>
+                        <input type="text" class="form-control" name="deflate-mime-list" id="deflate-mime-list" size="50" value="[% CPANEL.ENV.deflate_mime_list.html() %]" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" id="btnSubmit" class="btn btn-primary" value="[% locale.maketext("Update Settings") %]" />
+            </div>
+            [% END %]
+        </form>
+    </div>
+</div>
+[% END #wrapper %]

@@ -1,0 +1,26 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = 'index.html?account=' _ FORM.account.uri();
+SET source_ip_check_account = Api2.exec("SourceIPCheck", "getaccount", {"account" => FORM.account}).0;
+SET source_ip_check_reset_sec_questions = Api2.exec("SourceIPCheck", "resetsecquestions", {"account"=>FORM.account}).0;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'security_policy'
+%]
+<div class="body-content">
+    <h2> [% locale.maketext('Confirm Security Questions and Answers for “[output,inline,_1,class,status]”', source_ip_check_account.account) %]</h2>
+
+    [% source_ip_check_reset_sec_questions.status.html() %]
+
+    [% IF CPANEL.CPERROR.sourceipcheck %]
+        [% locale.maketext("Unable to reset security questions.") %]
+    [% ELSE %]
+        [% locale.maketext("Security questions have been reset. The user will be asked to re-enter new security questions at next login.") %]
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

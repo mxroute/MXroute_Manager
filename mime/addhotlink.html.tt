@@ -1,0 +1,39 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[%
+add_hotlink = execute('Mime', 'add_hotlink', {
+    urls=RAW_FORM('urls'),
+    extensions=RAW_FORM('exts'),
+    allow_null=RAW_FORM('allownull'),
+    redirect_url=RAW_FORM('rurl')
+});
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'hotlink_protection'
+-%]
+<div class="body-content">
+    [% IF !add_hotlink.errors.size %]
+        <div class="alert alert-success" id="addHotlinkSuccess">
+            <span class="glyphicon glyphicon-ok-sign" id="addHotlinkSuccessImg"></span>
+            <div class="alert-message" id="addHotlinkSuccessMsg">
+               [% locale.maketext("Hotlink Protection Enabled!") %]
+            </div>
+        </div>
+        <h2>[% locale.maketext("Allowed Referrers:") %]</h2>
+        <pre id="allowedReferrers">[% FORM.urls %]</pre>
+        <h2>[% locale.maketext("Protected Extensions:") %]</h2>
+        <pre id="protectedExtensions">[% FORM.exts %]</pre>
+    [% ELSE -%]
+        <div class="alert alert-danger" id="addHotlinkError">
+            <span class="glyphicon glyphicon-remove-sign" id="addHotlinkErrorImg"></span>
+            <div class="alert-message" id="addHotlinkErrorMsg">
+                [% locale.maketext('There was an error while [boolean,_1,enabling,disabling] hotlink protection.',1) %]
+                [% FOREACH q = add_hotlink.errors %]<p>[% q %]</p>[% END %]
+            </div>
+        </div>
+    [% END -%]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='hotlink.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,29 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET updatenotes = execute("Mysql", "add_host_note", { "host" => RAW_FORM.host, "note" => RAW_FORM.comment }); %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    [% IF updatenotes.status %]
+    <div id="hostNotesSuccess" class="alert alert-success">
+        <span id="hostNotesSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="hostNotesSuccessMsg" class="alert-message wrap-text-forcefully">
+            [% locale.maketext("Updated comment for host “[_1]” to “[_2]”.", FORM.host, FORM.comment) %]
+        </div>
+    </div>
+    [% ELSE %]
+    <div id="updatenotesError" class="alert alert-danger">
+        <span id="updatenotesErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <div id="updatenotesErrorMsg" class="alert-message">
+            [% FOREACH updatenotesError = updatenotes.errors %]
+                [% updatenotesError %]
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='managehost.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

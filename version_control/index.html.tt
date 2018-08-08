@@ -1,0 +1,85 @@
+[%
+    USE CPBranding;
+    USE Master;
+
+    SET CPANEL.CPVAR.dprefix = "../",
+             repos = execute( "VersionControl", "retrieve", {'fields' => 'name,tasks'} ),
+             file_manager_obj = CPBranding.get_application_from_available_applications(varcache.available_applications, 'file_manager'),
+             has_shell_access = CPANEL.ENV.SHELL == '/usr/local/cpanel/bin/noshell' ? 0: 1,
+             has_filemanager_access = CPANEL.feature("filemanager") ? 1: 0,
+             nvdata = execute( 'NVData', 'get', { 'names' => 'repos_list_page_size' } ),
+             gitweb_url = CPANEL.CPVAR.dprefix _ '../../3rdparty/gitweb/gitweb.cgi?p=',
+             filemanager_url = file_manager_obj.url ? CPANEL.CPVAR.dprefix _ file_manager_obj.url  _ '?dir=' : '',
+             ssh = CPANEL.feature("ssh") ? 1: 0;
+
+    SET repoData = repos.data,
+             repoError = repos.errors,
+             reposListPageSize = nvdata.data.0.value;
+
+    SET stylesheets = ['version_control/index.css'];
+    IF !CPANEL.ua_is_mobile;
+        stylesheets.push("css/angular-chosen-spinner.css");
+        stylesheets.push("libraries/chosen/1.5.1/chosen.min.css");
+    END;
+-%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'version_control'
+    feature = 'version_control'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    page_stylesheets = stylesheets
+    page_js = js_code
+-%]
+
+<!-- NOTE: leave the alert-group in single quotes -->
+<cp-alert-list alert-group="'versionControl'"></cp-alert-list>
+
+<div id="viewContent"
+             class="ng-cloak section"
+             ng-view
+             ng-cloak>
+ </div>
+
+<script id="views/listProjectsView.ptt" type="text/ng-template">
+[% PROCESS "version_control/views/listRepositoriesView.ptt" %]
+</script>
+
+<script type="text/ng-template" id="repositoryPathSuggester.html">
+  <a>
+      <span ng-bind-html="match.label | encodeHtml | uibTypeaheadHighlight:query"></span>
+  </a>
+</script>
+
+<script id="views/createRepositoriesView.ptt" type="text/ng-template">
+[% PROCESS "version_control/views/createRepositoriesView.ptt" %]
+</script>
+
+<script id="views/manageRepositoriesView.ptt" type="text/ng-template">
+[% PROCESS "version_control/views/manageRepositoriesView.ptt" %]
+</script>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+
+[% BLOCK js_block %]
+    <script type="text/javascript">
+        var PAGE = PAGE || {};
+        PAGE.homeDir = [% CPANEL.homedir.json() || "" %];
+        PAGE.repos = [% repoData.json() || [] %];
+        PAGE.repoErrors = [% repoError.json() || [] %];
+        PAGE.fileManagerURL = [% filemanager_url.json() || "" %];
+        PAGE.gitwebURL = [% gitweb_url.json() || "" %]
+        PAGE.deprefix = [% CPANEL.CPVAR.dprefix.json() || "" %];
+        PAGE.hasFileManagerAccess = [% has_filemanager_access.json() %];
+        PAGE.hasShellAccess = [% has_shell_access.json() %];
+        PAGE.reposListPageSize = [% reposListPageSize ? reposListPageSize.json() : 10 %];
+        PAGE.securityToken = [% CPANEL.ENV.cp_security_token.json() || "" %];
+    </script>
+[% END #js_block %]
+
+[% END #wrapper -%]
+

@@ -1,0 +1,32 @@
+[%
+    SET CPANEL.CPVAR.headerimg="../images/topcrontab.gif";
+    SET CPANEL.CPVAR.dprefix="../";
+    Api1.pre_exec("ImageManager", "thumbnail");
+    SET thumbnail_result = Api1.exec("ImageManager", "thumbnail", [RAW_FORM.dir, RAW_FORM.widthpercent, RAW_FORM.heightpercent]);
+    Api1.post_exec("ImageManager", "thumbnail");
+
+    SET fileman_url = CPANEL.CPVAR.dprefix _ 'filemanager/index.html?dir=' _ RAW_FORM.dir.uri _ '/thumbnails';
+    SET link_text = FORM.dir _ '/thumbnails/tn_*';
+    SET target_text = "_blank";
+%]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Thumbnailer")
+-%]
+    <div class="body-content">
+
+        <div id="alertThumbSuccess" class="alert alert-success">
+            <span id="alertThumbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <span id="alertThumbSuccessMsg">
+            [% locale.maketext("Your images have been thumbnailed into [output,url,_1,_2,target,_3,id,_4]",fileman_url,link_text,target_text,"lnkThumbnailDestination") %]
+            </span>
+        </div>
+
+            <textarea wrap="off" nowrap name="thumbnail" id="errtext" class="form-control output" cols="80" rows="15" readonly>[% thumbnail_result %]</textarea>
+
+
+            [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+    </div>
+[% END #wrapper -%]

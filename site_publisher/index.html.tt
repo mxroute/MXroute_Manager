@@ -1,0 +1,74 @@
+[%
+    USE Uapi;
+    USE JSON;
+    USE CPBranding;
+    USE Master;
+
+    SET PAGE_BASE = '/frontend/paper_lantern/site_publisher/index';
+    SET PAGE_PATH = (CPANEL.ENV.HTTPS == 'on' ? 'https://' : 'http://') _ CPANEL.ENV.HTTP_HOST _ ':' _ CPANEL.ENV.SERVER_PORT _ cp_security_token _ PAGE_BASE;
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET has_feature = CPANEL.feature('sitepublisher');
+    SET domains = Uapi.exec('SiteTemplates', 'list_user_settings', {
+        'api.paginate_start' => 1,
+        'api.paginate_size'  => 10,
+        'api.normalize'      => 1,
+    });
+    SET templates = Uapi.exec('SiteTemplates', 'list_site_templates');
+
+    SET file_manager_obj = CPBranding.get_application_from_available_applications(varcache.available_applications, 'file_manager');
+    SET accounts_obj = CPBranding.get_application_from_available_applications(varcache.available_applications, 'email_accounts');
+    SET webdisk_obj = CPBranding.get_application_from_available_applications(varcache.available_applications, 'web_disk');
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'site_publisher'
+    use_master_bootstrap = 0
+    page_stylesheets = ["css2-min/site_publisher/publish.css"]
+    base =  PAGE_PATH,
+-%]
+
+[% IF has_feature %]
+
+    <div class="body-content"
+        ng-controller="BaseController as base"
+        class="ng-cloak">
+        <div ng-class="{'view-disabled':loading}" ng-view></div>
+    </div>
+
+    <script type="text/javascript">
+        PAGE = {
+            domainList: [% domains.json() %],
+            templateList: [% templates.json() %],
+
+            [% IF CPANEL.feature("filemanager"); %]
+            fileManagerObj: [% file_manager_obj.json() %],
+            [% END; %]
+
+            [% IF CPANEL.feature("popaccts"); %]
+            accountsObj: [% accounts_obj.json() %],
+            [% END; %]
+
+            [% IF CPANEL.feature("webdisk"); %]
+            webdiskObj: [% webdisk_obj.json() %],
+            [% END; %]
+
+            deprefix: [% CPANEL.CPVAR.dprefix.json() %]
+        };
+    </script>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+
+[% ELSE -%]
+
+    <div class="body-content">
+        <div class="alert alert-danger">
+            [% locale.maketext('This feature is disabled.') %] [% locale.maketext('Your system administrator must enable the Site Publisher feature for your account.') %]
+        </div>
+    </div>
+
+[% END -%]
+
+
+[% END #wrapper %]
+

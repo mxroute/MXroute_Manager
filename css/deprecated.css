@@ -1,0 +1,167 @@
+/********************************************OLD STYLES*************************************/
+/*These styles are deprecated and should only be used in older themes.  x1 - x2
+X3 styles are listed in X3 section.*/
+/*******************************************************************************************/
+font.med {
+    font-size: 11px;
+}
+
+font.index {
+    font-size: 11px;
+}
+
+font.small {
+    font-size: 9px;
+}
+
+font.big {
+    font-size: 12px;
+    font-weight: 700;
+    color: #000;
+}
+
+font.big2 {
+    font-size: 12px;
+    font-weight: 700;
+    color: #000;
+}
+
+font.red {
+    font-size: 11px;
+    font-weight: 700;
+    color: red;
+}
+
+font.bigred {
+    font-size: 12px;
+    font-weight: 700;
+    color: red;
+}
+
+font.white {
+    color: #fff;
+}
+
+.index1 {
+    background-color: #b7cbcf;
+}
+
+.index2 {
+    background-color: #e6e6e6;
+}
+
+.indexbold {
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.tdshade2 {
+    background-color: #e6e6e6;
+}
+
+.bodyblue {
+    color: #039;
+}
+
+.bodyblackTB {
+    padding-right: 11px;
+    padding-left: 11px;
+}
+
+.bodyblueTB {
+    color: #039;
+}
+
+.headerTB {
+    font-weight: 700;
+    text-decoration: none;
+    padding-right: 5px;
+    padding-left: 5px;
+}
+
+table.addontable {
+    border: 2px #d4e4e8 solid;
+}
+
+td.bwtableb {
+    border-bottom: 2px #d4e4e8 solid;
+}
+
+td.addontable {
+    border: 1px #005b70 solid;
+}
+
+.sbar {
+    color: #005b70;
+    background-color: #005b70;
+    height: 2px;
+}
+
+td.barborder {
+    /*border:1px #000 solid;*/
+}
+
+input.nb {
+    color: #000;
+    text-decoration: none;
+    background: #fff;
+    border: 0 solid #999;
+    -moz-background-clip: padding;
+}
+
+.leger3 {
+    border-right: 1px solid #000;
+    border-left: 1px solid #000;
+    border-top: 2px solid #000;
+}
+
+ul.cpaddons {
+    margin: 0;
+    padding: 0;
+}
+
+li.cpaddons {
+    padding: 5px;
+}
+
+h5.cpaddons {
+    margin: 1px 0 2px;
+    padding-top: 5px;
+}
+
+h4.cpaddons {
+    font-size: 14px;
+    margin: 1px 0 2px;
+    padding-top: 5px;
+    color: #2f6681;
+}
+
+h3.cpaddons {
+    font-size: 14px;
+    margin: 1px 0 2px;
+    padding-top: 5px;
+    background: none;
+    border: none;
+    text-align: left;
+}
+
+h2.cpaddons {
+    font-size: 15px;
+    margin: 5px 0 11px;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #999;
+}
+
+h2.cpaddonsline {
+    margin: 0 0 5px;
+    border-bottom: 2px solid #999;
+}
+
+.redtext {
+    color: #a00;
+}
+
+.tbl-cgi,
+.tbl-cgi td {
+    border: 1px solid #999;
+}

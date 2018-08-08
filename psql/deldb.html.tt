@@ -1,0 +1,33 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases';
+
+SET del_db = execute('Postgresql','delete_database', {name => RAW_FORM.db});
+-%]
+<div class="body-content">
+
+    [% IF del_db.status %]
+    <div id="deldbSuccess" class="alert alert-success">
+        <span id="deldbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <span id="deldbSuccessMsg" class="text">
+            [% locale.maketext("You have deleted the database “[_1]”.", FORM.db) %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="deldbError" class="alert alert-danger">
+        <span id="deldbErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="deldbErrorMsg" class="text">
+            [% locale.maketext("The system failed to delete the database “[_1]” because of an error:", FORM.db) %]
+            [% FOREACH q = del_db.errors %]
+                [% q.html() %]
+            [% END %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

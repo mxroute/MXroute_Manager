@@ -1,0 +1,30 @@
+[%
+
+    SET CPANEL.CPVAR.dprefix="../";
+
+    Api1.pre_exec("ImageManager", "scale");
+    Api1.exec("ImageManager", "scale", [RAW_FORM.dir, RAW_FORM.file, RAW_FORM.oldimage, RAW_FORM.width, RAW_FORM.height, RAW_FORM.retain]);
+    Api1.post_exec("ImageManager", "scale");
+
+    SET image_link = CPANEL.CPVAR.dprefix _ "filemanager/showfile.html?dir=" _ RAW_FORM.dir.uri _ "&file=" _ RAW_FORM.file.uri;
+    SET image_link_name = FORM.dir _ '/' _ FORM.file;
+    SET image_dimensions = FORM.width _ 'x' _ FORM.height;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Scaler")
+-%]
+<div class="body-content">
+    <div id="alertScaleSuccess" class="alert alert-success">
+        <span id="alertScaleSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <span id="alertScaleSuccessMsg">
+        [% locale.maketext("Your image [output,url,_1,_2,id,_3] has been scaled to the new dimensions: “[_4]”.", image_link, image_link_name,"lnkImageLocation",image_dimensions) %]
+        </span>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+
+</div>
+[% END #wrapper -%]
+

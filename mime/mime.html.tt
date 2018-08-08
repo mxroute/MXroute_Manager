@@ -1,0 +1,141 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mime_types'
+    feature = "mime"
+    page_js = js_code
+-%]
+
+<div class="body-content">
+    [% user_result = execute('Mime', 'list_mime', { type='user' }) -%]
+    [% system_result = execute('Mime', 'list_mime', { type='system' }) -%]
+
+    <p id="descMimeTypes" class="description">
+        [% locale.maketext("MIME types tell browsers how to handle specific extensions. For example, the text/html MIME type equates to .htm, .html, and .shtml extensions on most servers, and this tells your browser to interpret all files with those extensions as HTML files. You can alter or add new MIME types specifically for your site (note that you can not alter the system defined MIME type values). MIME types are often used to handle new technologies as they appear. When WAP technology first appeared no one had these extensions set up on their server. With MIME types, however, you could have set it up yourself and begun serving WAP pages immediately.") %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrCreateMimeType">
+            [% locale.maketext("Create A MIME Type") %]
+        </h2>
+        <form method="POST" action="addmime.html" id="mainform" name="mainform">
+            <div class="form-group">
+                <label id="lblMimeType" for="mimet">
+                    [% locale.maketext("MIME Type") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="mimet" type="text" class="form-control"  name="mimet" size="22" />
+                    </div>
+                    <div id="mimet_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblExtenstion" for="ext">
+                    [% locale.maketext("Extension(s)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="ext" type="text" class="form-control"  name="ext" size="22" />
+                        <span id="lblExensionHelper" class="help-block">
+                            [% locale.maketext("Tip: Separate multiple extension types with a space.") %]
+                        </span>
+                    </div>
+                    <div id="ext_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="submit" name="submit"  type="submit" class="btn btn-primary" value="[% locale.maketext("Add") %]" />
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrUserDefined">[% locale.maketext("User Defined MIME Types") %]</h2>
+        <table id="mimetbl" class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("MIME Type") %]</th>
+                    <th>[% locale.maketext("Extension(s)") %]</th>
+                    <th class="sorttable_nosort">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            [% IF !user_result.status %]
+            <tr>
+                <td class="empty-row danger" colspan="3">
+                    [% user_result.errors_as_string FILTER html %]
+                </td>
+            </tr>
+            [% ELSIF user_result.data.size == 0 %]
+            <tr>
+                <td class="empty-row info" colspan="3">
+                    [% locale.maketext('There are no user-configured MIME types.') %]
+                </td>
+            </tr>
+            [% ELSE %]
+                [% FOREACH q = user_result.data %]
+                <tr>
+                    <td data-title="[% locale.maketext("MIME Type") %]">[% q.type %]</td>
+                    <td data-title="[% locale.maketext("Extension(s)") %]">[% q.extension %]</td>
+                    <td data-title="[% locale.maketext("Actions") %]">
+                        <a class="btn btn-link" href="delmimeconfirm.html?usermime=[% q.type FILTER uri %]">
+                            <span class="glyphicon glyphicon-trash"></span> [% locale.maketext("Delete") %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% END %]
+        </table>
+    </div>
+    <div class="section">
+        <h2 id="hdrSystemMimeType">[% locale.maketext("System MIME Types") %]</h2>
+        <table id="sysmimetbl" class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("MIME Type") %]</th>
+                    <th>[% locale.maketext("Extension(s)") %]</th>
+                </tr>
+            </thead>
+            [% IF system_result.data.size == 0 %]
+                <tr>
+                    <td class="empty-row info" colspan="2">
+                        [% locale.maketext("There are no system configured [output,acronym,MIME,Multipurpose Internet Mail Extensions] types.") %]
+                    </td>
+                </tr>
+            [% ELSE %]
+                [% FOREACH q = system_result.data -%]
+                <tr>
+                    <td data-title="[% locale.maketext("MIME Type") %]">[% q.type %]</td>
+                    <td data-title="[% locale.maketext("Extension(s)") %]">[% q.extension %]</td>
+                </tr>
+                [% END -%]
+            [% END %]
+        </table>
+    </div>
+
+
+</div><!-- end body-content -->
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var init_validators = function() {
+        var mimet_validator = new CPANEL.validate.validator("[% locale.maketext('MIME Type') %]");
+        mimet_validator.add("mimet", "mime", "[% locale.maketext('You must provide a valid MIME type.') %]");
+        mimet_validator.attach();
+
+        var ext_validator = new CPANEL.validate.validator("[% locale.maketext('File Extension') %]");
+        ext_validator.add("ext", "mime_extension", "[% locale.maketext('A [asis,MIME] extension must contain at least 1 alphanumeric character and cannot contain the following characters: /, ?, [output,chr,92], [output,amp]') %]");
+        ext_validator.attach();
+
+        CPANEL.validate.attach_to_form("submit", [mimet_validator, ext_validator]);
+
+        YAHOO.util.Dom.get("mimet").focus();
+    }
+    YAHOO.util.Event.onDOMReady(init_validators);
+</script>
+[% END %]
+

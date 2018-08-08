@@ -1,0 +1,25 @@
+/*
+# html_editor.css                                 Copyright(c) 2013 cPanel, Inc.
+#                                                           All rights Reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited
+*/
+.cpanelHide {
+    display: none;
+}
+
+.cpanelShow {
+    display: block;
+}
+
+.cke_button__cpanelsave_label {
+    display: inline;
+}
+
+.cke_dialog_ui_input_file {
+    height: 50px;
+}
+
+.cke_button__preview_label {
+    display: inline;
+}

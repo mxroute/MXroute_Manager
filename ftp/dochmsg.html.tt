@@ -1,0 +1,16 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'anonymous_ftp'
+-%]
+<div class="body-content">
+
+    <p>[% locale.maketext("When your visitors connect to your anonymous FTP server, they will see this welcome message:") %]</p>
+    <pre>[% FORM.ftpwelcome %]</pre>
+    [% set_welcome_message = execute('Ftp', 'set_welcome_message', { message=RAW_FORM('ftpwelcome') }) %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='anonymous.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+[% END #wrapper -%]

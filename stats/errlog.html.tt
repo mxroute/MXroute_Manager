@@ -1,0 +1,24 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'errors'
+-%]
+<div class="body-content">
+    <p id="descErrlog" class="description">
+        [% locale.maketext("The function displays up to 300 of the most recent entries in your website’s error logs, in reverse chronological order. You can use this information to find broken links or problems with missing files.") %]
+        [% locale.maketext("For more information, read our [output,url,_1,documentation,target,_2].", "https://go.cpanel.net/Errors", "_blank") %]
+    </p>
+    <div class="section">
+        <h2 id="hdrErrlog">
+            [% locale.maketext("Last 300 Error Log messages in reverse order:") %]
+        </h2>
+        <div id="errorLogTextArea">
+            <textarea  id="errtext" wrap="off" nowrap name="errlog" class="form-control" cols="120"
+            rows="25" readonly>[% Api1.pre_exec("Stats", "errlog") ;
+            Api1.exec("Stats", "errlog", [CPANEL.CPDATA.DNS.html]) ;
+            Api1.post_exec("Stats", "errlog") %]</textarea>
+        </div>
+    </div>
+    [% INCLUDE _assets/return_link.html.tt return_location='../index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

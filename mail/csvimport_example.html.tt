@@ -1,0 +1,43 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'address_importer'
+-%]
+<div class="body-content">
+    <div id="message_panel-content">
+        <h2 id="hdrImportExample">[% locale.maketext("Setup CSV/XLS for Importing") %]</h2>
+        <p id="descImportExample">
+            [% locale.maketext("In order to import CSV/XLS files, certain data must be provided.") %]
+        </p>
+        <div class="section">
+            <h3 id="hdrImportAddrs">[% locale.maketext("Importing Email Addresses") %]</h3>
+            <p id="lblImportingEmailRequiredData"><strong>[% locale.maketext("Required Data") %]</strong></p>
+            <p id="lblImportingEmailAddress">[% locale.maketext("E-mail Address") %]</p>
+            <p id="lblImportingOptionalData"><strong>[% locale.maketext("Optional Data") %]</strong></p>
+            <p id="lblDomainPwdQuota">[% locale.maketext("Domain, Password, Quota") %]</p>
+            <p id="lblExample"><strong>[% locale.maketext("Example:") %]</strong></p>
+            <p>
+                <img id="imgExcelAddrsShot" src="excel_shot.jpg" width="246" height="68" alt="[% locale.maketext('Excel Shot') %]" />
+            </p>
+            <p>
+                <a id="lnkEmailXls" href="csv/example_email.xls" target="_blank"> [% locale.maketext("Download an example [asis,XLS] file.") %] </a>
+                <br />
+                <a id="lnkEmailCsv" href="csv/example_email.csv" target="_blank"> [% locale.maketext("Download an example [asis,CSV] file.") %] </a>
+            </p>
+        </div>
+        <div class="section">
+            <h3 id="hdrImportFwds">[% locale.maketext("Import Forwarders") %]</h3>
+            <p id="descRequiredData"><strong>[% locale.maketext("Required Data") %]</strong></p>
+            <p id="lblEmailAddress">[% locale.maketext("Source Email Address and Destination Email Address") %]</p>
+            <p id="lblImportFwdExample"><strong>[% locale.maketext("Example:") %]</strong></p>
+            <p>
+                <img id="imgExcelFwdsShot" src="excel_forwarders_shot.jpg" width="198" height="41" alt="[% locale.maketext('Excel Forwarders Shot')%]" />
+            </p>
+            <p>
+                <a id="lnkFwdsXls" href="csv/example_fwd.xls" target="_blank"> [% locale.maketext("Download an example [asis,XLS] file.") %] </a>
+                <br />
+                <a ids="lnkFwdsXls" href="csv/example_fwd.csv" target="_blank"> [% locale.maketext("Download an example [asis,CSV] file.") %] </a>
+            </p>
+        </div>
+    </div>
+</div>
+[% END #wrapper %]

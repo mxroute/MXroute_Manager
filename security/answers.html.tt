@@ -1,0 +1,63 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = 'index.html?account=' _ FORM.account.uri();
+SET source_ip_check_account = Api2.exec("SourceIPCheck", "getaccount", {"account" => FORM.account}).0;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'security_policy'
+%]
+<div class="body-content">
+    <h2>[% locale.maketext("Confirm Security Questions and Answers for “[output,inline,_1,class,status]”", source_ip_check_account.account) %]</h2>
+
+    <p class="description">[% locale.maketext("Please confirm your questions and answers are correct.") %]</p>
+
+    <form action="save.html" name="mainform" id="mainform" method="post">
+        <input type="hidden" id="account" name="account" value="[% FORM.account %]">
+
+        <ol id="sec-ques">
+            [% IF FORM.q1answer %]
+                <input type="hidden" id="q1ques" name="q1ques" value="[% RAW_FORM.q1ques.html() %]">
+                <input type="hidden" id="q1answer" name="q1answer" value="[% RAW_FORM.q1answer.html() %]">
+                <li>
+                    <label for="ques_one">[% RAW_FORM.q1ques.html() %]</label>
+                    <p>[% RAW_FORM.q1answer.html() %]</p>
+                </li>
+            [% END %]
+            [% IF FORM.q2answer %]
+                <input type="hidden" id="q2ques" name="q2ques" value="[% RAW_FORM.q2ques.html() %]">
+                <input type="hidden" id="q2answer" name="q2answer" value="[% RAW_FORM.q2answer.html() %]">
+                <li>
+                    <label for="ques_two">[% RAW_FORM.q2ques.html() %]</label>
+                    <p>[% RAW_FORM.q2answer.html() %]</p>
+                </li>
+            [% END %]
+            [% IF FORM.q3answer %]
+                <input type="hidden" id="q3ques" name="q3ques" value="[% RAW_FORM.q3ques.html() %]">
+                <input type="hidden" id="q3answer" name="q3answer" value="[% RAW_FORM.q3answer.html() %]">
+                <li>
+                    <label for="ques_three">[% RAW_FORM.q3ques.html() %]</label>
+                    <p>[% RAW_FORM.q3answer.html() %]</p>
+                </li>
+            [% END %]
+            [% IF FORM.q4answer %]
+                <input type="hidden" id="q4ques" name="q4ques" value="[% RAW_FORM.q4ques.html() %]">
+                <input type="hidden" id="q4answer" name="q4answer" value="[% RAW_FORM.q4answer.html() %]">
+                <li>
+                    <label for="ques_four">[% RAW_FORM.q4ques.html() %]</label>
+                    <p>[% RAW_FORM.q4answer.html() %]</p>
+                </li>
+            [% END %]
+        </ol>
+
+        <div class="form-group">
+            <input type="submit" id="submitAnswers" value="[% locale.maketext("Save Answers") %]" class="btn btn-primary" />
+            <a id="changeAnswers" onclick="document.getElementById('mainform').action='security-questions.html?account=[% FORM.account | uri %]'; document.getElementById('mainform').submit(); return false;" href="security-questions.html?account=[% FORM.account | uri %]" class="btn btn-default">[% locale.maketext("Click here to change answers.") %]</a>
+        </div>
+    </form>
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

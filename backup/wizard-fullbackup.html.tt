@@ -1,0 +1,65 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/tools.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+SET backups_list_full_backups = Api2.exec("Backups", "listfullbackups", {});
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup_wizard'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_stylesheets = ["css2-min/backup.css"]
+-%]
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+
+        <div id="backup-nav" class="row">
+            <div class="col-xs-12">
+                <h2 id="hdrSteps">[% locale.maketext('Steps:') %]</h2>
+                <ol>
+                    <li id="tabBackupRestore" class="one"><a href="wizard.html" id="backupRestore"><span>[% locale.maketext("Back Up or Restore") %]</span></a></li>
+                    <li id="tabFullPartial" class="two"><a href="wizard-backup.html" id="partialBackup"><span>[% locale.maketext("Full or Partial Backup") %]</span></a></li>
+                    <li id="tabDownload" class="three"><span class="current">[% locale.maketext("Download") %]</span></li>
+                </ol>
+            </div>
+        </div>
+
+        <p id="descFullBackup" class="description">[% locale.maketext("A full backup will create an archive of all the files and configurations on your website. You can only use this to move your account to another server, or to keep a local copy of your files. You [output,strong,cannot] restore full backups through your cPanel interface.") %]</p>
+
+        <div class="section">
+            <h2 id="hdrBackupsAvailable">[% locale.maketext("Backups Available for Download:") %]</h2>
+            <ul class="list-unstyled available-downloads" id="backupList">
+            [% FOREACH hashref IN backups_list_full_backups %]
+                <li>
+                    <a href="[% CPANEL.ENV.cp_security_token %]/download?file=[% hashref.file.uri() %]" title="[% hashref.status.html() %]">
+                        [% IF hashref.status == "complete" %]
+                        <span class="glyphicon glyphicon-ok-sign"></span>
+                        [% ELSIF hashref.status == "inprogress" %]
+                        <span class="glyphicon glyphicon-transfer"></span>
+                        [% ELSE %]
+                        <span class="glyphicon glyphicon-remove-sign"></span>
+                        [% END %]
+                        <strong>[% hashref.file.html() %]</strong> ([% hashref.localtime.html() %])</a>
+                        [% IF hashref.status != "complete" %]
+                            [[% hashref.status.html() %]]
+                        [% END %]
+                </li>
+            [% END %]
+            </ul>
+        </div>
+        <div class="section">
+            <h2 id="hdrGenerateFullBackup">[% locale.maketext("Generate a Full Backup") %]</h2>
+
+            <form id="formDoFullBackup" action="wizard-dofullbackup.html" method="post" enctype="multipart/form-data" name="mainform">
+                [% INCLUDE "fullbackup-include.html.tt" %]
+            </form>
+        </div>
+
+        [% INCLUDE _assets/return_link.html.tt return_location="wizard-backup.html" return_link_text=locale.maketext("Go Back") %]
+
+    [% END %]
+</div>
+[% END %]

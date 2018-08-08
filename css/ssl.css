@@ -1,0 +1,16 @@
+.textarea-base64 {
+    font-family: monospace;
+    white-space: pre;
+    font-size: 10px; /* no need to actually read base 64 data so lets make it easy to move around */
+}
+
+.textarea-parse {
+    width: 100%;
+}
+
+.textarea-parse {
+    background-color: #f0f0f0;
+    border: 1px solid #555555;
+    border-top: none;
+    border-radius: 4px;
+}

@@ -1,0 +1,99 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    SET return_link = "index.html?domain=" _ FORM.domain;
+
+    Api1.pre_exec("Fileman", "fmpushfile");
+    SET fm_push_file = Api1.exec("Fileman", "fmpushfile", [RAW_FORM.dir, RAW_FORM.file]);
+    Api1.post_exec("Fileman", "fmpushfile");
+
+    Api1.pre_exec("Fileman", "printdir");
+    SET fm_print_dir = Api1.exec("Fileman", "printdir", [undef]);
+    Api1.post_exec("Fileman", "printdir");
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'error_pages'
+    page_scripts = ["libraries/editarea/0.8.2/edit_area/edit_area_full.js"]
+    page_js = js_code
+ -%]
+<div class="body-content">
+    <h2 id="hdrEditing">[% FORM.file.remove("\n").remove("\r") %] [% FORM.desc %]</h2>
+    [% locale.maketext("You are editing the error pages for the domain “[_1]”.", FORM.domain) %]
+
+    <div class="section">
+        <form name="editform" action="savefile.html" method="post">
+            <input id="hidDomain" type="hidden" name="domain" value="[% FORM.domain %]" />
+            <input id="hidFile" type="hidden" name="file" value="[% FORM.file %]" />
+
+            <div class="form-group">
+                <h4 id="hdrTags">
+                    [% locale.maketext("Select Tags to Insert:") %]
+                </h4>
+                <div class="btn-toolbar">
+                    <div class="btn-group">
+                        <a href="javascript:void(0);" class="btn btn-link" onclick="jsin('HTTP_REFERER');" id="btnReferringURL">
+                            <span class="fas fa-code"></span> [% locale.maketext("Referring URL") %]
+                        </a>
+                        <a href="javascript:void(0);" class="btn btn-link" onclick="jsin('REMOTE_ADDR');" id="btnVisitorIP" >
+                            <span class="fas fa-code"></span> [% locale.maketext("Visitor’s IP Address") %]
+                        </a>
+                        <a href="javascript:void(0);" class="btn btn-link" onclick="jsin('REQUEST_URI');" id="btnRequestedURL" >
+                            <span class="fas fa-code"></span> [% locale.maketext("Requested URL") %]
+                        </a>
+                    </div>
+                </div>
+                <div class="btn-toolbar">
+                    <div class="btn-group">
+                        <a href="javascript:void(0);" class="btn btn-link" onclick="jsin('HTTP_HOST');" id="btnServerName">
+                            <span class="fas fa-code"></span> [% locale.maketext("Server Name") %]
+                        </a>
+                        <a href="javascript:void(0);" class="btn btn-link"  onclick="jsin('HTTP_USER_AGENT');" id="btnVisitorBrowser">
+                            <span class="fas fa-code"></span> [% locale.maketext("Visitor’s Browser") %]
+                        </a>
+                        <a href="javascript:void(0);" class="btn btn-link" onclick="jsin('REDIRECT_STATUS');" id="btnRedirectCode">
+                            <span class="fas fa-code"></span> [% locale.maketext("Redirect Status Code") %]
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <textarea id="codepage" class="html" name="page" cols="80" rows="40">[% fm_push_file %]</textarea>
+            </div>
+
+            [% fm_print_dir %]
+
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" value="[% locale.maketext("Save") %]" id="btnSave" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt id_prefix="lnkJS" return_location=return_link return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+function jsin(element) {
+    if (editAreaLoader) {
+        editAreaLoader.insertTags('codepage', '<!--#echo var="' + element + '" -->','');
+    } else {
+        document.editform.page.value += "\n" + '<!--#echo var="' + element + '" -->';
+    }
+}
+
+editAreaLoader.init({
+    id: "codepage"
+    ,start_highlight: true
+    ,allow_resize: "both"
+    ,allow_toggle: false
+    ,language: "en"
+    ,toolbar: "search, go_to_line,|, undo, redo, |, select_font,|, change_smooth_selection, highlight, reset_highlight, |, help"
+    ,syntax: "html"
+});
+</script>
+[% END #js_block %]

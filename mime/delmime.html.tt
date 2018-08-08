@@ -1,0 +1,28 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+[% delete_mime = execute('Mime', 'delete_mime', { type=RAW_FORM('usermime') }) %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mime_types'
+-%]
+<div class="body-content">
+    [% IF delete_mime.status %]
+        <div id="mimeTypeRemovedSuccess" class="alert alert-success">
+            <span id="mimeTypeRemoveSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="mimeTypeRemoveSuccessMsg" class="alert-message">
+                [% locale.maketext('The MIME type “[_1]” has been removed.', FORM.usermime) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="mimeTypeRemoveError" class="alert alert-danger">
+            <span id="mimeTypeRemoveErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+              <span id="mimeTypeRemoveErrorMsg" class="alert-message">
+              [% FOREACH q = delete_mime.errors -%]
+                [% q FILTER html %]
+              [% END -%]
+              </span>
+        </div>
+    [% END %]
+    [% INCLUDE _assets/return_link.html.tt return_location='mime.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]
+

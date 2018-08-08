@@ -1,0 +1,125 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    # Fetch the required strength
+    SET required_strength_resp = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"webdisk"} );
+
+    IF required_strength_resp.size();
+        SET required_strength = required_strength_resp.0.strength;
+    END;
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+-%]
+
+[% INCLUDE _assets/_ajaxapp_header.html.tt %]
+<div class="body-content">
+
+    <form method="post" action="dopasswd.html" name="mainform" id="mainform">
+        <!-- prevent password autofill -->
+        <input type="text" style="display:none">
+        <input type="password" autocomplete='off' style="display:none">
+        <input type="hidden" value="[% FORM.login %]" id="login" name="login" />
+
+        <p>
+        [% IF FORM.digest_only %]
+            <input type="hidden" name="enabledigest" id="hidEnableDigest" value="1">
+            [% locale.maketext("Activating Digest Authentication (Windows® Vista, or newer, support) for the user “[_1]”.",FORM.login) %]
+        [% ELSE %]
+            [% locale.maketext("Changing password for the user “[_1]”.", FORM.login)  %]
+        [% END %]
+        </p>
+
+        <div class="form-group">
+            <label for="password" id="password-label-cell">
+                [% locale.maketext("New Password") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="password" autocomplete='off' name="password" id="password" class="form-control" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="password_error"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblPassword2" for="password2">
+                [% locale.maketext("Password (Again)") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="password" autocomplete='off' name="password2" id="password2" class="form-control" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="password2_error"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label id="lblPasswordStrength">
+                        [% locale.maketext("Strength") %]
+                        <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                    </label>
+                    [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div id="password_strength" class="password_strength"></div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="button" id="create_strong_password" class="btn btn-default"
+                        value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                </div>
+            </div>
+        </div>
+
+
+        [% IF FORM.digest_only %]
+            <div id="add-submit-row" class="form-group">
+                <input id="submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Activate") %]" title="[% locale.maketext("Change the pasword for “[_1]”.",FORM.login) %]" />
+            </div>
+        [% ELSE %]
+            <div id="add-auth-row">
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label id="lblEnableDigest">
+                            <input id="enabledigest" type="checkbox" [% (FORM.hasdigest) ? 'checked="checked"' : '' %] value="1" name="enabledigest" />
+                            [% locale.maketext("Enable Digest Authentication") %]
+                        </label>
+                        <span class="glyphicon glyphicon-info-sign" id="enabledigest-info" onclick="CPANEL.ajax.toggleToolTip(this,'[% locale.maketext('Digest Authentication') %]');" title="[% locale.maketext("[list_and,_*] require Digest Authentication support to be enabled in order to access your Web Disk over a clear text/unencrypted connection.","Windows Vista®","Windows® 7","Windows® 8") %] [% locale.maketext("If the server has an SSL certificate signed by a recognized certificate authority and you are able to make an SSL connection over port 2078, you do not need to enable this.") %]" />
+                    </div>
+                </div>
+            </div>
+            <div id="add-submit-row" class="form-group">
+                <input id="submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Change") %]" title="[% locale.maketext("Change the pasword for “[_1]”.",FORM.login) %]" />
+            </div>
+        [% END %]
+
+    </form>
+    [% INCLUDE _assets/return_link.html.tt return_location='accounts_webdav.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var init = function() {
+        var validation = new CPANEL.validate.validator("[% locale.maketext("Web Disk Accounts") %]");
+        var REQUIRED_PASSWORD_STRENGTH = parseInt('[% required_strength %]', 10) || 0;
+
+        var password_validators = CPANEL.password.setup("password", "password2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+        CPANEL.validate.attach_to_form("submit", password_validators);
+    };
+
+    YAHOO.util.Event.onDOMReady(init);
+</script>
+[% END %]

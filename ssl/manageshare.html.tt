@@ -1,0 +1,81 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+[%
+    SET installed_host = execute('SSL', 'installed_host');
+    SET check_shared_cert = execute('SSL', 'check_shared_cert');
+    SET list_accounts = execute('Resellers', 'list_accounts');
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    page_js = js_code
+-%]
+<div class="body-content">
+    <h2 id="hdrManageShare">[% locale.maketext('Manage SSL Certificate Sharing') %]</h2>
+    <div class="section">
+        <h3 id="hdrSharingCert">[% locale.maketext('Share Certificate') %]</h3>
+        <p id="descSharing" class="description">[% locale.maketext('SSL certificate sharing allows accounts you own to use your SSL certificate on their own domain. To share your main certificate, click the “[_1]” button.', locale.maketext('Enable Sharing')) %]</p>
+
+        <div class="form-group">
+            <label id="lblHost">[% locale.maketext('Host:') %]</label>
+            <p class="form-control-static">[% installed_host.data.host %]</p>
+        </div>
+
+        <div class="form-group">
+            [% IF check_shared_cert.data.has_shared_cert %]
+                <a id="btnDisable" href="setsharing.html?share=0" class="btn btn-primary">[% locale.maketext('Disable Sharing') %]</a></td>
+            [% ELSE %]
+                <a id="btnEnable" href="setsharing.html?share=1" class="btn btn-primary">[% locale.maketext('Enable Sharing') %]</a></td>
+            [% END %]
+        </div>
+
+        [% IF check_shared_cert.data.has_shared_cert %]
+            <p>[% locale.maketext('The SSL certificate is currently shown as shared.') %]</p>
+        [% ELSE %]
+            <p>[% locale.maketext('The SSL certificate is currently shown as not shared.') %]</p>
+        [% END %]
+    </div>
+    <div class="section">
+        <h3 id="hdrLinking">[% locale.maketext('Certificate Linking') %]</h3>
+        <p>[% locale.maketext('Other accounts can use your SSL certificate by linking their web pages to “[_1]”.', "https://${installed_host.data.host}/~&lt;username&gt;") %]</p>
+        <p><strong>[% locale.maketext('Examples') %]</strong></p>
+        <div class="form-group">
+            <label id="lblSelectUser">[% locale.maketext('Select a user to see an example:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <select name="user" id="usersel" class="form-control" onchange="setuser('usersel');">
+                    [% FOREACH q = list_accounts.data %]
+                        <option [% q.select ? 'selected="selected"' : '' %] value="[% q.user %]">[% q.domain %] ([% q.user %])</option>
+                    [% END %]
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <p>[% locale.maketext('User:') %] <strong><span id="username">&lt;username&gt;</span></strong></p>
+        <p>
+        [% locale.maketext('Link pages to “[output,attr,_1,id,urlusername]” instead of “[output,attr,_2,id,domain]”.', "https://${installed_host.data.host}/~&lt;username&gt;","https://&lt;domain&gt;") %]
+        </p>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Return to SSL Manager') %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+//<![CDATA[
+function setuser(selid) {
+    var selectbox = document.getElementById('usersel');
+    var selected = selectbox.options[selectbox.selectedIndex];
+    document.getElementById('username').innerHTML = selected.value;
+    document.getElementById('urlusername').innerHTML = 'https://[% installed_host.data.host %]/~' + selected.value;
+    document.getElementById('domain').innerHTML = 'https://' + (selected.text.split(" "))[0];
+}
+function startuser() {
+        setuser('usersel');
+}
+YAHOO.util.Event.onDOMReady(startuser);
+//]]>
+</script>
+[% END %]

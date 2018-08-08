@@ -1,0 +1,209 @@
+<div class="row">
+    <div class="col-xs-12">
+        <div class="alert alert-danger" ng-show="manage.show_quota_warning()">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">{{ manage.quota_warning() }}</div>
+        </div>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12">
+        <div class="hidden-sm hidden-md hidden-lg pull-right flip">
+            <button type="button"
+                    id="title_add_record_btn"
+                    class="btn btn-primary add-record-btn"
+                    ng-disabled="manage.is_loading || manage.change_in_progress || manage.show_quota_warning()"
+                    ng-click="manage.configure_details()">
+                    <span class="fas fa-plus"></span>
+                    [% locale.maketext('Add Application') %]</button>
+        </div>
+    </div>
+</div>
+<div id="notAllowedWarning" class="alert alert-danger ng-hide" ng-show="manage.loading_error">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message">
+        {{ manage.loading_error_message }}
+    </div>
+</div>
+<div id="tableShowHideContainer" ng-hide="manage.loading_error">
+    <div id="paginationControls" class="row search-page-container">
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+            <search id="filterList"
+                ng-model="manage.meta.searchText"
+                placeholder="[% locale.maketext('Search by name') %]"
+                autofocus
+                ng-change="manage.searchList()"></search>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+            <div class="hidden-xs">
+                <button type="button"
+                        id="search_add_record_btn"
+                        class="btn btn-primary add-record-btn"
+                        ng-disabled="manage.is_loading || manage.change_in_progress || manage.show_quota_warning()"
+                        ng-click="manage.configure_details()">
+                        <span class="fas fa-plus"></span>
+                        [% locale.maketext('Add Application') %]</button>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
+            <div id="paginator" class="pagination-container pull-right hidden-xs hidden-sm">
+                <page-size id="topPageSize"
+                    allowed-sizes="manage.meta.pageSizes"
+                    total-items="manage.meta.totalItems"
+                    ng-model="manage.meta.pageSize"
+                    show-all="false"
+                    ng-change="manage.selectPageSize()">
+                </page-size>
+                <uib-pagination id="topPager"
+                    ng-change="manage.selectPage()"
+                    ng-model="manage.meta.pageNumber"
+                    max-size="manage.meta.maxPages"
+                    items-per-page="manage.meta.pageSize"
+                    total-items="manage.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+    <div id="tableStats" class="row">
+        <div class="col-xs-12 col-sm-12">
+            <div class="page-stats pull-right hidden-xs hidden-sm">
+            {{manage.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+    <div id="tableContainer">
+        <form name="manage.add_appl_form" class="ng-pristine" novalidate>
+            <table id="table" class="table table-striped responsive-table">
+                <thead>
+                    <tr>
+                        <th id="nameHeader">
+                            <span toggle-sort id="sortByName" onsort="manage.sortList" sort-meta="manage.meta" sort-field="name">
+                                [% locale.maketext('Name') %]
+                            </span>
+                        </th>
+                        <th id="domainHeader">
+                            <span toggle-sort id="sortByDomain" onsort="manage.sortList" sort-meta="manage.meta" sort-field="domain">
+                                [% locale.maketext('Domain') %]
+                            </span>
+                        </th>
+                        <th id="pathHeader">
+                           <span toggle-sort id="sortByPath" onsort="manage.sortList" sort-meta="manage.meta" sort-field="path">
+                                [% locale.maketext('Path') %]
+                            </span>
+                        </th>
+                        <th id="statusHeader">[% locale.maketext('Status') %]</th>
+                        <th class="actions-column" id="actionsHeader">[% locale.maketext('Actions') %]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="loadingNotice" class="info empty-row ng-hide" ng-show="manage.is_loading">
+                        <td colspan="5" id="loadingMessage">
+                            <i id="loadingSpinner" class="fas fa-spinner fa-spin"></i>
+                            [% locale.maketext('Loading …') %]
+                        </td>
+                    </tr>
+                    <tr id="emptyListNotice" class="info empty-row ng-hide" ng-show="manage.filteredList.length == 0 && !manage.is_loading">
+                        <td colspan="5" id="emptyMessage">[% locale.maketext('No records found.') %]</td>
+                    </tr>
+                    <tr id="appl_{{appl._id}}" ng-repeat="appl in manage.filteredList" ng-hide="manage.is_loading || manage.filteredList.length == 0">
+                        <td data-title="[% locale.maketext('Name') %]" id="appl_name_{{appl._id}}">
+                            <span>{{ appl.name }}</span>
+                        </td>
+                        <td data-title="[% locale.maketext('Domain') %]" id="appl_name_{{appl._id}}">
+                            <span>{{ appl.domain }}</span>
+                        </td>
+                        <td data-title="[% locale.maketext('Path') %]" id="appl_path_{{appl._id}}">
+                            <i class="fas fa-home" title="{{ manage.user_home_dir }}"></i>/{{ appl.path }}
+                        </td>
+                        <td class="status" data-title="[% locale.maketext('Status') %]" id="appl_status_{{appl._id}}">
+                            <toggle-switch
+                                id="appl_status_switch_{{appl._id}}"
+                                ng-model="appl.enabled"
+                                enabled-label="[% locale.maketext('Enabled') %]"
+                                disabled-label="[% locale.maketext('Disabled') %]"
+                                on-toggle="manage.toggle_status(appl)">
+                            </toggle-switch>
+                        </td>
+                        <td class="action-buttons" data-title="[% locale.maketext('Actions') %]">
+                            <button type="button" id="configure_btn_{{appl._id}}" class="btn btn-link"
+                                ng-click="manage.configure_details(appl)"
+                                ng-disabled="manage.change_in_progress">
+                                <span class="glyphicon glyphicon-pencil"></span>
+                                [% locale.maketext('Edit') %]
+                            </button>
+                            <button type="button" id="delete_btn_{{appl._id}}" class="btn btn-link"
+                                ng-click="manage.confirm_delete_record(appl.name)"
+                                ng-disabled="manage.change_in_progress">
+                                <span class="glyphicon glyphicon-trash"></span>
+                                [% locale.maketext('Delete') %]
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+    </div>
+    <div class="row hidden-md hidden-lg">
+        <div class="col-xs-4">
+            <div class="page-stats selected-stats">
+            </div>
+        </div>
+        <div class="col-xs-8">
+            <div class="page-stats pull-right">
+                {{manage.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+    <div class="row search-page-container visible-sm-block visible-xs-block hidden-lg hidden-md">
+        <div class="col-xs-12 col-sm-12">
+            <div id="paginatorBottom" class="pagination-container">
+                <page-size id="bottomPageSize"
+                    allowed-sizes="manage.meta.pageSizes"
+                    total-items="manage.meta.totalItems"
+                    ng-model="manage.meta.pageSize"
+                    show-all="false"
+                    ng-change="manage.selectPageSize()">
+                </page-size>
+                <uib-pagination id="bottomPager"
+                    ng-change="manage.selectPage()"
+                    ng-model="manage.meta.pageNumber"
+                    max-size="manage.meta.maxPages"
+                    items-per-page="manage.meta.pageSize"
+                    total-items="manage.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+</div>
+<script type="text/ng-template" id="confirm_delete.html">
+    <div class="modal-header">
+        <h4>[% locale.maketext('Confirm Deletion') %]</h4>
+    </div>
+    <div class="modal-body">
+        {{ctrl.confirm_msg}}
+    </div>
+    <div class="modal-footer">
+        <button type="button"
+            id="modalContinueBtn"
+            cp-action="ctrl.confirm()"
+            button-class="btn btn-primary btn-sm">[% locale.maketext('Continue') %]</button>
+        <button type="button"
+            id="modalCancelBtn"
+            class="btn btn-link btn-sm"
+            ng-click="ctrl.cancel()">[% locale.maketext('Cancel') %]</button>
+    </div>
+</script>

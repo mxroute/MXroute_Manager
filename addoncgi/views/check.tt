@@ -1,0 +1,24 @@
+[%
+# current_md5 - string
+# expected_md5 - string
+# vendor - hash
+#   name - string
+%]
+<p>
+    [% locale.maketext('[_1] [asis,cPAddon] Library Status:', vendor.name.html()) %]
+    [% IF current_md5 == expected_md5 %]
+    <b id="status_ok">[% locale.maketext('Ok') %]</b>
+    <p>
+    [% locale.maketext('No further action is needed.') %]
+    </p>
+    [% ELSE %]
+    <b id="status_invalid">[% locale.maketext('Invalid') %]</b>
+    <p>
+    [% locale.maketext('Contact your hosting provider to update the Site Software packages.') %]
+    <!--
+        Local MD5 [% current_md5 %]
+        Expected MD5 [% expected_md5 %]
+    -->
+    </p>
+    [% END %]
+</p>

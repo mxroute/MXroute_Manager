@@ -1,0 +1,91 @@
+<div class="clearfix">
+    <div class="well col-xs-12 col-sm-7 col-md-6 col-lg-5 add-spacing-after">
+        <div class="row">
+            <span class="col-xs-12 col-sm-3"><strong>[% locale.maketext("Log in") %]</strong></span>
+            <div class="col-xs-12 col-sm-9">
+                <div class="radio-inline">
+                    <label for="loginAllowed" title="{{ :: emailAccount.email | emailLocaleString:'Allow “[_1]” to log in.' }}">
+                        <input type="radio" name="loginRadio" id="loginAllowed" ng-model="suspendOptions.login" ng-value="{{false}}">
+                        [% locale.maketext("Allow") %]
+                    </label>
+                </div>
+                <div class="radio-inline">
+                    <label for="loginSuspended" title="{{ :: emailAccount.email | emailLocaleString:'Suspend “[_1]”’s ability to log in.' }}">
+                        <input type="radio" name="loginRadio" id="loginSuspended" ng-model="suspendOptions.login" ng-value="{{true}}">
+                        [% locale.maketext("Suspend") %]
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <span class="col-xs-12 col-sm-3"><strong>[% locale.maketext("Receive") %]</strong></span>
+            <div class="col-xs-12 col-sm-9">
+                <div class="radio-inline">
+                    <label for="incomingAllowed" title="{{ :: emailAccount.email | emailLocaleString:'Allow “[_1]” to receive mail.' }}">
+                        <input type="radio" name="incomingRadio" id="incomingAllowed" ng-model="suspendOptions.incoming" ng-value="{{false}}">
+                        [% locale.maketext("Allow") %]
+                    </label>
+                </div>
+                <div class="radio-inline">
+                    <label for="incomingSuspended" title="{{ :: emailAccount.email | emailLocaleString:'Suspend “[_1]”’s ability to receive mail.' }}">
+                        <input type="radio" name="incomingRadio" id="incomingSuspended" ng-model="suspendOptions.incoming" ng-value="{{true}}">
+                        [% locale.maketext("Suspend") %]
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <span class="col-xs-12 col-sm-3"><strong>[% locale.maketext("Send") %]</strong></span>
+            <div class="col-xs-12 col-sm-9">
+                <div class="radio-inline">
+                    <label for="outgoingAllowed" title="{{ :: emailAccount.email | emailLocaleString:'Allow ”[_1]” to send mail.' }}">
+                        <input type="radio" name="outgoingRadio" id="outgoingAllowed" ng-model="suspendOptions.outgoing" value="allow">
+                        [% locale.maketext("Allow") %]
+                    </label>
+                </div>
+                <div class="radio-inline">
+                    <label for="outgoingSuspended" title="{{ :: emailAccount.email | emailLocaleString:'Suspend “[_1]”’s ability to send mail.' }}">
+                        <input type="radio" name="outgoingRadio" id="outgoingSuspended" ng-model="suspendOptions.outgoing" value="suspend">
+                        [% locale.maketext("Suspend") %]
+                    </label>
+                </div>
+                <div class="radio-inline">
+                    <label for="outgoingHeld" title="{{ :: emailAccount.email | emailLocaleString:'Hold outgoing mail for ”[_1]”.' }}">
+                        <input type="radio" name="outgoingRadio" id="outgoingHeld" ng-model="suspendOptions.outgoing" value="hold">
+                        [% locale.maketext("Hold") %]
+                    </label>
+                </div>
+            </div>
+        </div>
+        <div class="row" ng-show="checkingHolds">
+            <div class="col-xs-12">
+                <span class="fa fa-spin fa-spinner"></span>
+                <strong>[% locale.maketext("Checking for messages in the mail queue …") %]</strong>
+            </div>
+        </div>
+        <div class="row" ng-show="!checkingHolds && suspendOptions.currentOutgoing === 'hold'">
+            <label class="col-xs-12">
+                <span ng-if="suspendOptions.currentlyHeld > 0">
+                    <input type="checkbox" ng-model="suspendOptions.deleteHeldMessages">
+                    {{ suspendOptions.currentlyHeld | emailLocaleString:'Delete [numf,_1] messages from the mail queue.' }}
+                </span>
+                <span ng-if="suspendOptions.currentlyHeld === 0">[% locale.maketext("The mail queue does not contain any messages on hold.") %]</span>
+            </label>
+        </div>
+        <cp-alert type="warning" ng-if="emailAccount.hold_outgoing && suspendOptions.currentlyHeld > 0 && suspendOptions.outgoing === 'hold' && suspendOptions.deleteHeldMessages">
+            {{ :: emailAccount.email | emailLocaleString:'If you allow outgoing mail for “[_1]” while the delete is in process, messages held in the queue may be delivered instead of deleted.' }}
+        </cp-alert>
+        <cp-alert type="info" ng-if="emailAccount.hold_outgoing && suspendOptions.currentlyHeld > 0 && suspendOptions.outgoing === 'allow' && suspendOptions.deleteHeldMessages">
+            {{ :: emailAccount.email | emailLocaleString:'Outgoing mail for “[_1]” will be released after the held messages are deleted.' }}
+        </cp-alert>
+    </div>
+    <div class="hidden-xs col-sm-8"></div>
+</div>
+<div>
+    <button id="saveSuspensionsButton"
+        type="submit"
+        class="btn btn-primary"
+        spinner-id="spinnerSaveSuspensions"
+        cp-action="onClickSaveSuspensions()">Save</button>
+    <button class="btn btn-link" ng-click="cancelAction()" ng-disabled="suspending">[% LANG.cancel %]</button>
+</div>

@@ -1,0 +1,13 @@
+
+[%-
+USE Master;
+-%]
+
+<!-- We want to load the appGroups as soon as possible so that
+     the sea of icons can start rendering as soon as possible -->
+<script type="text/javascript">
+    PAGE.collapsedGroups = [% varcache.collapsed_groups.json() %];
+    PAGE.appGroups = [% varcache.available_applications.groups.json() %];
+</script>
+
+

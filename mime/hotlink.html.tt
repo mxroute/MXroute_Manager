@@ -1,0 +1,118 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% list_hotlinks = execute('Mime', 'list_hotlinks') -%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'hotlink_protection'
+    page_js = js_code
+-%]
+<div class="body-content">
+    <p class="description" id="descHotlinkProtection">
+        [% locale.maketext("Hotlink protection prevents other websites from directly linking to files (as specified below) on your website.") %]
+        [% locale.maketext("Other sites will still be able to link to any file type that you don’t specify below (ie. html files).") %]
+        [% locale.maketext("An example of hotlinking would be using a [output,lt]img[output,gt] tag to display an image from your site from somewhere else on the net.") %]
+        [% locale.maketext("The end result is that the other site is stealing your bandwidth.") %]
+        [% locale.maketext("List all sites below from which you wish to allow direct links.") %]
+        [% locale.maketext("This system attempts to add all sites it knows you own to the list; however, you may need to add others.") %]
+    </p>
+
+    <div id="hotlinkErrors">
+        [% FOREACH q = list_hotlinks.errors -%]
+          <p class="errors">[% q FILTER html %]</p>
+        [% END -%]
+    </div>
+
+    <div class="section">
+        [%
+        # This looks very odd, but the issue is that we need have the buttons to
+        # disable go to one form and the buttons to enable go to another form
+        # that contains all the form elements on the page.  If you change this,
+        # please ensure that it keeps working that way.
+        -%]
+        [% IF list_hotlinks.data.state == 'disabled' %]
+        <form action="addhotlink.html" method="post">
+            <div class="callout callout-info">
+                <strong id="hotlinkStatus">
+                [% locale.maketext('Hotlink protection is currently “[boolean,_1,disabled,enabled]”.', 1) %]
+                </strong>
+                <div class="form-group">
+                    <input id="hlenable" type="submit" class="btn btn-primary" value="[% locale.maketext("Enable") %]" />
+                </div>
+            </div>
+            <h2>[% locale.maketext("Configure Hotlink Protection") %]</h2>
+        [% ELSE %]
+        <form action="delhotlink.html">
+            <div class="callout callout-info">
+                <strong id="hotlinkStatus">
+                [% locale.maketext('Hotlink protection is currently “[boolean,_1,disabled,enabled]”.', 0) %]
+                </strong>
+                <div class="form-group">
+                    <input id="hldis" type="submit" class="btn btn-primary" value="[% locale.maketext("Disable") %]" />
+                </div>
+            </div>
+        </form>
+        <h2>[% locale.maketext("Configure Hotlink Protection") %]</h2>
+        <form action="addhotlink.html" method="post">
+        [% END %]
+            <div class="form-group">
+                <label for="urls">
+                    [% locale.maketext("URLs to allow access:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea id="urls" rows="6" name="urls" class="form-control">[% list_hotlinks.data.urls.join("\n").html %]</textarea>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="exts">
+                    [% locale.maketext("Block direct access for the following extensions (comma-separated):") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea id="exts" rows="2" name="exts" class="form-control">[% list_hotlinks.data.extensions.html %]</textarea>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="allow_direct_requests" name="allownull" value="1" [% list_hotlinks.data.allow_null ? 'checked' : '' %] />
+                                [% locale.maketext("Allow direct requests (for example, when you enter the [output,acronym,URL,Uniform Resource Locator] of an image in a browser).") %]
+                            </label>
+                            <span class="help-block">
+                                [% locale.maketext('[output,strong,NOTE]: You [output,em,must] select the “Allow direct requests” checkbox when you use hotlink protection for files that you want visitors to view in [asis,QuickTime] (for example, [asis,Mac] Users).') %]
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="txtRedirectURL">
+                    [% locale.maketext("Redirect the request to the following URL:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="rurl" size="40" value="[% list_hotlinks.data.redirect_url.html %]" id="txtRedirectURL"/>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="[% locale.maketext("Submit") %]" class="btn btn-primary" id="btnSubmitRedirectURL"/>
+            </div>
+        </form>
+    </div>
+</div>
+[% INCLUDE _assets/return_link.html.tt return_location='../index.html' %]
+[% END #wrapper %]

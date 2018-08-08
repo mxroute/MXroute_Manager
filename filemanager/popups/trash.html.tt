@@ -1,0 +1,23 @@
+<div style="display:none;" id="trash">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Trash") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="trash-filecontent">
+            <form>
+                [% locale.maketext("Are you sure you want to move the following files to the trash?") %]
+                <span id="trash-filelist"></span>
+                <div style="padding: 10px;">
+                    <label>
+                        <input type="checkbox" id="deleteme" name="deleteme" />
+                        [% locale.maketext("Skip the trash and permanently delete the files") %]
+                    </label>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>
+

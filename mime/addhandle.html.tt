@@ -1,0 +1,29 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'apache_handlers'
+-%]
+
+[% add_handler = execute('Mime', 'add_handler', { handler=RAW_FORM('handle'), extension=RAW_FORM('ext') }) %]
+<div class="body-content">
+    [% IF add_handler.status %]
+    <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("The handler “[output,strong,_1]” has been assigned to the extensions “[output,strong,_2]”.", FORM.handle, FORM.ext) %]
+            </div>
+    </div>
+    [% ELSE %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+              [% FOREACH q = add_handler.errors -%]
+                [% q FILTER html %]
+              [% END -%]
+              </span>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='handle.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END %]

@@ -1,0 +1,23 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'anonymous_ftp'
+-%]
+<div class="body-content">
+    [% set_anon = execute('Ftp', 'set_anonymous_ftp', { set=RAW_FORM('allowanonftp') }) %]
+    [% set_anon_in = execute('Ftp', 'set_anonymous_ftp_incoming', { set=RAW_FORM('allowanonftpin') }) %]
+
+
+    <div class="alert alert-success">
+        <span class="glyphicon glyphicon-ok-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext("Success:") %]</strong>
+            [% locale.maketext("Updated") %]
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='anonymous.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

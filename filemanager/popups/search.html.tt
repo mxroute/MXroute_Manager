@@ -1,0 +1,31 @@
+<div style="display:none;" id="search-results">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Search Results for:") %] <div id="search-for" style="display:inline;"></div></span>
+    <div class="rt">
+</div></div>
+<div class="bd">
+    <div class="filecontent" id="search-results-foldercontent">
+<form action="domkdir.html">
+[% locale.maketext("Double click on a file or folder to open the folder (or the folder it is contained in if it is a file).") %]
+<div id="search-results-div" style="width:470px; height:300px;">
+<table id="search-results-tbl" border="0" cellspacing="5" cellpadding="5">
+    <thead>
+    <tr>
+        <th>&nbsp;</th>
+        <th>[% locale.maketext("Path") %]</th>
+    </tr>
+    </thead>
+    <tbody>
+    </tbody>
+</table>
+</div>
+</form>
+
+ </div>
+<br />
+[% locale.maketext("Note: Limited to 250 Results.") %]
+</div>
+    <div class="ft"></div>
+
+</div>

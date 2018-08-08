@@ -1,0 +1,25 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%  Api1.pre_exec("Gpg", "importkeys");
+    SET import_keys = Api1.exec("Gpg", "importkeys", [RAW_FORM.gpgdata]);
+    Api1.post_exec("Gpg", "importkeys")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+%]
+<div class="body-content">
+    [% IF import_keys %]
+    <pre id="preImportKeys">[% import_keys %]</pre>
+    [% END %]
+    [% IF !CPANEL.CPERROR.gpg %]
+        <div id="importSuccess" class="alert alert-success">
+            <span id="importSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="importSuccessMsg" class="alert-message">
+                [% locale.maketext("Your GnuPG key imported successfully.") %]
+            </div>
+        </div>
+    [% END %]
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]

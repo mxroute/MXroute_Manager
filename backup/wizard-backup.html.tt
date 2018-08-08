@@ -1,0 +1,60 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/tools.gif";
+SET CPANEL.CPVAR.dprefix="../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup_wizard'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_stylesheets = ["css2-min/backup.css"]
+-%]
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+
+        <div id="backup-nav" class="row">
+            <div class="col-xs-12">
+                <h2 id="hdrSteps">[% locale.maketext('Steps:') %]</h2>
+                <ol>
+                    <li id="tabBackupRestore" class="one"><a href="wizard.html" id="backupRestore"><span>[% locale.maketext("Back Up or Restore") %]</span></a></li>
+                    <li id="tabFullPartial" class="two"><span class="current">[% locale.maketext("Full or Partial Backup") %]</span></li>
+                    <li id="tabDownload" class="three"><span>[% locale.maketext("Download") %]</span></li>
+                </ol>
+            </div>
+        </div>
+
+        <div id="br-wrap" class="row">
+
+            <div id="br-content-main" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                <h2 id="hdrFullBackup">[% locale.maketext("Full Backup") %]</h2>
+                <p>[% locale.maketext("This feature allows you to create an archive of all the files and configurations on your website.") %]</p>
+                <p><a href="wizard-fullbackup.html" id="wizard-backup-full" class="btn btn-primary">[% locale.maketext("Full Backup") %]</a></p>
+                <p>[% locale.maketext("Note: You can only use this option to move your account to another server or to download a copy of your account. You cannot restore Full Backups through your [asis,cPanel] interface.") %]</p>
+            </div>
+
+            <div id="br-content-sec" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                <h2 id="hdrPartialBackup">[% locale.maketext("Select Partial Backup") %]</h2>
+                <p>[% locale.maketext("This feature allows you to select which partial backup you want to download.") %]</p>
+
+                <a href="wizard-backup-type.html?type=homedir" class="btn btn-default" id="btnHomeDirectory">[% locale.maketext("Home Directory") %]</a>
+
+                [% IF CPANEL.feature("mysql") %]
+                <a href="wizard-backup-type.html?type=mysql" class="btn btn-default" id="btnDatabases">[% locale.maketext("MySQL Databases") %]</a>
+                [% END %]
+
+                [% IF CPANEL.feature("forwarders") %]
+                <a href="wizard-backup-type.html?type=email" class="btn btn-default" id="btnForwarders">[% locale.maketext("Email Forwarders") %]
+                [% IF CPANEL.feature("blockers") %]&amp; [% locale.maketext("Filters") %] [% END %]</a>
+                [% END %]
+            </div>
+
+        </div>
+
+        [% INCLUDE _assets/return_link.html.tt return_location="wizard.html" return_link_text=locale.maketext("Go Back") %]
+
+    [% END %]
+</div>
+[% END %]

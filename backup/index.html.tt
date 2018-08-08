@@ -1,0 +1,270 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET mysql_list_db_backups = [];
+IF CPANEL.feature("mysql");
+    SET mysql_list_db_backups = Api2.exec("MysqlFE", "listdbsbackup", {});
+END;
+
+SET email_list_alias_backups = [];
+IF CPANEL.feature("forwarders");
+    SET email_list_alias_backups = Api2.exec("Email", "listaliasbackups", {});
+END;
+
+SET email_list_system_filter_info = [];
+IF CPANEL.feature("blockers");
+    SET email_list_system_filter_info = Api2.exec("Email", "list_system_filter_info", {});
+END;
+
+IF CPANEL.ENV.CPRESELLERSESSION.defined;
+    Api1.pre_exec("Mysql", "updateprivs");
+    SET update_privs = Api1.exec("Mysql", "updateprivs", [undef]);
+    Api1.post_exec("Mysql", "updateprivs");
+END;
+
+Api1.pre_exec("CpBackup", "listbackups");
+SET backups = Api1.exec("CpBackup", "listbackups", [undef]);
+Api1.post_exec("CpBackup", "listbackups");
+
+Api1.pre_exec("Cgi", "backuplink");
+SET backup_link = Api1.exec("Cgi", "backuplink", [undef]);
+Api1.post_exec("Cgi", "backuplink");
+
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'backup'
+-%]
+
+
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+        [% update_privs %]
+
+        <p id="descBackupPage" class="description">
+            [% locale.maketext("Download a zipped copy of your entire site or a part of your site that you can save to your computer. When you backup your website, you have an extra copy of your information in case something happens to your host. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Backup", "_blank", "lnkBackupDocumentation") %]
+        </p>
+
+        <div class="section">
+            <h2 id="hdrFullBackup">
+                [% locale.maketext("Full Backup") %]
+            </h2>
+            <p id="descFullBackup" class="description">
+                [% locale.maketext("A full backup creates an archive of all of your website’s files and configuration. You can use this file to move your account to another server or to keep a local copy of your files.") %]
+            </p>
+            <p style="margin-bottom: 20px;">
+                <a class="btn btn-primary" id="btnFullBackup" href="fullbackup.html">
+                    [% locale.maketext("Download a Full Website Backup") %]
+                </a>
+            </p>
+        </div>
+
+        <div class="section" id="backupDownload">
+            [% backups %]
+            [% INCLUDE backup/_backups_list.html.tt %]
+        </div>
+
+        <div class="section">
+            <h2 id="hdrPartialBackups">
+                [% locale.maketext("Partial Backups") %]
+            </h2>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrDownloadHomeDir">[% locale.maketext("Download a Home Directory Backup") %]</h3>
+                    <a id="lnkHomeDirBackup" class="btn btn-primary" href="[% backup_link %]">
+                        [% locale.maketext("Home Directory") %]
+                    </a>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrRestoreHomeDir">[% locale.maketext("Restore a Home Directory Backup") %]</h3>
+                    <form action="doupload.html" name="homeform" id="homeform" target="_blank" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                    <input type="hidden" value="[% CPANEL.homedir %]" name="dir">
+                                    <input type="file" id="file1_id" name="file1" />
+                                </div>
+                                <div id="file1_id_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input id="file1-submit-button" class="btn btn-primary" type="submit"  value="[% locale.maketext("Upload") %]" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            [% IF CPANEL.feature("mysql") %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrDownloadMysqlDb">[% locale.maketext("Download a MySQL Database Backup") %]</h3>
+                    <table fixedtruncate="1" class="sortable truncate-table table table-striped" id="sqlbackuptbl">
+                        <thead>
+                        <tr>
+                            <th id="thMysqlDb">[% locale.maketext("Databases") %]
+                            </th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                            [% FOREACH hashref IN mysql_list_db_backups %]
+                            <tr>
+                                <td class="cell nobrd-left truncate" truncatefixed="25">
+                                    <a href="[% CPANEL.ENV.cp_security_token %]/getsqlbackup/[% hashref.db | url %].sql.gz" id="databases_[% loop.count() %]">[% hashref.db.html() %]</a>
+                                </td>
+                            </tr>
+                            [% END %]
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrRestoreMysqlDb">[% locale.maketext("Restore a MySQL Database Backup") %]</h3>
+                    <form action="dosqlupload.html" name="sqlform" id="sqlform" target="_blank" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                    <input type="hidden" value="[% CPANEL.homedir %]" name="dir" />
+                                    <input type="file" name="file2" id="file2_id" />
+                                </div>
+                                <div id="file2_id_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input id="file2-submit-button" class="btn btn-primary" type="submit" value="[% locale.maketext("Upload") %]" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+            [% END %]
+
+            [% IF CPANEL.feature("forwarders") %]
+            <div class="section">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrDownloadEmailFwdrs">[% locale.maketext("Download Email Forwarders") %]</h3>
+                    <table fixedtruncate="1" class="sortable table table-striped" id="aliastbl">
+                        <tr>
+                            <th id="thEmailFwdrs">
+                                [% locale.maketext("Forwarders") %]
+                            </th>
+                        </tr>
+                        <tbody>
+                        [% FOREACH hashref IN email_list_alias_backups %]
+                        <tr>
+                            <td class="cell nobrd-left truncate" truncatefixed="25">
+                                <a href="[% CPANEL.ENV.cp_security_token %]/getaliasbackup/aliases-[% hashref.domain | url %].gz" id="forwarders_[% loop.count() %]">[%- hashref.domain.html() -%]</a>
+                            </td>
+                        </tr>
+                        [% END %]
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrRestoreEmailFwrds">[% locale.maketext("Restore Email Forwarders") %]</h3>
+                    <form action="doafupload.html" name="fwdform" id="fwdform" target="_blank" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                    <input type="hidden" value="[% CPANEL.homedir %]" name="dir" />
+                                    <input type="file" name="file4" id="file4_id" />
+                                </div>
+                                <div id="file4_id_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input id="file4-submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+            </div>
+            [% END %]
+
+            [% IF CPANEL.feature("blockers") %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrDownloadEmailFilters">[% locale.maketext("Download Email Filters") %]</h3>
+                    <table fixedtruncate="1" class="sortable table table-striped" id="filtertbl">
+                        <thead>
+                            <tr>
+                                <th id="thSysFilterInfo">
+                                    [% locale.maketext("System Filter Info") %]
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            [% FOREACH hashref IN email_list_system_filter_info %]
+                            <tr>
+                                <td class="cell nobrd-left truncate" truncatefixed="25">
+                                    <a href="[% CPANEL.ENV.cp_security_token %]/getfilterbackup/[% hashref.filter_info | url %]" id="systemFilterInfo_[% loop.count() %]">[% hashref.filter_info.html() %]</a>
+                                </td>
+                            </tr>
+                            [% END %]
+                        </tbody>
+                    </table>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h3 id="hdrRestoreEmailFilters">[% locale.maketext("Restore Email Filters") %]</h3>
+                    <form action="doafupload.html" name="filterform" id="filterform" target="_blank" method="post" enctype="multipart/form-data">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                    <input type="hidden" value="[% CPANEL.homedir %]" name="dir" />
+                                    <input type="file" name="file3" id="file3_id" />
+                                </div>
+                                <div id="file3_id_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input id="file3-submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" />
+                        </div>
+                    </form>
+                </div>
+            </div>
+            [% END %]
+        </div>
+
+    [% END %]
+</div>
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var inputs_buttons = { file1_id: "file1-submit-button" };
+
+    [% IF CPANEL.feature("mysql") %]
+        inputs_buttons['file2_id'] = 'file2-submit-button';
+    [% END %]
+    [% IF CPANEL.feature("forwarders") %]
+        inputs_buttons['file4_id'] = 'file4-submit-button';
+    [% END %]
+    [% IF CPANEL.feature("blockers") %]
+        inputs_buttons['file3_id'] = 'file3-submit-button';
+    [% END %]
+
+
+
+    var init = function() {
+        for ( var input in inputs_buttons ) {
+            var validator = new CPANEL.validate.validator("[% locale.maketext("Backups") %]");
+            validator.add(input, 'min_length(%input%, 1)', '[% locale.maketext("Sorry, you must select a file to restore.") %]');
+            validator.attach();
+            CPANEL.validate.attach_to_form(inputs_buttons[input], validator);
+        }
+    };
+
+    YAHOO.util.Event.onDOMReady(init);
+
+</script>
+[% END #js_block %]
+
+[% END #wrapper -%]

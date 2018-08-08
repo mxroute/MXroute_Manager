@@ -1,0 +1,16 @@
+[%
+USE Api2;
+USE CPList;
+
+SET userquestions = {};
+
+SET api_response = Api2.exec('SourceIPCheck', 'loadsecquestions', { account => CPANEL.FORM.account });
+
+FOREACH q IN api_response;
+    userquestions.${q.questionnum} = q.question;
+END;
+
+account_uri = CPANEL.FORM.account FILTER uri;
+
+PROCESS 'security/_security_questions.html.tt' action="answers.html?account=" _ account_uri;
+-%]

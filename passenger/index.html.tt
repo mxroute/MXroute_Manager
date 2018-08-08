@@ -1,0 +1,67 @@
+[%
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET domains_result = execute('DomainInfo', 'list_domains', {});
+
+# NOTE: The resource_usage_macro.html.tt macro was not used here
+# because we need to be able to control the hiding and showing of the
+# add application button using client-side logic. We only need the upper
+# limit to do this.
+IF !CPANEL.CPDATA.exists('MAXPASSENGERAPPS') || CPANEL.CPDATA.item('MAXPASSENGERAPPS') == '';
+    SET MAX_PASSENGER_APPS = 4;
+ELSE;
+    IF CPANEL.CPDATA.item('MAXPASSENGERAPPS') == 'unlimited';
+        SET MAX_PASSENGER_APPS = "Infinity";
+    ELSE;
+        SET MAX_PASSENGER_APPS = CPANEL.CPDATA.item('MAXPASSENGERAPPS');
+    END;
+END;
+
+SET stylesheets = [];
+IF !CPANEL.ua_is_mobile;
+    stylesheets.push("css/angular-chosen-spinner.css");
+    stylesheets.push("libraries/chosen/1.5.1/chosen.min.css");
+END;
+stylesheets.push('passenger/index.css');
+
+WRAPPER '_assets/master.html.tt'
+    app_key = 'application_manager'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    include_lang = 0
+    use_master_bootstrap = 0
+    page_stylesheets = stylesheets
+-%]
+
+    <div class="body-content">
+        <p id="descPassenger" class="description">
+            [% locale.maketext("This feature allows you to deploy Ruby applications via [asis,mod_passenger].") %]
+        </p>
+        <div id="viewContent"
+             class="ng-cloak"
+             ng-view
+             ng-cloak></div>
+    </div>
+
+    <script type="text/javascript">
+        PAGE.domains = [% domains_result.data.json() || '{}' %];
+        PAGE.has_mod_env = [% CPANEL.has_modenv().json() || 'false' %];
+        PAGE.homedir = [% CPANEL.homedir.json() || '""' %];
+        PAGE.max_passenger_apps = [% MAX_PASSENGER_APPS.json() %];
+    </script>
+
+    [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+    <div growl></div>
+    <script id="passenger/views/manage.ptt" type="text/ng-template">
+        [% PROCESS "passenger/views/manage.ptt" %]
+    </script>
+    <script id="passenger/views/details.ptt" type="text/ng-template">
+        [% PROCESS "passenger/views/details.ptt" %]
+    </script>
+    <script id="passenger/directives/table_row_form.ptt" type="text/ng-template">
+        [% PROCESS "passenger/directives/table_row_form.ptt" %]
+    </script>
+[% END #wrapper -%]

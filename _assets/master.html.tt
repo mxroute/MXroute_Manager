@@ -1,0 +1,434 @@
+[%#
+    Parameters we are expecting:
+    ============================
+
+    hide_header:
+    boolean, used to hide the page header
+    1 to hide, 0 to show; 0 by default
+
+    hide_quicklinks:
+    boolean, used to hide the quicklinks section
+    1 to hide, 0 to show; 0 by default
+
+    include_legacy_stylesheets:
+    boolean, used to include legacy stylesheets on the page; 1 by default
+
+    include_legacy_scripts:
+    boolean, used to include legacy javascript sections; 1 by default
+
+    include_cjt:
+    boolean, used to include cjt; 1 by default
+
+    app_key:
+    The key used to lookup application information in dynamicui.conf.
+    Hides page heading if the app_key is not defined.
+
+    page_title:
+    string, displayed as part of the browser title, preceded by cPanel.
+    Defaults to application description from dynamicui.conf
+    e.g. cPanel - <your page title here>
+
+    page_sub_heading:
+    sub heading for page header.
+    SSL <sub heading>
+
+    meta:
+    a string containing meta tags to be injected after the master
+    template meta tags. Highly recommend using a Template Toolkit block
+    and processing the block to get the output into a string.
+
+    embed_stylesheets:
+    array containing the server path of stylesheets specific to
+    your page that will be included with the INSERT directive.
+
+    embed_scripts:
+    array containing the server path of scripts specific to your page
+    that will be included with the INSERT directive.
+
+    page_stylesheets:
+    array containing the path of stylesheets specific to
+    your page that must be relative to the root of the theme.
+
+    page_scripts:
+    array containing the path of scripts specific to your page
+    that must be relative to the root of the theme.
+
+    page_styles:
+    a string containing a <style> block that defines page specific
+    styles. Highly recommend using a Template Toolkit block and processing the
+    block to get the output into a string.
+
+    page_init_js:
+    a string containing a <script> block that defines page specific
+    javascript. Highly recommend using a Template Toolkit block and processing
+    the block to get the output into a string. Run before the page_scripts,
+    embed_scripts and page_js.
+
+    page_js:
+    a string containing a <script> block that defines page specific
+    javascript. Highly recommend using a Template Toolkit block and processing
+    the block to get the output into a string.
+
+    page_js_top:
+    a string containing a <script> block that defines page specific
+    javascript to be injected into the html HEAD area. Highly recommend using a
+    Template Toolkit block and processing the block to get the output into a
+    string.
+
+    page_js_first:
+    a string containing a <script> block that defines page specific
+    javascript to be injected into the html HEAD area BEFORE any other JS. Highly recommend using a
+    Template Toolkit block and processing the block to get the output into a
+    string.
+
+    feature:
+    a string specifying a feature required in order to render the page.  If the
+    user does not have the feature, an error will be rendered instead.
+%]
+[%-
+    USE UI_Includes;
+    USE CacheBuster;
+    USE CPBranding;
+    USE VarCache;
+    USE Master;
+    USE Resource;
+
+    # Currently the only two modes are debug and release, but this
+    # might be expanded in the future.
+    IF CPANEL.is_debug_mode_enabled();
+        SET mode = 'debug';
+        SET optimized = 0;
+    ELSE;
+        SET mode = 'release';
+        SET optimized = 1;
+    END;
+
+    # used to set default values
+    SET include_legacy_stylesheets = 1 IF !include_legacy_stylesheets.defined;
+    SET hide_header = 0 IF !hide_header.defined;
+    SET hide_quicklinks = 0 IF !hide_quicklinks.defined;
+    SET include_legacy_scripts = 1 IF !include_legacy_scripts.defined;
+    SET include_cjt = 1 IF !include_cjt.defined;
+    SET use_master_bootstrap = 1 IF !use_master_bootstrap.defined;
+    SET focus_feature_search = 0 IF !focus_feature_search.defined;
+
+    # hide page heading if app_key is not provided, AND hide_page_heading isn't explicity defined
+    IF !hide_page_heading.defined;
+      SET hide_page_heading = !app_key.defined && !page_title.defined;
+    END;
+
+    SET locale_attributes = execute( "Locale", "get_attributes", {} ).data;
+
+    varcache.set('directory_prefix',CPANEL.CPVAR.dprefix);
+
+    SET user = CPANEL.user;
+
+    SET brand_information = execute( "Brand", "read", {} ).data;
+
+    SET documentation_url = "https://go.cpanel.net/paperlanterndocs";
+    IF brand_information.documentation_url;
+        documentation_url = brand_information.documentation_url;
+    END;
+
+    SET applications = CPBranding.flatten_available_applications(varcache.available_applications);
+
+    varcache.set('CacheBuster_id',CacheBuster.id);
+
+    varcache.set('site_software_app_info',CPBranding.get_implementer_from_available_applications(varcache.available_applications, 'site_software'));
+    IF varcache.site_software_app_info;
+      SET cpaddons = varcache.available_addons;
+      FOREACH cpaddons; # We use the short format here because it is much faster with Template::Stash::XS, but only safe if there are no missing keypairs
+            applications.push({ name => description, searchText => description _ " " _ module, url => varcache.site_software_app_info.url _ "?addon=" _ module });
+      END;
+    END;
+
+    applications.push({ name => 'Notifications', searchText => locale.maketext('Notifications'), url => varcache.directory_prefix _ "home/notifications.html.tt" });
+    applications.push({ name => 'Home', searchText => locale.maketext('Home Main'), url => varcache.directory_prefix _ "index.html"});
+
+    varcache.set('pwd_app_info',CPBranding.get_application_from_available_applications(varcache.available_applications, 'change_password'));
+    varcache.set('lang_app_info',CPBranding.get_application_from_available_applications(varcache.available_applications, 'change_language'));
+    varcache.set('style_app_info',CPBranding.get_application_from_available_applications(varcache.available_applications, 'change_style'));
+    varcache.set('contact_app_info',CPBranding.get_application_from_available_applications(varcache.available_applications, 'contact_information'));
+    varcache.set('billing_app_info',CPBranding.get_implementer_from_available_applications(varcache.available_applications, 'billing'));
+    varcache.set('support_app_info',CPBranding.get_implementer_from_available_applications(varcache.available_applications, 'support'));
+    varcache.set('customer_service_app_info',CPBranding.get_implementer_from_available_applications(varcache.available_applications, 'customer_service'));
+
+    IF !hide_page_heading;
+        SET app_info = CPBranding.get_application_from_available_applications(varcache.available_applications,  app_key);
+    END;
+
+    SET title = "cPanel";
+    IF page_title;
+        SET title = "cPanel - " _ page_title;
+    ELSIF app_key.defined;
+        SET title = "cPanel - " _ app_info.itemdesc;
+    ELSE;
+        SET title = "cPanel";
+    END;
+
+    SET page_title = page_title || app_info.itemdesc;
+
+    SET current_style = CPANEL.current_style || execute("Styles", "current").data.name;
+    SET locale_query_string = "?locale=" _ locale.get_language_tag _ "&locale_optional=1&locale_revision=" _ calculate_magic_lex_mtime(locale.get_language_tag());
+    SET direction = locale_attributes.direction;
+    SET placement = direction == "rtl" ? "left" : "right";
+
+    # Put together a list of stylesheets.
+    SET stylesheets = [];
+    IF optimized;
+        SET css_include_name = '_assets/css/master';
+
+        IF current_style == 'retro'; # Retro style needs to pull in different set of stylesheets
+            css_include_name = '_assets/css/master_retro';
+        END;
+
+        IF include_legacy_stylesheets;
+            css_include_name = css_include_name _ '-legacy';
+        END;
+
+        css_include_name = css_include_name _ '-' _ direction _ '.cmb.css';
+        stylesheets.push(css_include_name);
+
+    ELSE;
+        # Legacy stylesheets
+        IF include_legacy_stylesheets;
+            stylesheets.push('css/yui-core.css');
+            stylesheets.push('css/yui-custom.css');
+        END;
+
+        # Base stylesheets
+        stylesheets.push('libraries/bootstrap/optimized/css/bootstrap.min.css');
+
+        IF direction == 'rtl';
+            stylesheets.push('libraries/bootstrap-rtl/optimized/dist/css/bootstrap-rtl.min.css');
+        END;
+
+        stylesheets.push('libraries/ui-fonts/open_sans/optimized/open_sans.min.css');
+        stylesheets.push('libraries/fontawesome/web-fonts-with-css/css/fontawesome-all.min.css');
+
+        #Retro style needs to pull in different set of stylesheets
+        IF current_style == 'retro';
+            stylesheets.push('css/cpanel_base_retro.min.css');
+        ELSE;
+            stylesheets.push('css/cpanel_base.min.css');
+        END;
+    END;
+
+    IF page_stylesheets;
+        stylesheets = stylesheets.merge(page_stylesheets);
+    END;
+
+    SET display_cpanel_doclinks = ExpVar.expand('$display_cpanel_doclinks');
+    SET baseFile = ExpVar.expand('$basefile');
+
+    IF CPANEL.CPFLAGS.items('dev') == 1;
+        SET host_name = ExpVar.expand('$hostname');
+        SET main_server_ip = ExpVar.expand('$mainserverip');
+        SET main_ip =  ExpVar.expand('$mainip');
+    END;
+
+    SET authorized_to_access = !feature.defined OR CPANEL.feature(feature);
+-%]
+<!DOCTYPE html>
+
+<html lang="[% locale_attributes.locale %]" dir="[% direction %]" data-style="[% current_style %]">
+    <head>
+        <title>[% title %]</title>
+        <meta charset="[% locale_attributes.encoding %]" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width">
+
+        <!-- Chrome, Firefox OS and Opera -->
+        <meta name="theme-color" content="#293a4a">
+
+        <!-- Mobile Chrome-->
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="mobile-web-app-status-bar-style" content="default">
+
+        <!-- iOS Safari -->
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="default">
+        [% IF app_info && (app_info.base64_png_image || app_info.file) %]
+          <link rel="apple-touch-icon" sizes="48x48"
+          href="[% IF app_info.base64_png_image %]data:image/png;base64,[% app_info.base64_png_image %][% ELSE %]/styled/current_style/icons/[% app_info.file %].png[% END %]">
+          <meta name="apple-mobile-web-app-title" content="[% app_info.itemdesc %]">
+        [% END %]
+
+        <meta name="referrer" content="origin">
+
+        [%- IF meta -%]
+        [% meta %]
+        [% END -%]
+
+        <link rel="shortcut icon" href="/brand/favicon.ico?[% varcache.CacheBuster_id %]" type="image/x-icon" />
+
+        [%-
+
+            # Page specific stylesheets remotely included
+            FOR source IN stylesheets;
+                SET url = theme_magic_url(calculate_mode_css_url(source, optimized));
+        -%]
+        <link rel="stylesheet" type="text/css" href="[% url %]" />
+        [%- END -%]
+
+        [%- # Page specific stylesheets embedded in initial request -%]
+        [%- IF embed_stylesheets %]
+        <style type="text/css">
+            [%- FOR source IN embed_stylesheets;
+                    SET path = theme_magic_path(calculate_mode_css_url(source, optimized));
+                -%]
+                /* Embedding: [% path %] */
+                [% INSERT $path %]
+            [%- END -%]
+        </style>
+        [%- END -%]
+
+        [%- # Page specified <style> block for css -%]
+        [%- IF page_styles %]
+            [%- page_styles -%]
+        [% END -%]
+
+        <!-- custom style css file (styles.css) should go here
+             NOTE: Do not move below the header JS or you delay the
+             download start time. These just need to be below the
+             last css in the header. -->
+        <link rel="stylesheet" type="text/css" href="/styled/current_style/sprites/icon_spritemap.css?[% varcache.CacheBuster_id %]" />
+        <link rel="stylesheet" type="text/css" href="/styled/current_style/styles.css?[% varcache.CacheBuster_id %]" />
+
+
+        [%- # TODO: We want to move these script blocks to the bottom of the page in the future. -%]
+
+        [%- # JavaScript Globals %]
+        <script>
+            (function(){
+                window.PAGE = {};
+                window.MASTER = {};
+                window.NVData = {};
+                window.thisTheme = [% CPANEL.CPDATA.RS.json() %];
+                window.thisStyle = [% current_style.json() %];
+            })();
+            [% IF CPANEL.is_qa_mode_enabled() %]
+                [% INSERT 'libraries/axe-core/axe.min.js' %]
+                window.AXE_CONFIG = [% INSERT 'axe_config.json' %];
+                [% INSERT 'libraries/cjt2/webAccessibilityChecker.js' %]
+
+                [% INSERT 'libraries/cjt2/e2e.js' %]
+            [% END %]
+        </script>
+
+        [%- # Page specified <script> block for javascript needed before any other JS of the document -%]
+        [%- IF page_js_first AND authorized_to_access -%]
+            [%- page_js_first -%]
+        [%- END -%]
+
+
+        [%- # Legacy javascript -%]
+        [%- IF include_legacy_scripts;
+            IF optimized;  %]
+            <script type="text/javascript" src="[% theme_magic_url('_assets/js/master-legacy.cmb.min.js') %]"></script>
+        [%  ELSE %]
+            <script type="text/javascript" src="[% theme_magic_url('_assets/js/master-legacy.cmb.js') %]"></script>
+        [%- END -%]
+        [%  ELSE %]
+          <script type="text/javascript">
+          [% IF optimized %]
+            [% SET path = theme_magic_path("js/interfacereset.min.js") %]
+          [% ELSE %]
+            [% SET path = theme_magic_path("js/interfacereset.js") %]
+          [% END %]
+          [% INSERT $path %]
+          </script>
+        [%- END -%]
+
+        [%- IF include_cjt;
+            IF optimized;
+                SET url = MagicRevision('/cjt/cjt-min.js');
+            ELSE;
+                SET url = MagicRevision('/cjt/cjt.js');
+            END;
+         %]
+            <script type="text/javascript" src="[% url _ locale_query_string %]"></script>
+            <script>
+              CPANEL.validate.hide_validation_summary = true;
+            </script>
+        [% END -%]
+
+
+        [%- # Page specified <script> block for javascript needed at the top of the document -%]
+        [%- IF page_js_top AND authorized_to_access -%]
+            [%- page_js_top -%]
+        [%- END -%]
+    </head>
+    <body id="[% app_key %]" class="cpanel yui-skin-sam cpanel_body">
+
+        [%
+            IF current_style == 'retro'; # Retro style markup
+                PROCESS _assets/master_retro/master_content.html.tt;
+            ELSE;
+                PROCESS _assets/master_content.html.tt;
+            END;
+        %]
+
+        [%- # Page specified <script> block for javascript that run at the top of the end of page script -%]
+        [%- IF page_init_js AND authorized_to_access -%]
+            [%- page_init_js -%]
+        [%- END -%]
+
+        [%- # Page specific javascript files -%]
+        [%- IF page_scripts AND authorized_to_access;
+              FOR source IN page_scripts;
+                SET url = theme_magic_url(calculate_mode_js_url(source, optimized));
+        -%]
+        <script type="text/javascript" src="[% url _ locale_query_string %]"></script>
+        [%    END;
+            END -%]
+
+        [%- # Page specific javascript embedded in initial request -%]
+        [%- IF embed_scripts AND authorized_to_access %]
+        <script type="text/javascript">
+            [%- FOR source IN embed_scripts;
+                    SET path = theme_magic_path(calculate_mode_js_url(source, optimized));
+                %]
+                /* Embedding: [% path %] */
+                [% INSERT $path %]
+                [%
+                SET lex_path = CPANEL.get_js_lex_app_full_path(path);
+                IF lex_path;
+                %]
+                /* Embedding: [% lex_path %] */
+                [% INSERT $lex_path %]
+                [%- END %]
+            [%- END -%]
+        </script>
+        [%- END %]
+
+        [%- # Page specified <script> block for javascript -%]
+        [%- IF page_js AND authorized_to_access -%]
+            [%- page_js -%]
+        [%- END -%]
+
+         [% IF use_master_bootstrap == 1 %]
+             [% PROCESS '_assets/cjt2_header_include.tt' file = 'master' %]
+        [% END %]
+
+        [%- # Do not move this script tag from this location.
+            # cjt2_header_include.tt and master.js has some dependencies
+            # This is for feature search to work -%]
+        <script>
+            PAGE.applicationList        = [% applications.json() %];
+            MASTER.poweredByUrl         = "[% MagicRevision('/img-sys/powered_by_cpanel.svg') %]";
+            MASTER.debug                = [% mode == 'debug' ? 'true' : 'false' %];
+            MASTER.focus_feature_search = [% focus_feature_search ? 'true': 'false' %];
+        </script>
+        [% IF !CPANEL.is_debug_mode_enabled(); %]
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/master.deferred.cmb.min.js') %]" defer async></script>
+        [% ELSE %]
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/open-links-on-ios.js') %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/register-nvdata.js') %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/focus-feature-search.js') %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/powered-by-cpanel.js') %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/duplicate-id-warning.js') %]"></script>
+        [% END %]
+
+    </body>
+</html>

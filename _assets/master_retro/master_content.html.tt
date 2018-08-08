@@ -1,0 +1,212 @@
+<div id="wrap">
+    [%- IF !hide_header %]
+    <header id="masterAppContainer">
+        <div class="navbar navbar-inverse navbar-cpanel navbar-fixed-top" role="navigation">
+            <div class="container">
+                <div class="navbar-header">
+                    [% IF brand_information.display_company_name %]
+                        <a id="lnkHeaderHome" class="navbar-brand" target="_top" href="[% varcache.directory_prefix %]index.html" title="[% locale.maketext('Home') %]">
+                            <span class="brand-name">[% brand_information.company_name | html %]</span>
+                        </a>
+                    [% ELSE %]
+                        <a id="lnkHeaderHome" class="navbar-brand" target="_top" href="[% varcache.directory_prefix %]index.html" title="[% locale.maketext('Home') %]">
+                        </a>
+                        <img id="imgLogo" class="navbar-brand-logo" src="/brand/[% brand_information.cpanel_logo %]?[% varcache.CacheBuster.id %]" alt="[% brand_information.company_name | html %]"  />
+                    [% END %]
+
+                    <div class="navbar-preferences form-inline">
+                        <div class="btn-group" uib-dropdown>
+                            <button id="btnUserPref" uib-dropdown-toggle class="btn dropdown-toggle user-preferences-btn">
+                                <span id="userImg" class="glyphicon glyphicon-user"></span>
+                                <span id="lblUserNameTxt" class="hidden-inline-xs">[% user %]</span>
+                                <span id="caretImg" class="caret"></span>
+                            </button>
+                            <ul uib-dropdown-menu class="dropdown-menu dropdown-menu-right">
+                                [% IF varcache.pwd_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefChangePwd" href="[%- varcache.directory_prefix _ varcache.pwd_app_info.url -%]">
+                                        [%- varcache.pwd_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.lang_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefChangeLang" href="[%- varcache.directory_prefix _ varcache.lang_app_info.url -%]">
+                                        [%- varcache.lang_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.style_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefChangeStyle" href="[%- varcache.directory_prefix _ varcache.style_app_info.url -%]">
+                                        [%- varcache.style_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.contact_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefUpdateContactInfo" href="[%- varcache.directory_prefix _ varcache.contact_app_info.url -%]">
+                                        [%- varcache.contact_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.customer_service_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefCustomerService" href="[%- varcache.directory_prefix _ varcache.customer_service_app_info.url -%]">
+                                        [%- varcache.customer_service_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.support_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefSupport" href="[%- varcache.directory_prefix _ varcache.support_app_info.url -%]">
+                                        [%- varcache.support_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.billing_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefBilling" href="[%- varcache.directory_prefix _ varcache.billing_app_info.url -%]">
+                                        [%- varcache.billing_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+                                [% IF varcache.upgrade_app_info %]
+                                <li>
+                                    <a id="lnkUserPrefUpgrade" href="[%- varcache.directory_prefix _ varcache.upgrade_app_info.url -%]">
+                                        [%- varcache.upgrade_app_info.itemdesc -%]
+                                    </a>
+                                </li>
+                                [% END %]
+
+                                <li>
+                                    <a id="lnkUserPrefResetInterface" href="javascript:void(0)" onclick="reset_all_interface_settings()">
+                                        [% locale.maketext('Reset Page Settings') %]
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+
+                        <a id="lnkHeaderLogout" class="btn logout-btn" target="_top" href="/logout/?locale=[% locale.get_language_tag %]">
+                            <span id="logoutImg" class="glyphicon glyphicon-log-out"></span>
+                            <span id="lblLogout" class="hidden-inline-xs">[% locale.maketext("Logout") %]</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- UI INCLUDES GLOBAL HEADER -->
+        [% IF UI_Includes.can_load_template( 'global_header.html.tt' ) -%]
+            <div id="include-global-header">[% UI_Includes.load_template( 'global_header.html.tt' ); %]</div>
+        [% END -%]
+        <!-- UI INCLUDES GLOBAL HEADER END-->
+    </header>
+    [% END -%]
+
+    <!-- PAGE TEMPLATE'S CONTENT START -->
+    <div id="content" class="container">
+
+    [% IF CPANEL.CPFLAGS.item('trial') %]
+        <div id="trialWarningBlock" class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div id="trialWarningMessage" class="alert-message">
+                    [%- locale.maketext('[output,strong,TRIAL LICENSE:] This copy is a trial version and will expire at the end of the trial term. You will need to upgrade to a paid copy to continue using the software after that term.') -%]
+            </div>
+        </div>
+    [% END %]
+
+    [% IF CPANEL.CPFLAGS.item('dev') %]
+        <div id="devWarningBlock" class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div id="devWarningMessage" class="alert-message">
+                    [%- locale.maketext("[output,strong,DEVELOPMENT LICENSE:] This server is running on a development license. If this server is being used in a production environment, please notify [output,url,_1,cs@cpanel.net] immediately.", "mailto:cs@cpanel.net?subject=" _ host_name _ "(" _ main_ip _ "," _ main_server_ip _ ") is using a dev license in a production environment") -%]
+            </div>
+        </div>
+    [% END %]
+
+    [% IF !hide_page_heading -%]
+        <h1 class="page-header">
+            <span id="icon-[% app_info.file %]" class="page-icon [% IF !app_info.base64_png_image %]icon-[% app_info.file %][% ELSE %]integrations_icon[% END %]" [% IF app_info.base64_png_image %]style="background-image: url(data:image/png;base64,[% app_info.base64_png_image %]);"[% END %]></span>
+            <span id="pageHeading" >[% page_title || app_info.itemdesc -%]</span>
+            [% IF page_sub_heading.defined %]
+                <small id="pageSubHeading">[% page_sub_heading %]</small>
+            [% END %]
+        </h1>
+    [% END %]
+
+    [% IF UI_Includes.can_load_template( app_key _ '_page_header.html.tt' ) -%]
+        <div id="include-page-header">[% UI_Includes.load_template( app_key _ '_page_header.html.tt' ); %]</div>
+    [% END -%]
+    [% IF !feature.defined || CPANEL.feature(feature) -%]
+        [%- content -%]
+    [% ELSE -%]
+        <div class="body-content">
+            <div class="alert alert-danger">
+                <span class="glyphicon glyphicon-remove-sign"></span>
+                <div class="alert-message">
+                    [% locale.maketext("You do not have the feature “[_1]”.", feature) %]
+                </div>
+            </div>
+        </div>
+    [% END -%]
+    [% IF UI_Includes.can_load_template( app_key _ '_page_footer.html.tt' ) -%]
+        <div id="include-page-footer">[% UI_Includes.load_template( app_key _ '_page_footer.html.tt' ); %]</div>
+    [% END -%]
+    </div>
+    <!-- PAGE TEMPLATE'S CONTENT END -->
+</div>
+
+<footer>
+    <!-- UI INCLUDES GLOBAL FOOTER -->
+    [% IF UI_Includes.can_load_template( 'global_footer.html.tt' ) -%]
+        <div id="include-global-footer">[% UI_Includes.load_template( 'global_footer.html.tt' ); %]</div>
+    [% END -%]
+    <!-- UI INCLUDES GLOBAL FOOTER END -->
+
+    [%- IF CPANEL.ENV.DNT.substr(0, 1) != '1' -%]
+    [% IF UI_Includes.can_load_template( 'cp_analytics_cpanel.html.tt' ) -%]
+        <div id="cp-analytics-cpanel">[% UI_Includes.load_template( 'cp_analytics_cpanel.html.tt' ); %]</div>
+    [% END -%]
+    [%- END -%]
+
+    <div class="container">
+        <div class="navbar">
+            <ul class="nav navbar-nav">
+                <li>
+                    <a id="lnkFooterHome" href="[% varcache.directory_prefix %]index.html">
+                        [%- locale.maketext("Home") -%]
+                    </a>
+                </li>
+                <li>
+                    <a id="lnkFooterTrademark" href="[% varcache.directory_prefix %]trademarks.html" target="_blank">
+                        [%- locale.maketext("Trademarks") -%]
+                    </a>
+                </li>
+                <li>
+                    <a id="lnkFooterPrivacy" href="https://go.cpanel.net/privacy" target="_blank">
+                        [%- locale.maketext("Privacy Policy") -%]
+                    </a>
+                </li>
+                <li>
+                    <a id="lnkFooterDocs" href="[% documentation_url.html() %]" target="_blank">
+                        [%- locale.maketext("Documentation") -%]
+                    </a>
+                </li>
+                [%- IF brand_information.help_url %]
+                <li>
+                    <a id="lnkFooterHelp" href="[% brand_information.help_url.html() %]" target="_blank">
+                        [%- locale.maketext("Help") -%]
+                    </a>
+                </li>
+                [%- END %]
+            </ul>
+
+            <div class="navbar-brand" style="display:inline-block; visibility:visible;">
+                <a id="lnkPoweredByCpanel" href="http://www.cpanel.net" target="cpanel" title="cPanel, Inc." style="display:inline-block; visibility:visible;">
+                    <img id="imgPoweredByCpanel" src="[% MagicRevision('/img-sys/powered_by_cpanel.svg') %]" alt="cPanel, Inc." style="display:inline-block; visibility:visible; height:20px; min-width:94px;">
+                </a>
+                <sub id="txtCpanelVersion" style="display:inline-block; visibility:visible;">[% CPANEL.version() %]</sub>
+            </div>
+        </div>
+    </div>
+</footer>

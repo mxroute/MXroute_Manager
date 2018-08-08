@@ -1,0 +1,475 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    USE Uapi;
+
+    IF FORM.itemsperpage;
+        SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+    END;
+    IF (!FORM.itemsperpage || !CPANEL.CPVAR.itemsperpage);
+        SET CPANEL.CPVAR.itemsperpage = "10";
+    END;
+
+    SET mail_domains =  Api2.exec("Email", "listmaildomains", {} );
+
+    # Fetch the required strength
+    SET required_strength_resp = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"webdisk"} );
+
+    IF required_strength_resp.size();
+        SET required_strength = required_strength_resp.0.strength;
+    END;
+
+    SET webdav_stat =  Api2.exec("StatsBar", "stat", {
+        "warnings"=>"1",
+        "infinitylang"=>"true",
+        "warninglevel"=>"80",
+        "display"=>"webdavaccounts"
+    } );
+
+    SET webdav_check_digest = Api2.exec("WebDisk", "hasdigest", {} );
+    IF webdav_check_digest.size;
+        SET webdav_hasdigest = webdav_check_digest.0.hasdigest;
+    END;
+
+    # Use ExpVar here as its about 1000% faster then UAPI
+    SET cpdavd_enabled = ExpVar.expand('$hascpdavd') ? 1 : 0;
+
+    api2_result_UI_paginate =  Api2.exec("UI", "paginate", {"itemsperpage"=>CPANEL.CPVAR.itemsperpage, "currentpage"=>CPANEL.CPVAR.currentpage, "pages"=>CPANEL.CPVAR.pages} );
+
+    api2_result_UI_paginate_list =  Api2.exec("UI", "paginate_list", {"itemsperpage"=>CPANEL.CPVAR.itemsperpage, "itemlist"=>"10:25:50:100:250:500"} );
+%]
+
+[% IF cpdavd_enabled %]
+[% js_code = PROCESS js_block %]
+[% END %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    page_scripts = CPANEL.is_debug_mode_enabled() ?
+        ["js/statusbox.js", "js2/webdav/accounts_webdav.js"] :
+        ["js/statusbox_optimized.js", "js2-min/webdav/accounts_webdav.js"]
+-%]
+
+[% INCLUDE _assets/_ajaxapp_header.html.tt %]
+
+<div class="body-content">
+    <p id="descWebDisk" class="description">
+        [% locale.maketext("Create a Web Disk account to manage, navigate, upload, and download the files on your web server.") %]
+        [% locale.maketext("Web Disk account directories exist relative to your account’s home directory.")  %]
+        [% locale.maketext("The home icon ([_1]) signifies your home directory (“[_2]”).", '<span class="fas fa-home"></span>', CPANEL.homedir)  %]
+        [% locale.maketext("For more information, read our [output,url,_1,documentation,target,_2].", "//go.cpanel.net/WebDisk", "_blank") %]
+    </p>
+
+    <div id="cjt_pagenotice_container"></div>
+
+    [% IF !cpdavd_enabled %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext('Error:') %]</strong> [% locale.maketext('Your server administrator must enable the [asis,cpdavd] service to use this feature.') %]
+        </div>
+    </div>
+    [% ELSE %]
+
+    <div style="display:none;" id="webdav_notices"></div>
+
+    <div id="mainaccount_container" class="section">
+        <h2 id="hdrMainAcct">
+            [% locale.maketext("Main Web Disk Account")  %]
+            <span id="main_account_help" class="glyphicon glyphicon-info-sign"></span>
+        </h2>
+
+        <div class="table-responsive">
+          <table id="mainwebdavtbl" fixedtruncate="1" class="truncate-table sortable table table-striped">
+            <tr>
+                <th>[% locale.maketext("Account") %]</th>
+                <th>[% locale.maketext("Directory") %]</th>
+                <th class="sorttable_nosort">[% locale.maketext("Actions") %]</th>
+            </tr>
+            <tr>
+                <td class="truncate" truncate="25">[% CPANEL.user %]</td>
+                <td>
+                    <span class="fas fa-home"></span>
+                    <span>/</span>
+                </td>
+                <td>
+                    [% IF (CPANEL.ENV.HTTP_PROXIED) %]
+                        [% Api1.pre_exec("ProxyUtils", "proxyaddress") ;   Api1.exec("ProxyUtils", "proxyaddress", ["webdisk"]) ;  Api1.post_exec("ProxyUtils", "proxyaddress") %]
+                        <a onclick='access_web_disk([% CPANEL.user.json() || 'null' %],[% CPANEL.CPVAR.new_proxy_domain.html.json() || 'null' %],[% webdav_hasdigest.html.json() || 'null' %]); return false;'
+                            href="webdavaccessdownload.html?domain=[% CPANEL.CPVAR.new_proxy_domain.html %]&amp;sslport=[% ExpVar.expand('$sslhttpdport') %]&amp;mainport=[% ExpVar.expand('$mainhttpdport') %]&amp;hasdigest=[% webdav_hasdigest.html %]&amp;user=[% CPANEL.user.uri %]"
+                            class="btn btn-link"
+                            id="btnAccessWebDisk">
+                            <span class="fas fa-wrench"></span>
+                        [% locale.maketext("Configure Client Access") %]
+                        </a>
+                    [% ELSE %]
+                        <a onclick='access_web_disk([% CPANEL.user.json() || 'null' %],[% CPANEL.CPDATA.DNS.json() || 'null' %],[% webdav_hasdigest.json() || 'null' %]); return false;'
+                            href="webdavaccessdownload.html?domain=[% CPANEL.CPDATA.DNS.html %]&amp;sslport=2078&amp;mainport=2077&amp;hasdigest=[% webdav_hasdigest.html %]&amp;user=[% CPANEL.user.uri %]"
+                            class="btn btn-link"
+                            id="btnAccessWebDisk">
+                            <span class="fas fa-wrench"></span>
+                        [% locale.maketext("Configure Client Access") %]
+                        </a>
+                    [% END %]
+
+                    [% IF !webdav_hasdigest %]
+                        <a id='digest_auth_system' onclick='set_digest_auth_popup("system",[% CPANEL.user.json() || 'null' %],"enable",this); return false;'
+                            href="#"
+                            title="[% locale.maketext("Click to enable Digest Authentication.") %]"
+                            class="btn btn-link">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext("Enable Digest Authentication")  %]
+                        </a>
+                    [% ELSE %]
+                        <a id='digest_auth_system' onclick='set_digest_auth_popup("system",[% CPANEL.user.json() || 'null' %],"disable",this); return false;'
+                            href="#"
+                            title="[% locale.maketext("Click to disable Digest Authentication.") %]"
+                            class="btn btn-link">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext("Disable Digest Authentication")  %]
+                        </a>
+                    [% END %]
+                </td>
+            </tr>
+          </table>
+        </div>
+        <div style="display: none" id="main_account_help_text">
+            [% locale.maketext("The Main Web Disk Account uses the same login information as your cPanel account. This account can access all of the files in your home directory.")  %]
+            <br /><br />
+            [% locale.maketext("You [output,em,cannot] delete this account.")  %]
+        </div>
+    </div>
+
+    [% IF CPANEL.feature('webdisk') -%]
+        <div id="virtualaccounts_creation_container" class="section">
+            <h2 id="hdrCreate">[% locale.maketext("Create an Additional Web Disk Account") %]</h2>
+
+            [% IF webdav_stat.size; %]
+            <p class="caution" id="warnMsg">
+                [% locale.maketext("[output,strong,Warning]: You currently use [numf,_1] out of [numf,_2] accounts.", webdav_stat.0.count, webdav_stat.0.max ) %]
+            </p>
+            [% END %]
+            <form method="post" action="doaddwebdav.html" name="mainform" id="mainform">
+                <!-- prevent password autofill -->
+                <input type="text" style="display:none">
+                <input type="password" autocomplete='off' style="display:none">
+                <div class="form-group">
+                    <label id="lblUserName" for="user">
+                        [% locale.maketext("Username")  %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <div class="input-group">
+                                <input id="user" name="user" type="text" class="form-control"/>
+                                <span class="input-group-addon">@</span>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="user_error">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblDomain" for="domain">
+                        [% locale.maketext("Domain")  %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            [% IF mail_domains.size == 1; %]
+                                [% mail_domains.0.domain.html() %]
+                                <input type="hidden" name="domain" id="domain" value="[%  mail_domains.0.domain.html() %]" />
+                            [% ELSE %]
+                                <select name="domain" class="form-control" id="domain">
+                                [% FOREACH domain_info IN mail_domains; %]
+                                    <option value="[% domain_info.domain.html() %]">[% domain_info.domain.html() %]</option>
+                                [% END %]
+                                </select>
+                            [% END %]
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="domain_error">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblPassword" for="password">
+                        [% locale.maketext("Password") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input id="password" type="password" autocomplete='off' name="password"  class="form-control"/>
+                        </div>
+                        <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblPassword2" for="password2">
+                        [% locale.maketext("Password (Again)") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input id="password2" autocomplete='off' class="form-control" type="password" name="password2"  />
+                        </div>
+                        <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <label id="lblPasswordStrength">
+                                [% locale.maketext("Strength") %]
+                                <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                            </label>
+                            [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <div id="password_strength" class="password_strength"></div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input id="create_strong_password" type="button"  class="btn btn-default"
+                                value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblDirectory" for="homedir">
+                        [% locale.maketext("Directory") %]
+                        <span class="fas fa-home"></span>
+                        <span>/</span>
+                    </label>
+                    [% SET CPANEL.CPVAR.autoinput = "homedir" %]
+                    [% SET CPANEL.CPVAR.autodirsonly = "1" %]
+                    [% SET CPANEL.CPVAR.autofunc = "dirComplete" %]
+                    <script type="text/javascript">
+                    function dirComplete(inputObj) {}
+                    </script>
+                    [% PROCESS 'autodir/dirbox.html.tt' %]
+                </div>
+                <div class="form-group" id="add-perm-row">
+                    <label id="lblPermissions">
+                        [% locale.maketext("Permissions") %]
+                        <span class="glyphicon glyphicon-info-sign" id="setperms-info"></span>
+                    </label>
+                    <div class="radio">
+                        <label id="lblRdoRW">
+                            <input checked="checked" type="radio" name="perms" id="perms_rw" value="rw">
+                            [% locale.maketext("Read-Write") %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label id="lblRdoRO">
+                            <input type="radio" name="perms" id="perms_ro" value="ro">
+                            [% locale.maketext("Read-Only") %]
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group" id="add-auth-row">
+                    <div class="checkbox">
+                        <label id="lblCbEnableDigest">
+                            <input type="checkbox" id="enabledigest" value="1" name="enabledigest">
+                            [% locale.maketext("Enable Digest Authentication") %]
+                        </label>
+                        <span class="glyphicon glyphicon-info-sign" id="enabledigest-info"></span>
+                    </div>
+                </div>
+                <div class="form-group" id="add-submit-row">
+                    <input id="btnCreateWebDav" type="submit" class="btn btn-primary" value="[% locale.maketext("Create") %]" />
+                </div>
+            </form>
+        </div>
+        <div style="display: none" id="permissions_help_text">
+            <p>
+            [% locale.maketext("Read-Write access level will permit all supported operations inside the directory assigned to this Web Disk account.") %]
+            </p>
+            <p>
+            [% locale.maketext("Read-Only access will only permit this account to read, download, and list files inside the directory assigned to this Web Disk account.") %]"
+            </p>
+        </div>
+        <div style="display: none" id="digest_auth_help_text">
+            <p>
+            [% locale.maketext("[list_and,_*] require Digest Authentication support to be enabled in order to access your Web Disk over a clear text/unencrypted connection.","Windows Vista®","Windows® 7","Windows® 8", "Windows® 10") %]
+            </p>
+            <p>
+            [% locale.maketext("If the server has an SSL certificate signed by a recognized certificate authority and you are able to make an SSL connection over port 2078, you do not need to enable this.") %]
+            </p>
+        </div>
+    [% END -%]
+
+    <div id="virtualaccounts_list_container" class="section">
+        <h2 id="hdrAdditionalAccts">[% locale.maketext("Manage Additional Web Disk Accounts")  %]</h2>
+        <div class="search-panel">
+            <form method="get">
+                <div class="row">
+                    <div class="col-xs-4">
+                        <input type="text" class="form-control" name="searchregex" id="searchregex"
+                            value="[% FORM.searchregex %]"
+                            placeholder="[% locale.maketext('Search') %]">
+                    </div>
+                    <div class="col-xs-2">
+                        <input id="search-button" type="submit" class="btn btn-primary"
+                            title="[% locale.maketext("Click to filter the Web Disk accounts by the selected criteria.") %]"
+                            value="[% locale.maketext("Go") %]" >
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="table-responsive">
+          <table id="webdavtbl" fixedtruncate="1" class="truncate-table sortable table table-striped">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Account") %]</th>
+                    <th>[% locale.maketext("Directory") %]</th>
+                    <th class="cell sorttable_nosort">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            [% INCLUDE webdav/listwebdisks.html.tt %]
+
+          </table>
+        </div>
+
+        [%
+            IF api2_result_UI_paginate.size;
+                FOREACH hashref IN api2_result_UI_paginate;
+                    hashref.paginator ;
+                END;
+            END;
+        %]
+
+        [% IF (CPANEL.CPVAR.pages && !(CPANEL.CPVAR.pages == "1")) %]
+        <div style="float:right">
+            <form>
+                [% locale.maketext("Showing") %]
+                <select name="itemsperpage" onchange="this.form.submit();" id="selItemsPerPage">
+                [% IF api2_result_UI_paginate_list.size; %]
+                    [% FOREACH hashref IN api2_result_UI_paginate_list; %]
+                    <option value="[%  SET hashkey = 'item'; hashref.$hashkey %]" [%  "1" == hashref.selected ? "selected" : "" %]>
+                        [%  SET hashkey = 'item'; hashref.$hashkey %]
+                    </option>
+                    [% END %]
+                [% END %]
+                </select>
+                <noscript>
+                    <button id="my_button" onclick="" type="submit" Value="">[% locale.maketext("Change") %]</button>
+                </noscript> [% locale.maketext("Results Per Page") %]
+            </form>
+        </div>
+        [% END %]
+    </div>
+
+
+    <div id="homedir_panel" class="yui-dialog yui-panel-container" style="display:none;">
+        <div class="hd"><span>[% locale.maketext("Change Home Directory") %]</span></div>
+        <div class="bd">
+            <div id="message_panel-content">
+                <form>
+                    <input type="hidden" id="change_homedir_login" />
+                    <div class="form-group">
+                        <p id="change_homedir_logintxt"></p>
+                    </div>
+                    <div class="form-group" id="change_homedir_entry_block">
+                        <label id="lblNewHome" for="change_homedir_dir">
+                        [% locale.maketext("New Home Directory") %]
+                        <span class="fas fa-home">/</span>
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <input type="text"
+                                    class="form-control"
+                                    id="change_homedir_dir"
+                                    name="homedir"
+                                    onkeypress="return trapEnterPress(event);"
+                                    value=""
+                                    size="40" />
+                            </div>
+                            <div class="col-xs-12">
+                                <div id="change_homedir_dir_error" class="show_inline"></div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        <div class="ft"></div>
+    </div>
+
+    [% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+
+    <script id="digest_auth_notice" type="text/html">
+        [% SET user_json = "'" _ CPANEL.user.json.remove('^"').remove('"$').squote _ "'" # Evil hack to convert double quotes to single quotes %]
+        [% locale.maketext('If you use Windows Vista®, Windows® 7, Windows® 8, or Windows® 10, you must select [output,url,_1,Enable Digest Authentication,_2] to access your Web Disk.', '#', { onClick = "set_digest_auth_popup('system',$user_json,'enable',this); return false;" } ) %]
+    </script>
+
+    <script id="digest_auth_popup" type="text/html">
+        <p>
+            [% locale.maketext('[list_and,_*] require Digest Authentication support to be enabled in order to access your Web Disk over a clear text/unencrypted connection.', 'Windows Vista®', 'Windows® 7', 'Windows® 8', 'Windows® 10') %]
+            [% locale.maketext('If the server has an SSL certificate signed by a recognized certificate authority and you are able to make an SSL connection over port 2078, you do not need to enable this.') %]
+        </p>
+        <div id="set_digest_auth_box">
+            <form id="enable_digest_auth_form" name="enable_digest_auth">
+                <!-- prevent password autofill -->
+                <input type="text" style="display:none">
+                <input type="password" autocomplete='off' style="display:none">
+                <p>
+                    [% locale.maketext('In order to enable digest authentication support for “[_1]”, you must re-enter the password for this account.','{account}') %]
+                </p>
+                <p id="for_virtual_only">
+                    [% locale.maketext('If you do not remember the password for this account, you can change it here: [output,url,_1,Change Password].','passwd.html?digest_only=1&login={account}') %]
+                </p>
+                <div class="form-group">
+                    <label for="set_digest_auth_password" id="webdav_digest_auth_pass">
+                        [% locale.maketext('Password:') %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input name="set_digest_auth_password" id="set_digest_auth_password" type="password" autocomplete='off' size="16" value="" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </form>
+            <span id="enable_digest_for_account">[% locale.maketext('Are you sure you wish to enable digest authentication for the account “[_1]”?','{account}') %]</span>
+            <span id="disable_digest_for_account">[% locale.maketext('Are you sure you wish to disable digest authentication for the account “[_1]”?','{account}') %]</span>
+        </div>
+    </script>
+
+    <script id="perms_popup" type="text/html">
+        <div id="perms_ro_info">
+            <p>
+                [% locale.maketext("Read-Only access will only permit this account to read, download, and list files inside the directory assigned to this Web Disk account.")  %]
+            </p>
+        </div>
+        <div id="perms_rw_info">
+            <p>
+                [% locale.maketext("Read-Write access level will permit all supported operations inside the directory assigned to this Web Disk account.")  %]
+            </p>
+        </div>
+        <div id="perms_box">
+            <span id="perms_ro_for_account">
+            [% locale.maketext("Are you sure you want set the access permissions for the account “[_1]” to Read-Only?","{account}") %]
+            </span>
+            <span id="perms_rw_for_account">
+            [% locale.maketext("Are you sure you want set the access permissions for the account “[_1]” to Read-Write?","{account}") %]
+            </span>
+        </div>
+    </script>
+    [% END %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    PAGE.REQUIRED_PASSWORD_STRENGTH = parseInt('[% required_strength %]', 10) || 0;
+    PAGE.digest_not_set = [% (webdav_hasdigest != 1) ? 'true' : 'false' %];
+    [% IF (CPANEL.ENV.HTTP_PROXIED) %]
+    PAGE.mainport = [% ExpVar.expand('$mainhttpdport').json() || 'null' %];
+    PAGE.sslport = [% ExpVar.expand('$sslhttpdport').json() || 'null' %];
+    [% ELSE %]
+    PAGE.mainport = "2077";
+    PAGE.sslport = "2078";
+    [% END %]
+    PAGE.isoverridelogin = [% ExpVar.expand('$isoverridelogin').json() || 'null' %];
+</script>
+[% END %]

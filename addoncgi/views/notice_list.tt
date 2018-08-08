@@ -1,0 +1,10 @@
+[%-
+# Arguments:
+#   items - array of strings to output into a list
+IF items && items.size() > 0 -%]
+<ul class="list">
+    [% FOREACH item IN items %]
+    <li>[% item %]</li>
+    [% END %]
+</ul>
+[%- END -%]

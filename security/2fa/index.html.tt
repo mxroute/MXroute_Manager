@@ -1,0 +1,50 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../../";
+
+USE ExpVar;
+SET is_secpolicy_enabled = ExpVar.expand('$is_twofactorauth_sec_policy_enabled');
+SET has_feature = CPANEL.feature('twofactorauth');
+
+SET user_config_call = execute("TwoFactorAuth", "get_user_configuration", {});
+IF user_config_call.status;
+    SET user_config = user_config_call.data;
+    SET is_2fa_enabled = user_config.is_enabled;
+ELSE;
+    SET is_2fa_enabled = 0;
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'two_factor_authentication'
+    include_legacy_stylesheets = 0
+    page_stylesheets = ['security/2fa/index.min.css']
+%]
+<div class="body-content">
+    <p class="description">[% locale.maketext("Two-factor authentication (2FA) is an improved security measure that requires two forms of identification: your password and a generated security code. When 2FA is enabled, an app on your smartphone supplies a code you must enter with your password to log in.") %]
+</p>
+
+[% IF is_secpolicy_enabled && has_feature %]
+    [% IF !is_2fa_enabled %]
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("Two-factor authentication is not configured for your account.") %]
+            </div>
+        </div>
+        <a id="setup2fa"
+            class="btn btn-primary"
+            href="setup.html">[% locale.maketext('Set Up Two-Factor Authentication') %]</a>
+    [% ELSE %]
+        [% INCLUDE "enabled_include.html.tt" data = user_config %]
+    [% END %]
+[% ELSE %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+        [% locale.maketext('You do not have access to this feature. You must have the [asis,Two-factor Authentication] feature enabled for your account to use this interface.') %]
+        </div>
+    </div>
+[% END %]
+</div>
+[% END #wrapper %]
+

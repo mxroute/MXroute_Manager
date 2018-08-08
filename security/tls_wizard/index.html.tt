@@ -1,0 +1,131 @@
+[%
+    USE Geo;
+
+    SET PAGE_BASE = '/frontend/paper_lantern/security/tls_wizard/index';
+    SET PAGE_PATH = (CPANEL.ENV.HTTPS == 'on' ? 'https://' : 'http://') _ CPANEL.ENV.HTTP_HOST _ ':' _ CPANEL.ENV.SERVER_PORT _ cp_security_token _ PAGE_BASE;
+    SET CPANEL.CPVAR.dprefix = "../../";
+    SET spinner_url = '/images/report-spinner.gif';
+    SET spinner_url = MagicRevision(spinner_url);
+
+    SET pending_certificates = execute_or_die('Market', 'get_pending_ssl_certificates', {
+        'api.filter'=>1,
+        'api.filter_type'=>'ne',
+        'api.filter_term'=>'inactive',
+        'api.filter_column'=>'status'
+    }).data;
+
+    SET products_api = execute_or_die('Market', 'get_all_products', {
+        'api.filter'=>1,
+        'api.filter_type_0'=>'eq',
+        'api.filter_term_0'=>'ssl_certificate',
+        'api.filter_column_0'=>'product_group',
+        'api.filter_type_1'=>'eq',
+        'api.filter_term_1'=>'1',
+        'api.filter_column_1'=>'enabled',
+        "api.sort"=>1,
+        'api.sort_column_0' => "recommended",
+        "api.sort_method_0" => "numeric"
+        "api.sort_reverse_0" => "1"
+        'api.sort_column_1' => "x_price_per_domain",
+        "api.sort_method_1" => "numeric"
+    });
+
+    SET products = products_api.data;
+
+    SET countries = [];
+    SET locales_obj = locale.get_locales_obj();
+    FOR ccode = Geo.COUNTRY_CODES;
+        countries.push( [ ccode.upper(), locales_obj.get_territory_from_code(ccode) ] );
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'tls_wizard'
+    use_master_bootstrap = 0
+    page_stylesheets = ['security/tls_wizard/index.css']
+    base =  PAGE_PATH,
+-%]
+
+<section id="txtPageDescription" class="description">
+    [% locale.maketext('You can use this interface to purchase and install [output,abbr,SSL,Secure Sockets Layer] certificates for your account.') %]
+    [% locale.maketext("For more information on this interface, read the [output,url,_1,documentation,target,_2,id,_3].", "https://go.cpanel.net/ssltlswizard", "_blank", "lnkssltlswizardDocumentation") %]
+</section>
+
+[% IF !CPANEL.feature('sslinstall') || !ExpVar.expand('$isallowedssl') -%]
+    <div id="notAvailableError" class="alert alert-danger">
+        <span id="notAvailableErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="notAvailableErrorMsg" class="alert-message">
+            [% locale.maketext('This feature is not available to your account.') -%]
+        </div>
+    </div>
+[% ELSE -%]
+
+    [% IF products_api.messages.size -%]
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                [% FOR msg = products_api.messages -%]
+                    <p>[% msg.html() -%]</p>
+                [% END -%]
+            </div>
+        </div>
+    [% END -%]
+
+    [% IF products.size %]
+
+        [%
+            SET domains = execute('WebVhosts','list_ssl_capable_domains').data;
+            IF domains.size;
+        %]
+
+            <div ng-controller="BaseController" class="ng-cloak" ng-cloak id="app_tlsWizard">
+
+                <div class="loading" ng-show="loading">
+                    <div class="callout callout-info">
+                        <span class="fas fa-spinner fa-lg fa-spin"></span>
+                        [% locale.maketext('Loading …') %]
+                    </div>
+                </div>
+
+                <div ng-class="{'view-disabled':loading}" class="animate-view" ng-view></div>
+                <div growl></div>
+            </div>
+
+            <script type="text/javascript">
+                CPANEL.namespace("CPANEL");
+                CPANEL.PAGE = {};
+                CPANEL.PAGE.countries = [% countries.json() %];
+                CPANEL.PAGE.guessed_country_code = [% Geo.guess_country_code().json() %];
+                CPANEL.PAGE.products = [% products.json() %];
+                CPANEL.PAGE.domains = [% domains.json() %];
+                CPANEL.PAGE.pending_certificates = [% pending_certificates.json() %];
+            </script>
+
+            [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+        [% ELSE %]
+
+            <div class="alert alert-info">
+                <span class="glyphicon glyphicon-info-sign"></span>
+                <div class="alert-message">
+                    <p><strong>Info:</strong></p>
+                    <p>[% locale.maketext('This account does not have access to any domains that can be used with this interface.') %]</p>
+                    <p>[% locale.maketext("For more information regarding this interface, read the [output,url,_1,documentation,target,_2,id,_3].", "https://go.cpanel.net/ssltlswizard", "_blank", "lnkssltlswizardDocumentation") %]</p>
+                </div>
+            </div>
+
+        [% END %]
+
+    [% ELSE %]
+        <div class="alert alert-info">
+            <span class="glyphicon glyphicon-info-sign"></span>
+            <div class="alert-message">
+                <p><strong>Info:</strong></p>
+                <p>[% locale.maketext('There are no [asis,SSL/TLS] products available at this time.') %] [% locale.maketext('[asis,SSL/TLS] providers can be enabled by the server administrator.') %]</p>
+                <p>[% locale.maketext("For more information regarding this interface, read the [output,url,_1,documentation,target,_2,id,_3].", "https://go.cpanel.net/ssltlswizard", "_blank", "lnkssltlswizardDocumentation") %]</p>
+            </div>
+        </div>
+    [% END %]
+[% END -%]
+
+[% END #wrapper %]

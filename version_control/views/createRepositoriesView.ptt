@@ -1,0 +1,317 @@
+<ol class="breadcrumb">
+    <li>
+        <a href="javascript:void(0);" ng-click="repository.backToListView()">
+            [% locale.maketext("List Repositories") %]
+        </a>
+    </li>
+    <li class="active">
+        [% locale.maketext('Create Repository') %]
+    </li>
+</ol>
+
+<div class="description">
+    [% locale.maketext('Use this interface to create new repositories or clone existing remote repositories.') %]
+    [% locale.maketext('To add an existing repository to the list of [asis,cPanel]-managed repositories, select that repository path when you create the repository.') %]
+    [% locale.maketext('The system will automatically add and configure the repository.') %]
+    [% locale.maketext('In order to clone private repositories, advanced users should preconfigure access.') %]
+    [% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2,id,_3].','https://go.cpanel.net/PrivateRepositories', 'gitVersionControlPrivateRepo', "lnkGitVersionDocs") %]
+</div>
+
+<form class="layout-medium" name="repository.createRepoForm"
+    ng-if="!repository.displaySuccessSummary">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6">
+                <div class="form-group">
+                    <h4 class="section-heading">
+                        [% locale.maketext('Create Repository') %]
+                    </h4>
+                    <!--Creation Method Section-->
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <label id="cloneRepositoryLabel" for="toggleCloneRepository">
+                                [% locale.maketext('Clone a Repository') %]
+                                </label>
+                                <toggle-switch id="toggleCloneRepository"
+                                   no-spinner="true"
+                                   no-label="1"
+                                   aria-label="Enabled"
+                                   on-toggle="repository.toggleStatus()"
+                                   ng-model="repository.formData.clone">
+                                </toggle-switch>
+                                <span class="info-block">
+                                [% locale.maketext('Enable this toggle if you want to clone a remote repository, or disable this toggle to create a new repository.') %]
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Clone URL-->
+                    <div class="form-group" ng-if="repository.formData.clone">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <toggle-label-info
+                                     for="repoCloneURL"
+                                     label-text="[% locale.maketext('Clone URL') %]"
+                                     show-info-block="true">
+                                     [% locale.maketext('Enter the clone URL for the remote repository.') %]
+                                     [% locale.maketext('All clone URLs must begin with the [asis,http://], [asis,https://], [asis,ssh://], or [asis,git://] protocols or begin with a username and domain.') %]
+                                </toggle-label-info>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <input
+                                    name="repoCloneURL"
+                                    id="repoCloneURL"
+                                    type="text"
+                                    class="form-control"
+                                    ng-disabled="!repository.formData.clone"
+                                    ng-model="repository.formData.cloneURL"
+                                    ng-required="repository.formData.clone"
+                                    valid-clone-url
+                                    ng-blur="repository.autoFillPathAndName()"
+                                    auto-focus/>
+                                <span class="help-block"></span>
+                            </div>
+                            <div class="col-xs-12">
+                                <ul validation-container field-name="repoCloneURL" role="alert">
+                                    <li validation-item field-name="repoCloneURL" validation-name="required">
+                                        [% locale.maketext('You [output,strong,must] enter a valid clone [output,acronym,URL,Uniform Resource Locator].') %]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Deployment Path Section-->
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-12">
+                                <toggle-label-info
+                                    id="repoPathFieldLabel"
+                                     for="repoPathField"
+                                     label-text="[% locale.maketext('Repository Path') %]"
+                                     show-info-block="true">
+                                     [% locale.maketext('Enter the desired path for the repository’s directory.') %]
+                                     [% locale.maketext('If you enter a path that does not exist, the system will create the directory when it creates or clones the repository.') %]
+                                </toggle-label-info>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div id="repoPathFieldSegment" class="col-xs-12">
+                                <div class="input-group">
+                                    <span class="input-group-addon truncate">
+                                        <span ng-bind-html="repository.homeDirPath"
+                                            uib-tooltip="{{repository.homeDirPath}}"
+                                            class="home-dir-text">
+                                        </span>
+                                        <span class="sr-only">
+                                            [% locale.maketext('Enter a valid directory path, relative to your home directory.') %]
+                                        </span>
+                                    </span>
+                                    <input
+                                        id="repoPathField"
+                                        name="repoPathField"
+                                        type="text"
+                                        class="form-control"
+                                        ng-model="repository.formData.repoPath"
+                                        uib-typeahead="directory for directory in repository.completeDirectory($viewValue)"
+                                        typeahead-template-url="repositoryPathSuggester.html"
+                                        autocomplete="off"
+                                        required
+                                        valid-path
+                                        ng-trim="false"
+                                        ng-pattern="repository.pathExcludeList">
+                                </div>
+                                <span class="help-block">
+                                    [% locale.maketext('The path cannot contain the [join, and ,_2] directory references, whitespace, or the following characters: [join, ,_1]', ['\\','*','|','"',"'",'<','>','&','@','`','$','{','}','[',']','(',')',';','?',':','=','%','#'], ['“./”','“../”']) %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12">
+                                <ul validation-container field-name="repoPathField" role="alert">
+                                    <li validation-item field-name="repoPathField" validation-name="required">
+                                        [% locale.maketext('You [output,strong,must] enter a valid repository path.') %]
+                                    </li>
+                                    <li validation-item field-name="repoPathField" validation-name="pattern">
+                                        [% locale.maketext('You [output,strong,must] specify a valid path.') %]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Name Section-->
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <toggle-label-info
+                                     for="repoNameInput"
+                                     label-text="[% locale.maketext('Repository Name') %]"
+                                     show-info-block="true">
+                                     [% locale.maketext('This name does [output,em,not] impact functionality, and instead functions [output,em,only] as a display name.') %]
+                                </toggle-label-info>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <input
+                                    name="repoNameInput"
+                                    id="repoNameInput"
+                                    type="text"
+                                    class="form-control"
+                                    ng-model="repository.formData.repoName"
+                                    ng-pattern="/^[^<>]+$/"
+                                    required>
+                                    <span class="help-block">[% locale.maketext('The repository name may [output,strong,not] include the “[output,chr,60]” and “[output,chr,62]” characters.') %]</span>
+                            </div>
+                            <div class="col-xs-12">
+                                <ul validation-container field-name="repoNameInput" role="alert">
+                                    <li validation-item field-name="repoNameInput" validation-name="required">
+                                        [% locale.maketext('You [output,strong,must] enter a valid repository name.') %]
+                                    </li>
+                                    <li validation-item field-name="repoNameInput" validation-name="pattern">
+                                        [% locale.maketext('The repository name may [output,strong,not] include the “[output,chr,60]” and “[output,chr,62]” characters.') %]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+
+
+
+                    <hr/>
+                    <!--Page Action Section-->
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <div class="checkbox create-another">
+                                    <label>
+                                        <input type="checkbox"
+                                            name="createAnother"
+                                            ng-model="repository.formData.createAnother">
+                                        <span>[% locale.maketext("Create Another") %]</span>
+                                    </label>
+                               </div>
+                                <div class="action-buttons">
+                                    <button id="btnSaveRepo"
+                                        type="button"
+                                        spinner-id="spinnerCreateRepoSave"
+                                        cp-action="repository.createRepository()"
+                                        ng-disabled="!repository.createRepoForm.$valid"
+                                        uib-tooltip="[% locale.maketext('Create Repository') %]">
+                                        [% locale.maketext('Create') %]
+                                    </button>
+                                    <button id="btnCancelCreateRepo"
+                                        type="button"
+                                        class="btn btn-link"
+                                        ng-click="repository.backToListView()"
+                                        uib-tooltip="[% locale.maketext('Return to the repository list.') %]">
+                                        [% locale.maketext('Return to Repository List') %]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+        </div>
+        <div class="col-xs-12 col-sm-4">
+            [% IF ssh %]
+            <div class="panel panel-default">
+                <div class="panel-heading">
+                    <h3 class="panel-title">[% locale.maketext('Related Links')%]</h3>
+                </div>
+                <div class="list-group">
+                  <a href="[% CPANEL.CPVAR.dprefix _ 'telnet/index.html' %]"
+                     class="list-group-item list-group-item-action"
+                     uib-tooltip="[% locale.maketext('Manage your SSH keys.') %]"
+                     target="SSHAccess">
+                     <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                     [% locale.maketext("SSH Access") %]
+                  </a>
+                </div>
+            </div>
+            [% END %]
+        </div>
+    </div>
+</form>
+
+<div ng-if="repository.displaySuccessSummary">
+    <h2>
+        [% locale.maketext("Run these commands on your local computer.") %]
+    </h2>
+    <section class="summary-sections">
+        <h4 class="section-title">[% locale.maketext("For an existing project …") %]</h4>
+        <div class="steps">
+            <span class="step-title">[% locale.maketext("Step 1:") %]</span>
+            <span>[% locale.maketext("Navigate to your repository’s directory:") %]</span>
+<code class="commands wordbreak">
+cd /path/to/your/repo
+</code>
+        </div>
+        <div class="steps">
+            <span class="step-title">
+                [% locale.maketext("Step 2:") %]
+            </span>
+            <span>
+                [% locale.maketext("Configure your local repository to push to the [asis,cPanel]-hosted repository:") %]
+            </span>
+<code ng-if="!repository.summary.readOnly" class="commands wordbreak">
+git remote add origin {{repository.summary.remoteURL}}
+git push -u origin master
+</code>
+
+<code ng-if="repository.summary.readOnly" class="commands wordbreak">
+git remote add origin {{repository.summary.remoteURL}}
+</code>
+        </div>
+    </section>
+    <hr/>
+    <section class="summary-sections">
+        <h4 class="section-title">[% locale.maketext("To start a new project …") %]</h4>
+        <div class="steps">
+            <span class="step-title">[% locale.maketext("Step 1:") %]</span>
+            <span>[% locale.maketext("Clone the [asis,cPanel]-hosted repository to your local computer and navigate to its directory:") %]</span>
+<code ng-if="!repository.summary.readOnly" class="commands wordbreak">
+git clone {{repository.summary.remoteURL}}
+cd {{repository.summary.directoryName}}
+</code>
+<code ng-if="repository.summary.readOnly" class="commands wordbreak">
+git clone {{repository.summary.remoteURL}}
+cd {{repository.summary.directoryName}}
+</code>
+        </div>
+        <div class="steps">
+            <span class="step-title">[% locale.maketext("Step 2:") %]</span>
+            <span>[% locale.maketext("Create a README file:") %]</span>
+<code ng-if="!repository.summary.readOnly" class="commands wordbreak">
+echo "# README" >> README.md
+</code>
+<code ng-if="repository.summary.readOnly" class="commands wordbreak">
+echo "# README" >> README.md
+</code>
+        </div>
+        <div class="steps">
+            <span class="step-title">[% locale.maketext("Step 3:") %]</span>
+            <span>[% locale.maketext("Commit the README file to the project:") %]</span>
+<code ng-if="!repository.summary.readOnly" class="commands wordbreak">
+git add README.md
+git commit -m "Initial Commit"
+git push -u origin master
+</code>
+<code ng-if="repository.summary.readOnly" class="commands wordbreak">
+git add README.md
+git commit -m "Initial Commit"
+</code>
+        </div>
+   </section>
+    <hr/>
+     <button id="btnBackToList"
+        type="button"
+        class="btn btn-link"
+        ng-click="repository.backToListView()"
+        uib-tooltip="[% locale.maketext('Return to the repository list.') %]">
+        [% locale.maketext('Return to Repository List') %]
+    </button>
+</div>

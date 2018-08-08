@@ -1,0 +1,64 @@
+
+<div style="display:none;" id="prefs">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Preferences") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="prefs-content">
+            <form name="prefsform" action="setprefs.html">
+                <span id="lblDefaultDirectoryText">[% locale.maketext("Always open this directory in the future by default:") %]</span>
+                <div class="radio" id="optionselect_homedir">
+                    <label for="dirselect_homedir">
+                      <input type="radio" name="dirselect" value="homedir" id="dirselect_homedir" />
+                      [% locale.maketext("Home Directory") %]
+                    </label>
+                </div>
+                <div class="radio" id="optionselect_webroot" >
+                    <label for="dirselect_webroot">
+                      <input type="radio" name="dirselect" value="webroot" id="dirselect_webroot" />
+                      [% locale.maketext("Web Root ([asis,public_html or www])") %]
+                    </label>
+                </div>
+                <div class="radio" id="optionselect_ftproot" >
+                    <label for="dirselect_ftproot">
+                      <input type="radio" name="dirselect" value="ftproot" id="dirselect_ftproot" />
+                      [% locale.maketext("Public [output,acronym,FTP,File Transfer Protocol] [asis,Root] ([asis,public_ftp])") %]
+                    </label>
+                </div>
+                <div class="radio"  id="optionselect_domainrootselect">
+                    <label for="domainRoot">
+                      <input  type="radio" name="dirselect" id="rbtnDomainRoot" value="domainrootselect" />
+                      [% locale.maketext("Document Root for:") %]
+                    </label>
+                    <select id="ddlDomainSelect" name="domainselect" class="form-control option-directory-select">
+                         [%
+                            Api1.pre_exec("Email", "printdomainoptions");
+                            Api1.exec("Email", "printdomainoptions", [undef]);
+                            Api1.post_exec("Email", "printdomainoptions")
+                        %]
+                    </select>
+                </div>
+
+                <input type="hidden" name="dir" value="" id="optionselect_dir" />
+                <div class="additional-settings">
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" id="optionselect_showhidden" name="showhidden">
+                            [% locale.maketext("Show Hidden Files ([asis,dotfiles])") %]
+                        </label>
+                    </div>
+                    <div class="checkbox">
+                        <label>
+                            <input type="checkbox" name="ignorecharencoding" id="prefs-ignorecharencoding" >
+                            [% locale.maketext("Disable Character Encoding Verification Dialogs") %]
+                        </label>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>
+

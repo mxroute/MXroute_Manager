@@ -1,0 +1,36 @@
+<div id="docroot_panel" class="yui-dialog yui-panel-container" style="display:none;">
+    <div class="hd"><span>[% locale.maketext("Change Document Root") %]</span></div>
+    <div class="bd">
+        <div id="message_panel-content">
+            <form>
+                <input type="hidden" id="change_docroot_subdomain" />
+                <input type="hidden" id="change_docroot_rootdomain" />
+                <div class="form-group">
+                    [% locale.maketext("Document Root for: ")  %]
+                    <span id="change_docroot_domaintxt" style="word-wrap: break-word"></span>
+                </div>
+                <div class="form-group">
+                    <label for="change_docroot_dir">
+                        [% locale.maketext("Document Root") %]
+                        <span class="fas fa-home">/</span>
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <input type="text"
+                                class="form-control"
+                                id="change_docroot_dir"
+                                name="docroot"
+                                onkeypress="return trapEnterPress(event);"
+                                value=""
+                                size="40" />
+                        </div>
+                        <div class="col-xs-12">
+                            <div id="change_docroot_dir_error" class="show_inline"></div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>

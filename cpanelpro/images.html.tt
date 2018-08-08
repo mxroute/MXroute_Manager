@@ -1,0 +1,42 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'images' -%]
+<div class="body-content">
+
+    <p id="descFeatureDescription" class="description">
+        [% locale.maketext("Modify and manage images that are saved to your account.") %]
+        [% locale.maketext("For more information, read our [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Images", "_blank","lnkDocumentation") %]
+    </p>
+
+    <div class="section">
+        <dl>
+            <dt>
+                <a id="lnkThumbnailer" href="filelist-thumbs.html">[% locale.maketext("Thumbnailer") %]</a>
+            </dt>
+            <dd id="descThumbnailer">
+                [% locale.maketext("Create thumbnails from images in a directory.") %]
+            </dd>
+
+            <dt>
+                <a id="lnkImageScaler" href="filelist-scale.html">[% locale.maketext("Scaler") %]</a>
+            </dt>
+            <dd id="descImageScaler">
+                [% locale.maketext("Change the size of images in a directory.") %]
+            </dd>
+
+            <dt>
+                <a id="lnkConvertImage" href="filelist-convert.html">[% locale.maketext("Converter") %]</a>
+            </dt>
+            <dd id="descconvertImg">
+                [% locale.maketext("Change the file type of all images in a directory. For example, change .jpg files to .png files.") %]
+            </dd>
+        </dl>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt %]
+</div>
+
+[% END #wrapper -%]

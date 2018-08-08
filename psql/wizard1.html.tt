@@ -1,0 +1,93 @@
+[%
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET dbprefix = ExpVar.expand('$dbprefix');
+SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+SET max_length = 63 - dbownerprefix.length();
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_database_wizard'
+    page_js = js_code
+ -%]
+
+
+<div class="body-content">
+    <p class="description">
+        [% locale.maketext("PostgreSQL Databases allow you to store a large amount of information in an easy to access manner. The databases themselves are not easily read by humans. PostgreSQL databases are required by many web applications including some bulletin boards, content management systems, and others. To use a database, you’ll need to create it. Only PostgreSQL Users (different than mail or other users) that have privileges to access a database can read from or write to that database.")  %]
+    </p>
+
+    [% IF !ExpVar.expand('$pgrunning') %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            [% locale.maketext("The PostgreSQL server is currently [boolean,_1,online,offline].",ExpVar.expand('$pgrunning')) %]
+        </div>
+    [% ELSE %]
+    <div id="postgres_main">
+        <h2>
+            [% locale.maketext("Step 1: Create A Database") %]
+        </h2>
+        <form method="post" action="wizard2.html" name="mainform" id="mainform">
+            <div class="form-group">
+                <label for="db">
+                    [% locale.maketext("New Database:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% IF dbprefix %]
+                        <div class="input-group">
+                            <span class="input-group-addon">[% dbownerprefix %]</span>
+                            <input type="text" class="form-control" name="db" id="db" maxlength="[% max_length %]" />
+                        </div>
+                        [% ELSE %]
+                            <input type="text" class="form-control" name="db" id="db" maxlength="[% max_length %]" />
+                        [% END %]
+                    </div>
+                    <div id="db_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+                <span class="help-block">
+                    [% locale.maketext("[output,strong,Note:] [quant,_1,character,characters] max.", max_length) %]
+                </span>
+            </div>
+            <div class="form-group">
+                <input class="btn btn-primary" type="submit" id="submit" value="[% locale.maketext("Create Database") %]" />
+            </div>
+        </form>
+
+    </div> <!-- end postgres_main -->
+    [% END %]
+
+</div><!-- end body-content -->
+[% END #wrapper -%]
+
+
+[% BLOCK js_block %]
+    [% SET lex_path = locale.cpanel_get_lex_path('/usr/local/cpanel/base/cjt/sql.js', '/cjt/sql.js') %]
+    [% IF lex_path %]<script src="[% lex_path %]"></script>[% END %]
+    <script src="[% CPANEL.get_js_url('/cjt/sql.js') %]"></script>
+
+    <script type="text/javascript">
+        var max_length = [% max_length %];
+
+        /**
+         * Initialize the page
+         */
+        var init_newdb_validation = function() {
+            var dbname_validator = new CPANEL.validate.validator("[% locale.maketext("New Database") %]");
+
+            dbname_validator.add_thrower( "db", function(el) {
+                return CPANEL.sql.verify_postgresql_database_name(el.value)
+            } );
+
+            dbname_validator.attach();
+
+            CPANEL.validate.attach_to_form("submit", dbname_validator);
+
+            YAHOO.util.Dom.get("db").focus();
+        };
+        YAHOO.util.Event.onDOMReady(init_newdb_validation);
+    </script>
+[% END #js_block %]

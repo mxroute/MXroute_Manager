@@ -1,0 +1,31 @@
+[% SET CPANEL.CPVAR.dprefix="../"  %]
+
+[%
+    Api1.pre_exec("DenyIp", "deldenyip");
+    SET del_denyip = Api1.exec("DenyIp", "deldenyip", [RAW_FORM.item("ip")]);
+    Api1.post_exec("DenyIp", "deldenyip")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ip_blocker'
+-%]
+<div class="body-content">
+    [% IF !CPANEL.CPERROR.item('denyip') %]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+               [% locale.maketext("The following IP address is now able to access your site: [output,inline,_1,class,status]", FORM.ip) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("Failed to remove the IP restriction on “[_1]” because of the following error: [_2]", FORM.ip, CPANEL.CPERROR.item('denyip').html()) %]
+            </div>
+        </div>
+    [% END%]
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper %]

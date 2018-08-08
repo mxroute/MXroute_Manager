@@ -1,0 +1,187 @@
+#upload {
+    margin-top: 15px;
+    margin-bottom: 20px;
+}
+
+.connector {
+    margin-bottom: 10px;
+    margin-top: 10px;
+}
+
+.dependent-action {
+    margin-top: 5px;
+    display: inline-block;
+}
+
+html[dir="ltr"] .dependent-action {
+    margin-right: 5px;
+}
+
+html[dir="rtl"] .dependent-action {
+    margin-left: 5px;
+}
+
+html[dir="ltr"] .dependent-action:last-child {
+    margin-right: 0;
+}
+
+html[dir="rtl"] .dependent-action:last-child {
+    margin-left: 0;
+}
+
+/* Setup the table columns. */
+td.subject-column {
+    overflow: hidden;
+}
+
+td.subject-column div {
+    overflow: hidden;
+}
+
+td.issuer-column {
+    overflow: hidden;
+}
+
+td.issuer-column div {
+    overflow: hidden;
+}
+
+td.expires-column div {
+    padding-left: 5px;
+    padding-right: 5px;
+}
+
+td.description-column {
+    overflow: hidden;
+}
+
+td.description-column div {
+    overflow: hidden;
+    max-width: 120px;
+}
+
+/* Setup the related items system. */
+.section {
+    position: relative;
+}
+
+.related a {
+    cursor: pointer;
+}
+
+html[dir="ltr"] .related {
+    position: absolute;
+    right: 0;
+}
+
+html[dir="rtl"] .related {
+    position: absolute;
+    left: 0;
+}
+
+.related {
+    top: 9px;
+}
+
+.related-top {
+    top: -2px;
+}
+
+.related .dependent-action {
+    padding-top: 2px;
+    padding-bottom: 4px;
+    padding-left: 10px;
+    padding-right: 10px;
+}
+
+.validation_error_panel {
+    max-width: 350px;
+}
+
+.inactive-link {
+    color: #888888;
+    font-style: italic;
+}
+
+ul.ssl-certificate-parse-domains {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+.ssl-certificate-parse .ssl-modulus {
+    font-family: monospace;
+}
+
+.ssl-certificate-parse-warn img,
+.ssl-certificate-parse-error img {
+    vertical-align: middle;
+    padding-bottom: 2px;
+}
+
+#cert_parse div.warn {
+    display: inline-block;
+    background-color: #ffb265;
+    border: 1px solid #ff8000;
+    padding: 2px 4px;
+    margin-left: 10px;
+    margin-right: 10px;
+    white-space: normal;
+    width: 160px;
+    border-radius: 4px;
+    vertical-align: top;
+    position: relative;
+    top: -2px;
+}
+
+#cert_parse div.error {
+    display: inline-block;
+    background-color: #ff9999;
+    border: 1px solid #ff6e65;
+    padding: 2px 4px;
+    margin-left: 10px;
+    margin-right: 10px;
+    white-space: normal;
+    width: 160px;
+    border-radius: 4px;
+    vertical-align: top;
+    position: relative;
+    top: -2px;
+}
+
+.modulus-critical .yui-tt {
+    background-color: #ffb4b4;
+    border: 1px solid #fc0d0d;
+}
+
+.form-element-side-warning {
+    background-repeat: no-repeat;
+    background-image: url(/cjt/images/icons/warning.png);
+}
+
+.form-element-side-warning .bd {
+    background-color: white;
+    max-width: 300px;
+    line-height: 20px;
+    border: 1px solid #ffaa00;
+    padding: 0 5px;
+    box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+    -moz-box-shadow: 1px 1px 1px rgba(0, 0, 0, 0.2);
+}
+
+html[dir="ltr"] .form-element-side-warning .bd {
+    margin-left: 21px;
+}
+
+html[dir="ltr"] .form-element-side-warning {
+    margin-left: 5px;
+}
+
+html[dir="rtl"] .form-element-side-warning .bd {
+    margin-right: 21px;
+}
+
+html[dir="rtl"] .form-element-side-warning {
+    margin-right: 5px;
+    background-position: 100% 0%; /* For older browsers */
+    background-position: right 0 0;
+}

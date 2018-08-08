@@ -1,0 +1,202 @@
+<!-- DMARC Editor -->
+    <uib-tabset active="active">
+        <uib-tab index="0" select="manage.updateDMARCRecordFromTXT()" heading="DMARC">
+            <div class="form-group">
+                <label class="txt-editor-label">[% locale.maketext('Policy') %]</label>
+                <label class="radio-inline">
+                    <input type="radio"
+                            name="dmarc_p"
+                            id="dmarc_p_none"
+                            ng-model="manage.dmarc_record.p"
+                            value="none"> [% locale.maketext("None") %]
+                </label>
+                <label class="radio-inline">
+                    <input type="radio"
+                            name="dmarc_p"
+                            id="dmarc_p_quarantine"
+                            ng-model="manage.dmarc_record.p"
+                            value="quarantine"> [% locale.maketext("Quarantine") %]
+                </label>
+                <label class="radio-inline">
+                    <input type="radio"
+                            name="dmarc_p"
+                            id="dmarc_p_reject"
+                            ng-model="manage.dmarc_record.p"
+                            value="reject"> [% locale.maketext("Reject[comment,to refuse]") %]
+                </label>
+            </div>
+            <button type="button" id="dmarc_optional_params_show" class="btn btn-link" ng-click="manage.dmarc_optional_params_shown = !manage.dmarc_optional_params_shown">Optional Parameters <span ng-if="manage.dmarc_optional_params_shown" class="glyphicon glyphicon-chevron-up"></span><span ng-if="!manage.dmarc_optional_params_shown" class="glyphicon glyphicon-chevron-down"></span></button>
+            <div id="optional_parameters" uib-collapse="!manage.dmarc_optional_params_shown">
+                <div class="form-group">
+                    <label class="txt-editor-label">[% locale.maketext('Subdomain Policy') %]</label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_sp"
+                                id="dmarc_sp_none"
+                                ng-model="manage.dmarc_record.sp"
+                                value="none"> [% locale.maketext("None") %]
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_sp"
+                                id="dmarc_sp_quarantine"
+                                ng-model="manage.dmarc_record.sp"
+                                value="quarantine"> [% locale.maketext("Quarantine") %]
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_sp"
+                                id="dmarc_sp_reject"
+                                ng-model="manage.dmarc_record.sp"
+                                value="reject"> [% locale.maketext("Reject[comment,to refuse]") %]
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="txt-editor-label">[% locale.maketext('[asis,DKIM] Mode') %]</label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_adkim"
+                                id="dmarc_adkim_relaxed"
+                                ng-model="manage.dmarc_record.adkim"
+                                value="r"> [% locale.maketext("Relaxed[comment,less strict]") %]
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_adkim"
+                                id="dmarc_adkim_strict"
+                                ng-model="manage.dmarc_record.adkim"
+                                value="s"> [% locale.maketext("Strict") %]
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label class="txt-editor-label">[% locale.maketext('[asis,SPF] Mode') %]</label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_aspf"
+                                id="dmarc_aspf_relaxed"
+                                ng-model="manage.dmarc_record.aspf"
+                                value="r"> [% locale.maketext("Relaxed[comment,less strict]") %]
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                                name="dmarc_aspf"
+                                id="dmarc_aspf_strict"
+                                ng-model="manage.dmarc_record.aspf"
+                                value="s"> [% locale.maketext("Strict") %]
+                    </label>
+                </div>
+                <div class="form-inline" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'dmarc_pct') }">
+                    <label class="control-label" for="dmarc_pct">[% locale.maketext('Percentage') %]</label>
+                    <input type="text"
+                        class="form-control input-sm"
+                        id="dmarc_pct"
+                        name="dmarc_pct"
+                        maxlength="3"
+                        positive-integer
+                        num-less-than-equal="100"
+                        ng-model="manage.dmarc_record.pct">
+                    <ul validation-container field-name="dmarc_pct">
+                    </ul>
+                </div>
+                <div>
+                    <label class="inset-radio-label">[% locale.maketext('Generate Failure Reports When[comment,label for the “All Checks Fail” and “Any Check Fails” options]') %]</label>
+                </div>
+                <div class="form-inline inset-radio-group">
+                    <label class="radio-inline">
+                        <input type="radio"
+                            name="dmarc_fo"
+                            id="dmarc_fo_0"
+                            value="0"
+                            ng-model="manage.dmarc_record.fo"> [% locale.maketext("[comment,Generate Failure Reports When]All Checks Fail") %]
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                            name="dmarc_fo"
+                            id="dmarc_fo_1"
+                            value="1"
+                            ng-model="manage.dmarc_record.fo"> [% locale.maketext("[comment,Generate Failure Reports When]Any Check Fails") %]
+                    </label>
+                </div>
+                <div>
+                    <label class="txt-editor-label">[% locale.maketext('Report Format') %]</label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                            name="dmarc_rf"
+                            id="dmarc_rf_afrf"
+                            ng-model="manage.dmarc_record.rf"
+                            value="afrf"> AFRF
+                    </label>
+                    <label class="radio-inline">
+                        <input type="radio"
+                            name="dmarc_rf"
+                            id="dmarc_rf_iodef"
+                            ng-model="manage.dmarc_record.rf"
+                            value="iodef"> IODEF
+                    </label>
+                </div>
+                <div class="form-inline" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'dmarc_ri') }">
+                    <label for="dmarc_ri" class="control-label">[% locale.maketext('Report Interval') %]</label>
+                    <input type="text"
+                        class="form-control input-sm"
+                        id="dmarc_ri"
+                        name="dmarc_ri"
+                        maxlength="9"
+                        positive-integer
+                        ng-model="manage.dmarc_record.ri">
+                    <ul validation-container field-name="dmarc_ri">
+                        <li validation-item
+                            field-name="dmarc_ri"
+                            validation-name="maxlength">[% locale.maketext("The interval is too large.") %]
+                        </li>
+                    </ul>
+                </div>
+                <div class="form-group" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'dmarc_rua') }">
+                    <label for="dmarc_rua" class="control-label">[% locale.maketext('Send Aggregate Mail Reports To') %]</label>
+                    <textarea
+                        ng-model="manage.dmarc_record.rua"
+                        name="dmarc_rua"
+                        id="dmarc_rua"
+                        class="form-control input-sm"
+                        maxlength="2500"
+                        dmarc-mailto-list="rua"
+                        placeholder="[% locale.maketext('Comma-delimited [asis,mailto] [asis,URIs]') %]">
+                    </textarea>
+                    <ul validation-container field-name="dmarc_rua">
+                    </ul>
+                </div>
+                <div class="form-group" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'dmarc_ruf') }">
+                    <label for="dmarc_ruf" class="control-label">[% locale.maketext('Send Failure Reports To') %]</label>
+                    <textarea
+                        ng-model="manage.dmarc_record.ruf"
+                        name="dmarc_ruf"
+                        id="dmarc_ruf"
+                        class="form-control input-sm"
+                        maxlength="2500"
+                        dmarc-mailto-list="ruf"
+                        placeholder="[% locale.maketext('Comma-delimited [asis,mailto] [asis,URIs]') %]">
+                    </textarea>
+                    <ul validation-container field-name="dmarc_ruf">
+                    </ul>
+                </div>
+            </div>
+        </uib-tab>
+        <uib-tab class="dmarc-editor" select="manage.updateTXTFromDMARCRecord()" index="1" heading="[% locale.maketext('Raw[comment,Label for the viewing the full text]') %]">
+            <div class="form-group" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'dmarc_as_string') }">
+                <textarea
+                    name="dmarc_as_string"
+                    id="dmarc_as_string"
+                    class="form-control"
+                    ng-model="manage.new_record.txtdata"
+                    required
+                    maxlength="2500">{{manage.new_record.txtdata}}
+                </textarea>
+                <ul validation-container field-name="dmarc_as_string">
+                    <li validation-item
+                        field-name="dmarc_as_string"
+                        validation-name="required">[% locale.maketext("This field is required.") %]
+                    </li>
+                </ul>
+            </div>
+        </uib-tab>
+    </uib-tabset>
+<!-- end of DMARC editor -->

@@ -1,0 +1,14 @@
+
+[%
+USE CPScalar;
+PROCESS 'supported_langs.html.tt';
+SET is_supported = FORM.defined('lang') AND supported_langs.grep('^' _ CPScalar.quotemeta(FORM.lang) _ '$').size;
+IF is_supported;
+    SET lang_mods_get_key_name = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "name"} ).0;
+    SET ajax_request_url = CPANEL.ENV.cp_security_token _ "/frontend/paper_lantern/module_installers/live_update.html?lang=" _ FORM.lang _ "&mod=" _ FORM.item('mod');
+    SET body_content = locale.maketext("Updating “[_1]” “[_2]” …[comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_name.key.html(), FORM.item('mod'));
+    PROCESS 'module_installers/module_installers_action.html.tt';
+ELSE;
+    PROCESS 'not_supported.html.tt' lang=FORM.lang;
+END;
+%]

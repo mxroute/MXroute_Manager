@@ -1,0 +1,376 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    # Fetch the required strength
+    Api2.pre_exec("PasswdStrength", "get_required_strength");
+    SET required_strength_resp = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"gpg"} );
+    Api2.post_exec("PasswdStrength", "get_required_strength");
+
+    IF required_strength_resp.size();
+        SET required_strength = required_strength_resp.0.strength;
+    END;
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+    page_js = js_code
+    page_scripts = [
+        'libraries/handlebars/handlebars.js',
+    ]
+%]
+[% PROCESS '_assets/_ajaxapp_header.html.tt' -%]
+
+<div class="body-content">
+    <p id="descEncryption" class="description">
+        [% locale.maketext("GnuPG is a publicly available encryption scheme that uses the “public key” approach. With GnuPG, messages are encrypted using a “public key” however, they can only be decrypted by a “private key”, which is retained by the intended recipient of the message.") %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrCreateNewKey">[% locale.maketext("Create a New Key") %]</h2>
+
+
+        <form name="addkeyform" action="javascript:void(0)" id="addkeyform" method="post" onsubmit="save(this)">
+            <div class="form-group">
+                <label id="lblYourName" for="name">
+                    [% locale.maketext("Your Name") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="name" type="text" class="form-control" name="name"  />
+                    </div>
+                    <div id="name_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblYourEmail" for="email">
+                    [% locale.maketext("Your Email") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="email" type="text" class="form-control" name="email" />
+                    </div>
+                    <div id="email_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblComment" for="comment">
+                    [% locale.maketext("Comment or Nickname:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="comment" type="text" class="form-control" name="comment"  />
+                    </div>
+                    <div id="comment_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblKeyPassword" for="password">
+                    [% locale.maketext("Key Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="password" type="password" name="password"  class="form-control" />
+                    </div>
+                    <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPasswordAgain" for="password2">
+                    [% locale.maketext("Confirm Password:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="password2" type="password" name="password2"  class="form-control" />
+                    </div>
+                    <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblStrength">
+                    [% locale.maketext("Strength[comment,strength of a password]") %]
+                    <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                </label>
+                [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="password_strength" class="password_strength"></div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="button" id="create_strong_password" class="btn btn-default" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblExpireDate" for="expire">
+                    [% locale.maketext("Expiration Date:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="expire" type="text" class="form-control" name="expire" value="1y" />
+                        <div id="lblExpireDateHelper" class="help-block">
+                            [% locale.maketext("Format:") %]
+                            1y ([% locale.maketext("[quant,_1,year,years]", "1") %])
+                            3w ([% locale.maketext("[quant,_1,week,weeks]", "3") %])
+                            5d ([% locale.maketext("[quant,_1,day,days]", "5") %])
+                            0 ([% locale.maketext("No expiration date") %])
+                        </div>
+                    </div>
+                    <div id="expire_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblKeySize" for="keysize">
+                    [% locale.maketext("Key Size:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="keysize" name="keysize"  class="form-control">
+                            <option value="2048">2048</option>
+                            <option value="4096">4096</option>
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="submit" type="submit"  class="btn btn-primary" value="[% locale.maketext("Generate Key") %]" />
+            </div>
+            <div id="create_key_status_bar"></div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrImportKey" >[% locale.maketext("Import Key") %]</h2>
+        <a id="btnImportKey" class="btn btn-primary" href="importkey.html" style="text-decoration:none;" >
+            [% locale.maketext("Import Key") %]
+        </a>
+    </div>
+
+
+    [%
+        Api2.pre_exec("Gpg", "number_of_public_keys");
+        SET api2_result_Gpg_number_of_public_keys = Api2.exec("Gpg" , "number_of_public_keys" , {});
+        Api2.post_exec("Gpg", "number_of_public_keys");
+    %]
+    [% IF !(CPANEL.CPVAR.gpg_number_of_public_keys == "0") %]
+    <div class="section">
+        <h2 id="hdrPublicKeys">[% locale.maketext("Public Keys") %]</h2>
+        <table id="tblListGpgKeys" class="table table-striped responsive-table">
+        [%
+            Api2.pre_exec("Gpg", "listgpgkeys");
+            SET list_gpg_keys=Api2.exec("Gpg" , "listgpgkeys" , {});
+            Api2.post_exec("Gpg", "listgpgkeys");
+        %]
+        <thead>
+            <tr>
+                <th>[% locale.maketext("Public Keys") %]</th>
+                <th>[% locale.maketext("Actions") %]</th>
+            </tr>
+        </thead>
+        [% IF list_gpg_keys.size; %]
+        <tbody>
+            [% FOREACH hashref IN list_gpg_keys; %]
+            <tr>
+                <td data-title="[% locale.maketext("Public Keys") %]">[% hashref.key.html() %]</td>
+                <td data-title="[% locale.maketext("Actions") %]">
+                    <a class="btn btn-link" href="delkey.html?key=[% hashref.keyid.html() %]">
+                        <span class="glyphicon glyphicon-trash"></span>
+                        [% locale.maketext("Delete GnuPG Key") %]
+                    </a>
+                    <a class="btn btn-link" href="editkey.html?key=[% hashref.keyid.html() %]">
+                        <span class="glyphicon glyphicon-search"></span>
+                        [% locale.maketext("View") %]
+                    </a>
+                </td>
+            </tr>
+            [% END; %]
+        </tbody>
+        [% END %]
+
+        </table>
+    </div>
+    [% END %]
+
+
+
+    [%
+        Api2.pre_exec("Gpg", "number_of_private_keys");
+        SET api2_result_Gpg_number_of_private_keys = Api2.exec("Gpg" , "number_of_private_keys" , {});
+        Api2.post_exec("Gpg", "number_of_private_keys");
+    %]
+
+    [% IF !(CPANEL.CPVAR.gpg_number_of_private_keys == "0") %]
+    <div class="section">
+        <h2 id="hdrPrivateKeys">[% locale.maketext("Private Keys") %]</h2>
+        <table id="tblCretGpgKeys" class="table table-striped responsive-table">
+
+        [%
+            Api2.pre_exec("Gpg", "listsecretgpgkeys");
+            SET secret_gpg_keys=Api2.exec("Gpg" , "listsecretgpgkeys" , {});
+            Api2.post_exec("Gpg", "listsecretgpgkeys");
+        %]
+        <thead>
+            <tr>
+                <th>[% locale.maketext("Private Keys") %]</th>
+                <th>[% locale.maketext("Actions") %]</th>
+            </tr>
+        </thead>
+        [% IF secret_gpg_keys.size %]
+        <tbody>
+            [% FOREACH hashref IN secret_gpg_keys %]
+            <tr>
+                <td data-title="[% locale.maketext("Private Keys") %]">[% hashref.key.html() %]</td>
+                <td data-title="[% locale.maketext("Actions") %]">
+                    <a class="btn btn-link" href="delpkey.html?key=[% hashref.keyid.html() %]">
+                        <span class="glyphicon glyphicon-trash"></span>
+                        [% locale.maketext("Delete GnuPG Key") %]
+                    </a>
+                    <a class="btn btn-link" href="editpkey.html?key=[% hashref.keyid.html() %]">
+                        <span class="glyphicon glyphicon-search"></span>
+                        [% locale.maketext("View") %]
+                    </a>
+                </td>
+            </tr>
+            [% END %]
+        </tbody>
+        [% END %]
+        </table>
+    </div>
+    [% END %]
+
+
+<script type="text/plain" id="loading_status_message">
+    <div class="alert alert-info">
+        <span class="glyphicon glyphicon-refresh loading-indicator"></span>
+        [% locale.maketext("Key is being generated. This may take a few minutes.") %]
+    </div>
+</script>
+
+<script type="text/x-handlebars-template" id="success_status_message">
+    <div class="alert alert-success">
+        <span class="glyphicon glyphicon-ok-sign"></span>
+        <div class="alert-message">
+        [% locale.maketext("The Key has been successfully created.") %]
+        </div>
+    </div>
+</script>
+
+<script type="text/x-handlebars-template" id="error_status_message">
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            [% locale.maketext("There was a problem creating the GnuPG Key.") %]
+            <p>
+                {{ error_msg }}
+            </p>
+        </div>
+    </div>
+</script>
+
+[% PROCESS '_assets/_ajaxapp_footer.html.tt' -%]
+</div><!-- end body-content -->
+
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+    var REQUIRED_PASSWORD_STRENGTH = parseInt('[% required_strength %]') || 0;
+
+    var name_validator = new CPANEL.validate.validator("[% locale.maketext("Name") %]");
+    var email_validator = new CPANEL.validate.validator("[% locale.maketext("Email") %]");
+    var comment_validator = new CPANEL.validate.validator("[% locale.maketext("Comment") %]");
+    var expire_validator = new CPANEL.validate.validator("[% locale.maketext("Expire Date") %]");
+
+    var Handlebars = window.Handlebars;
+
+    var statusBar = DOM.get('create_key_status_bar'),
+        loadingMessageTemplate = Handlebars.compile(DOM.get('loading_status_message').textContent),
+        successMessageTemplate = Handlebars.compile(DOM.get('success_status_message').textContent),
+        errorMessageTemplate = Handlebars.compile(DOM.get('error_status_message').textContent);
+
+    // custom validation function for expire date
+    var validate_expire_input = function() {
+        var str = YAHOO.util.Dom.get("expire").value;
+        if (str === '0')
+            return true;
+        var last_char = str.charAt(str.length-1);
+        if (last_char != 'y' && last_char != 'w' && last_char != 'd') return false;
+        var number = str.substring(0, str.length-1);
+        return CPANEL.validate.positive_integer(number);
+    };
+
+    function save(form) {
+        CPANEL.api( {
+            version: 1,
+            module: "Gpg",
+            func:   "genkey",
+            data: [
+                form.name.value,
+                form.comment.value,
+                form.email.value,
+                form.expire.value,
+                form.keysize.value,
+                form.password.value,
+            ],
+            callback: {
+                failure: function(o) {
+                    // this callback seems to only be called if the request times out
+                    statusBar.innerHTML = errorMessageTemplate({ error_msg: "[% locale.maketext('The request timed out.') %]" });
+                    DOM.get("submit").disabled = false;
+                },
+                success: function(o) {
+                    if (o.cpanel_error && o.cpanel_error.length > 0) {
+                        statusBar.innerHTML = errorMessageTemplate({ error_msg: o.cpanel_error});
+                    }
+                    else {
+                        statusBar.innerHTML = successMessageTemplate();
+                    }
+                    DOM.get("submit").disabled = false;
+                }
+            }
+        } );
+
+        // disable the submit button to prevent multiple requests being fired
+        DOM.get("submit").disabled = true;
+        statusBar.innerHTML = loadingMessageTemplate();
+    }
+
+
+    var init_page = function() {
+
+        name_validator.add("name", "min_length(%input%, 5)", "[% locale.maketext("Name must be at least 5 characters.") %]");
+        name_validator.attach();
+
+        email_validator.add("email", "email", "[% locale.maketext("You must enter a valid email address.") %]");
+        email_validator.attach();
+
+        comment_validator.add("comment", function() { return document.getElementById('comment').value.length > 0; }, "[% locale.maketext("The nickname field cannot be empty.") %]");
+        comment_validator.attach();
+
+        expire_validator.add("expire", validate_expire_input, "[% locale.maketext("Expire date must match the format specified.") %]");
+        expire_validator.attach();
+
+        var password_validators = CPANEL.password.setup("password", "password2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+
+        password_validators.push(name_validator, email_validator, comment_validator, expire_validator);
+        CPANEL.validate.attach_to_form("submit", password_validators);
+
+        YAHOO.util.Dom.get("name").focus();
+
+        expire_validator.verify();
+    };
+    YAHOO.util.Event.onDOMReady(init_page);
+
+    </script>
+[% END %]

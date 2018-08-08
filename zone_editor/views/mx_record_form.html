@@ -1,0 +1,74 @@
+<form class="layout-medium ng-pristine" name="edit_mx_record" novalidate>
+    <div class="modal-header"><h4>{{ mxr.modal_header }}</h4></div>
+    <div class="modal-body">
+        <div class="form-group">
+            <label for="record_priority_mx">
+                {{ mxr.priority_label }}
+            </label>
+            <div class="row">
+                <div class="col-xs-12">
+                    <input type="text"
+                        class="form-control"
+                        id="record_priority_mx"
+                        name="record_priority_mx"
+                        ng-model="mxr.resource.priority"
+                        required
+                        positive-integer
+                        num-less-than-equal="65535"
+                        maxlength="5"
+                        placeholder="{{ mxr.priority_placeholder }}">
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <ul validation-container field-name="record_priority_mx">
+                        <li validation-item
+                            field-name="record_priority_mx"
+                            validation-name="required">{{ mxr.required_msg }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="form-group last">
+            <label for="record_exchanger">
+                {{ mxr.exchanger_label }}
+            </label>
+            <div class="row">
+                <div class="col-xs-12">
+                    <input type="text"
+                        class="form-control"
+                        id="record_exchanger"
+                        name="record_exchanger"
+                        required
+                        zone-fqdn
+                        ng-model="mxr.resource.exchanger"
+                        placeholder="{{ mxr.exchanger_placeholder }}">
+                 </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <ul validation-container field-name="record_exchanger">
+                        <li validation-item
+                            field-name="record_exchanger"
+                            validation-name="required">{{ mxr.required_msg }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit"
+            id="MX_submit"
+            name="submit"
+            cp-action="mxr.save()"
+            ng-disabled="edit_mx_record.$invalid || edit_mx_record.$pristine"
+            button-class="btn btn-primary btn-sm">
+           {{ mxr.submit_label }}</button>
+        <button type="button"
+            id="MX_cancel"
+            name="cancel"
+            class="btn btn-link btn-sm"
+            ng-click="mxr.cancel()">
+            {{ mxr.cancel_label }}</button>
+    </div>
+    </form>

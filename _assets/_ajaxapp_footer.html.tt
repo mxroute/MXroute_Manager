@@ -1,0 +1,43 @@
+[% USE JSON -%]
+
+[% SET LEXICON = {
+    'An unknown error occurred.' => locale.lextext('An unknown error occurred.'),
+    'Cancel' => locale.lextext('Cancel'),
+    'ERROR' => locale.lextext('ERROR'),
+    'Error' => locale.lextext('Error'),
+    'HTTP ERROR' => locale.lextext('HTTP ERROR'),
+    'Notice' => locale.lextext('Notice'),
+    'OK' => locale.lextext('OK'),
+    'Proceed' => locale.lextext('Proceed'),
+    'Processing …' => locale.lextext('Processing …'),   #for form_submit_handler.js
+    'Success!' => locale.lextext('Success!'),
+} -%]
+
+<img src="[% MagicRevision('/cjt/images/progress_bar.gif') %]" class="preloadedImage" />
+<img src="[% MagicRevision('/cjt/images/check.png') %]" class="preloadedImage" />
+
+<script id="cjt_error_dialog_template" type="text/plain">
+<div class="error_notice">{error_html}</div>
+</script>
+
+<script id="cjt_http_error_dialog_template" type="text/plain">
+<div class="error_notice http_error_notice">
+    <div class="http_status">{status}: {status_text_html}</div>
+    <div><a href="javascript:void(0)" class="http_error_details_link">[% locale.maketext("Show/Hide Details") %]</a></div>
+    <div class="cjt_error_details" style="display:none">
+        <div class="url">URL ({method}):<pre>{url_html}</pre></div>
+        <div class="post">[% locale.maketext("Body") %]: <pre>{post_html}</pre></div>
+        <div class="response">[% locale.maketext("Response") %]:<pre>{response_html}</pre></div>
+    </div>
+</div>
+</script>
+
+<script>
+CPANEL.application = "[% CPANEL.appname %]";
+YAHOO.lang.augmentObject( CPANEL.Locale.prototype.LEXICON, [% LEXICON.json() %] );
+</script>
+[% IF CPANEL.is_debug_mode_enabled() %]
+<script src="[% MagicRevision('/cjt/ajaxapp.js') %]"></script>
+[% ELSE %]
+<script src="[% MagicRevision('/cjt/ajaxapp-min.js') %]"></script>
+[% END %]

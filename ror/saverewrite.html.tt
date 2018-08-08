@@ -1,0 +1,50 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+IF FORM.oldurl;
+    Api2.pre_exec("RoR", "removerewrite");
+    SET remove_rails_old_rewrite_result = Api2.exec("RoR", "removerewrite", {
+        "appname" => FORM.appname,
+        "rewriteurl" => FORM.oldurl,
+        "rewritedomain" => FORM.domain
+    });
+    Api2.post_exec("RoR", "removerewrite");
+END;
+
+Api2.pre_exec("RoR", "setuprewrite");
+SET setup_rails_rewrite_result = Api2.exec("RoR", "setuprewrite", {
+    "appname" => FORM.appname,
+    "rewriteurl" => FORM.url,
+    "rewritedomain" => FORM.domain
+});
+Api2.post_exec("RoR", "setuprewrite");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+-%]
+<div class="body-content">
+    [% IF CPANEL.CPERROR.item('ror') %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("Your app can not be redirected, there was an error.") %]
+                [% CPANEL.CPERROR.item('ror').html() %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext( "[output,url,_1] will now be transparently rewritten to [output,url,_2] ([_3]).",
+                    'http://' _ FORM.domain _ '/' _ FORM.url,
+                    'http://' _ CPANEL.CPDATA.DNS.html() _ ':' _ CPANEL.CPVAR.ror_app_port.html(),
+                    FORM.appname,
+                ) %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

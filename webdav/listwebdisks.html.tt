@@ -1,0 +1,117 @@
+[% USE Api2 -%]
+[% USE JSON -%]
+[% SET form_regex = CPANEL.get_raw_form('searchregex') -%]
+[% SET api_response = Api2.exec( 'WebDisk', 'listwebdisks', {
+    regex => form_regex,
+    no_expvar => 1,
+    api2_paginate => 1,
+    api2_paginate_start => CPANEL.FORM.api2_paginate_start,
+    api2_paginate_size => CPANEL.CPVAR.itemsperpage,
+} ); -%]
+
+[% IF api_response.size -%]
+    [% SET feature_webdisk = CPANEL.feature('webdisk') -%]
+    [% SET feature_webprotect = CPANEL.feature('webprotect') -%]
+    [% SET feature_filemanager = CPANEL.feature('filemanager') -%]
+
+    [% FOR webdisk = api_response -%]
+        <tr>
+            <td class="truncate" truncate="15">[% webdisk.login FILTER html %]</td>
+            <td class="truncate" truncate="50">
+                <span class="fas fa-home"></span>
+                [% IF feature_filemanager -%]
+                    <a id="[% webdisk.login FILTER html %]_lnk" href="../filemanager/index.html?dir=[% webdisk.reldir FILTER uri %]" target="_blank" class="ajaxfiles" >
+                [% END -%]
+                    /[% webdisk.reldir FILTER html %]
+                [% IF feature_filemanager -%]
+                    </a>
+                [% END -%]
+
+                [% IF feature_webdisk -%]
+                    [%- SET homedir_onclick = "start_change_homedir(" _ webdisk.login.json _ "," _ webdisk.reldir.json _ "); return false;" -%]
+                    <a href="javascript:void(0)" id="lnkEdit_[% loop.index.html() %]" onClick='[% homedir_onclick.html %]' title='[% locale.maketext('Click to change this account’s home directory.') %]'>
+                        <span class="glyphicon glyphicon-pencil"></span>
+                    </a>
+                [% END -%]
+
+                [% IF feature_webprotect -%]
+                    <a target="_blank" id="lnkProtect_[% loop.index.html() %]" href="../htaccess/dohtaccess.html?dir=[% webdisk.homedir FILTER uri %]" title="[% locale.maketext('Click to WebProtect/Password Protect this directory.') %]">
+                        <span class="glyphicon glyphicon-lock"></span>
+                    </a>
+                [% END -%]
+            </td>
+            <td>
+                <a id="btnAccessWebDisk_[% loop.index.html() %]"
+                    onclick='access_web_disk([% webdisk.login.json() %],[% webdisk.domain.json() %],[% webdisk.hasdigest.json() %]); return false;' href="webdavaccessdownload.html?domain=[% webdisk.domain FILTER html %]&sslport=[% webdisk.sslport FILTER html %]&mainport=[% webdisk.mainport FILTER html %]&hasdigest=[% webdisk.hasdigest FILTER html %]&user=[% webdisk.login FILTER html %]"
+                    class="btn btn-link"
+                    title="[% locale.maketext('Click to view configuration details for your operating system or device.') %]">
+                    <span class="fas fa-wrench"></span>
+                    [% locale.maketext("Configure Client Access") %]
+                </a>
+
+                [% IF feature_webdisk -%]
+                    [% IF !webdisk.hasdigest %]
+                        <a id="lnkEnableDigest_[% loop.index.html() %]"
+                            onclick='set_digest_auth_popup("virtual",[% webdisk.login.json %],"enable",this); return false;'
+                            href="#"
+                            class="btn btn-link"
+                            title="[% locale.maketext('Click to enable Digest Authentication.') %]">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext('Enable Digest Authentication') %]
+                        </a>
+                    [% ELSE %]
+                        <a id="lnkDisableDigset_[% loop.index.html() %]"
+                            onclick='set_digest_auth_popup("virtual",[% webdisk.login.json %],"disable",this); return false;'
+                            href="#"
+                            title="[% locale.maketext('Click to disable Digest Authentication.') %]"
+                            class="btn btn-link">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext('Disable Digest Authentication') %]
+                        </a>
+                    [% END %]
+
+                    <a id="lnkChangePassword_[% loop.index.html() %]"
+                        href="passwd.html?hasdigest=[% webdisk.hasdigest %]&login=[% webdisk.login FILTER html %]"
+                        title="[% locale.maketext('Click to change the password on your Web Disk account.') %]"
+                        class="btn btn-link">
+                        <span class="fas fa-key"></span>
+                        [% locale.maketext("Change Password") %]
+                    </a>
+
+                    <a id="lnkDelete_[% loop.index.html() %]"
+                        href="del_confirm.html?login=[% webdisk.login FILTER html %]"
+                        title="[% locale.maketext('Click to delete the Web Disk account for “[_1]”.',webdisk.login) %]"
+                        class="btn btn-link">
+                        <span class="glyphicon glyphicon-trash"></span>
+                        [% locale.maketext("Delete") %]
+                    </a>
+
+                    [% IF webdisk.perms == "ro" %]
+                        <a id="lnkSetRW_[% loop.index.html() %]"
+                            onclick='set_perms_popup("virtual",[% webdisk.login.json %],"rw",this); return false;'
+                            href="#"
+                            title="[% locale.maketext('Click to enable read-write access.') %]"
+                            class="btn btn-link">
+                            <span class="fas fa-cog"></span>
+                            [% locale.maketext('Set Read-Write') %]
+                        </a>
+                    [% ELSE %]
+                        <a id="lnkSetRO_[% loop.index.html() %]"
+                            onclick='set_perms_popup("virtual",[% webdisk.login.json %],"ro",this); return false;'
+                            href="#" title="[% locale.maketext('Click to restrict access to read-only.') %]"
+                            class="btn btn-link">
+                            <span class="fas fa-cog"></span>
+                            [% locale.maketext('Set Read-Only') %]
+                        </a>
+                    [% END %]
+                [% END -%]
+            </td>
+        </tr>
+    [% END -%]
+[% ELSE -%]
+    [% SET err = form_regex
+        ? locale.maketext('No additional configured web disks match the search term “[_1]”.', form_regex)
+        : locale.maketext('No additional web disks configured.')
+    ; -%]
+    <tr><td colspan="3" class="errors cell-center">[% err FILTER html %]</td></tr>
+[% END -%]

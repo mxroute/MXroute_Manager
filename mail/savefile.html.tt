@@ -1,0 +1,50 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+-%]
+<div class="body-content">
+
+    [% IF (ExpVar.expand('$appname') == "webmail" && !( FORM.item('account') == CPANEL.authuser)) %]
+    <div id="changeSettingsError" class="error_details">
+        <span id="changeSettingsImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <div id="changeSettingsText" class="alert-message">
+        [% locale.maketext("You are not allowed to change settings for the user “[output,class,_1,status]”.", FORM.item('account')) %]
+        </div>
+    </div>
+    [% END %]
+
+    [% IF CPANEL.CPDATA.item('DEMO') %]
+        [% locale.maketext("This feature is disabled in demo mode.") %]
+    [% ELSE %]
+        [% IF (!( ExpVar.expand('$appname') == "webmail") || FORM.item('account') == CPANEL.authuser) %]
+        <div id="saveSuccessMsg" class="alert alert-success">
+            <span id="saveSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="saveSuccessText" class="alert-message">[% locale.maketext("Your changes have been saved.") %]</div>
+        </div>
+        <div id="boxtrapperSaveCfg">
+            [%
+                Api1.pre_exec("BoxTrapper", "savecfgfile");
+                Api1.exec("BoxTrapper", "savecfgfile", [RAW_FORM.item('account'),RAW_FORM.item('filetype'),RAW_FORM.item('file'),RAW_FORM.item('page')]);
+                Api1.post_exec("BoxTrapper", "savecfgfile");
+            %]
+            [%
+                Api1.pre_exec("BoxTrapper", "cleancfgfilelist");
+                Api1.exec("BoxTrapper", "cleancfgfilelist", [RAW_FORM.item('account'),RAW_FORM.item('filetype'),RAW_FORM.item('file')]);
+                Api1.post_exec("BoxTrapper", "cleancfgfilelist");
+            %]
+        </div>
+        [% END %]
+    [% END %]
+
+    [%
+    IF RAW_FORM.item('filetype') == "list";
+        INCLUDE _assets/return_link.html.tt return_location='editlists.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext('Go Back');
+    ELSIF RAW_FORM.item('filetype') == "msg";
+        INCLUDE _assets/return_link.html.tt return_location='editmsgs.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext('Go Back');
+    ELSE;
+        INCLUDE _assets/return_link.html.tt return_location='manage.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext('Go Back');
+    END;
+    %]
+</div>
+[% END #wrapper %]

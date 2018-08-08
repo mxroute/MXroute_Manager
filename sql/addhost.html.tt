@@ -1,0 +1,45 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    SET addhost = execute("Mysql", "add_host", {"host" => FORM.host});
+    IF addhost.status;
+        SET addnotes = execute("Mysql", "add_host_note", {"host" => RAW_FORM.host, "note" => RAW_FORM.comment});
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    [% IF addhost.status %]
+    <div id="addhostSuccess" class="alert alert-success">
+        <span id="addhostSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="addhostSuccessMsg" class="alert-message wrap-text-forcefully">
+            [% locale.maketext("The host “[_1]” was added to the access list.",FORM.host) %]
+            [% IF FORM.exists('comment') AND FORM.comment.length > 0 AND addnotes.status %]
+            <br>[% locale.maketext("Comment:") %] [% FORM.comment %]
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+    [% IF !addnotes.status || !addhost.status %]
+    <div id="addhostError" class="alert alert-danger">
+        <span id="addhostErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <div id="addhostErrorMsg" class="alert-message">
+            [% IF !addhost.status %]
+                [% FOREACH addhostError = addhost.errors %]
+                    [% addhostError %]
+                [% END %]
+            [% END %]
+            [% IF !addnotes.status %]
+                [% FOREACH addnotesError = addnotes.errors %]
+                    [% addnotesError %]
+                [% END %]
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='managehost.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

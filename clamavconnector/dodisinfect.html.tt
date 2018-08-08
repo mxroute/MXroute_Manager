@@ -1,0 +1,31 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET ajax_request_url = CPANEL.ENV.cp_security_token _ "/frontend/paper_lantern/clamavconnector/live_disinfect.html";
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'virus_scanner'
+    page_js_top = js_code
+    use_master_bootstrap = 0
+-%]
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+
+<div class="body-content">
+    <p>[% locale.maketext("Cleanup Process") %]</p>
+    <pre id="results"><span class="fas fa-sync fa-spin"></span> [% locale.maketext('Processing …') %]</pre>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    CPANEL.namespace("CPANEL.PAGE");
+    CPANEL.PAGE.ajax_request_url = "[% ajax_request_url %]";
+    CPANEL.PAGE.formdata = [% RAW_FORM.json() %];
+    window.PAGE = CPANEL.PAGE;
+</script>
+[% END %]
+

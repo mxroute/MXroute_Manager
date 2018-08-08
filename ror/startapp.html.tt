@@ -1,0 +1,32 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    Api2.pre_exec("RoR", "startapp");
+    SET api2_result_RoR_startapp = Api2.exec("RoR", "startapp", {"appname" => FORM.item('appname')});
+    Api2.post_exec("RoR", "startapp");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+-%]
+<div class="body-content">
+    [% IF CPANEL.CPERROR.item('ror') %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("The Ruby on Rails application could not be started.") %]
+                [% CPANEL.CPERROR.item('ror').html() %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("The following Ruby on Rails application was started: [output,strong,_1]", FORM.item('appname')) %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

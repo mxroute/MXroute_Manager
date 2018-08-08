@@ -1,0 +1,201 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% IF FORM.itemsperpage %]
+    [% SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage %]
+[% END %]
+[% IF (! FORM.itemsperpage || ! CPANEL.CPVAR.itemsperpage) %]
+    [% SET CPANEL.CPVAR.itemsperpage = "10" %]
+[% END %]
+
+[%
+    Api2.pre_exec("DenyIp", "listdenyips");
+    SET deny_ip_list = Api2.exec("DenyIp" , "listdenyips" , {"api2_paginate_size" =>CPANEL.CPVAR.itemsperpage.html(), "api2_paginate" =>"1" , "api2_paginate_start" =>RAW_FORM("api2_paginate_start" )});
+    Api2.post_exec("DenyIp", "listdenyips");
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ip_blocker'
+    page_js = js_code
+-%]
+<div class="body-content">
+    <p class="description" id="descDenyIP">
+        [% locale.maketext("This feature will allow you to block a range of IP addresses to prevent them from accessing your site. You can also enter a fully qualified domain name, and the IP Deny Manager will attempt to resolve it to an IP address for you.") %]
+    </p>
+
+    <div class="section">
+        <h2>[% locale.maketext("Add an IP or Range") %]</h2>
+        <form action="add.html" id="mainform" name="mainform">
+            <div class="form-group">
+                <label for="ip">
+                    [% locale.maketext("IP Address or Domain") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" id="ip" name="ip" />
+                    </div>
+                    <div id="ip_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" id="add_ip_button" class="btn btn-primary" value="[% locale.maketext("Add") %]" />
+            </div>
+        </form>
+        <p>
+            [% locale.maketext("[output,strong,Note]: You can specify denied IP addresses in the following formats:") %]
+        </p>
+
+        <dl>
+            <dt>[% locale.maketext("Single IP Address") %]</dt>
+            <dd>192.168.0.1</dd>
+            <dd>2001:db8::1</dd>
+            <dt>[% locale.maketext("Range") %]</dt>
+            <dd>192.168.0.1-192.168.0.40</dd>
+            <dd>2001:db8::1-2001:db8::3</dd>
+            <dt>[% locale.maketext("Implied Range") %]</dt>
+            <dd>192.168.0.1-40</dd>
+            <dt>[% locale.maketext("CIDR Format") %]</dt>
+            <dd>192.168.0.1/32</dd>
+            <dd>2001:db8::/32</dd>
+            <dt>[% locale.maketext("Implies [asis,192.*.*.*]") %]</dt>
+            <dd>192.</dd>
+        </dl>
+    </div>
+
+    <div class="section">
+        <h2>
+            [% locale.maketext("Currently-Blocked IP Addresses:") %]
+        </h2>
+        <table class="sortable table table-striped" id="denyiptbl">
+            <thead>
+                <tr>
+                    <th>
+                        [% locale.maketext("Server Setting") %]
+                    </th>
+                    <th>
+                        [% locale.maketext("Beginning IP") %]
+                    </th>
+                    <th>
+                        [% locale.maketext("Ending IP") %]
+                    </th>
+                    <th nonsortable="true">
+                        [% locale.maketext("Actions") %]
+                    </th>
+                </tr>
+            </thead>
+
+            [% IF deny_ip_list .size %]
+                [% FOREACH ip_info IN deny_ip_list  %]
+                <tr>
+                    <td>[% ip_info.ip.html() %]</td>
+                    <td>[% ip_info.start.html() %]</td>
+                    <td>[% ip_info.end.html() %]</td>
+                    <td>
+                        <a class="btn btn-link" href="delconfirm.html?ip=[% ip_info.ip.html() %]" id="lnkDel[% ip_info.ip.html() %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext('Delete') %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td colspan="4" class="errors">
+                        [% locale.maketext("No IPs are being blocked.") %]
+                    </td>
+                </tr>
+            [% END %]
+        </table>
+    </div>
+    [% INCLUDE '_assets/paginate.html.tt' %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+var ip_range = function() {
+    var str = YAHOO.util.Dom.get("ip").value;
+
+    // if it's a number hostname, we're good
+    if (CPANEL.validate.positive_integer(str) == true) return true;
+
+    // has alpha so assume hostname/domain name
+    if (/[A-Za-z]/.test(str)) {
+        if (CPANEL.validate.host(str)) return true;
+        if (CPANEL.validate.fqdn(str)) return true;
+    }
+    // single IP
+    if (CPANEL.validate.ip(str)) return true;
+    if (CPANEL.validate.ipv6(str)) return true;
+
+    // IP range - has hyphen
+    if (/-/.test(str)) {
+        range = str.split('-');
+
+        // split should be exactly 2 chunks
+        if (range.length != 2) return false;
+
+        // if the first chunk is not an IP, return false
+        if (!CPANEL.validate.ip(range[0]) && !CPANEL.validate.ipv6(range[0])) return false;
+
+        // if the second chunk is a valid IP, return TRUE
+        if (CPANEL.validate.ip(range[1]) || CPANEL.validate.ipv6(range[1])) return true;
+
+        // first chunk is valid IP, second chunk is a group of 1-3 digits (class C range)
+        if (/^\d{1,3}$/.test(range[1])) {
+            // check that the second range is between 0 and 255
+            if (range[1] < 256) return true;
+        }
+
+        return false;
+    }
+
+    // CIDR test - has forward slash
+    if (/\//.test(str)) {
+        range = str.split('/');
+
+        // there should be exactly two chunks
+        if (range.length != 2) return false;
+
+        // first chunk should be a valid IP
+        if (!CPANEL.validate.ip(range[0]) && !CPANEL.validate.ipv6(range[0])) return false;
+
+        // second chunk is two digits
+        if (/^\d{1,3}$/.test(range[1])) {
+            // digits are less than 33
+            if (range[1] < 128) return true;
+        }
+
+        return false;
+    }
+
+    // wildcards (1-3 groups of 1-3 digits)
+    if (/^(\d{1,3}\.){1,3}$/.test(str)) {
+        values = str.split('.');
+
+        // don't need to check the last chunk
+        for (var i = 0; i < (values.length - 1); i++) {
+            if (values[i] > 255) return false
+        }
+
+        return true;
+    }
+
+    return false;
+};
+
+var init = function() {
+    var validation = new CPANEL.validate.validator("");
+    validation.add("ip", ip_range, "[% locale.maketext("Invalid IP Address Range") %]");
+    validation.attach();
+
+    CPANEL.validate.attach_to_form("add_ip_button", validation);
+
+    YAHOO.util.Dom.get("ip").focus();
+};
+
+YAHOO.util.Event.onDOMReady(init);
+</script>
+[% END %]

@@ -1,0 +1,204 @@
+[%
+    USE JSON;
+    SET account_locale = locale.get_user_locale(), #The account's locale name, in the session locale.
+        direction = locale.get_html_dir_attr(),
+        lang_file_path_debug = "../../libraries/elfinder/source/js/i18n/elfinder." _ account_locale _ ".js",
+        supported_file_browser_locales = ["ar", "bg", "ca", "cs", "de", "es", "fr", "hu", "jp", "LANG", "nl", "no", "pl", "pt_BR", "ru", "zh_CH"],
+        use_locale = "false",
+        lang_file_path = "../../libraries/elfinder/optimized/js/i18n/elfinder." _ account_locale _ ".js",
+        security_token = CPANEL.ENV.cp_security_token;
+
+    # If locale is not found, fallback to English
+    FOREACH locale IN supported_file_browser_locales;
+        IF account_locale == locale;
+            use_locale = "true";
+            BREAK;
+        END;
+    END;
+
+%]
+
+
+<!--
+    DO NOT REORDER THE CSS!!! It is setup in a fallback order that allows the cpanel specific
+    elfinder customizations to work correctly to override those provided elfinder.
+-->
+
+<!-- elFinder CSS (REQUIRED) -->
+<link rel="stylesheet" type="text/css" href="[% MagicRevision('../../libraries/elfinder/optimized/jquery/ui-themes/smoothness/jquery-ui-1.10.1.custom.min.css') %]">
+<link rel="stylesheet" type="text/css" href="[% MagicRevision('../../libraries/elfinder/optimized/css/elfinder.min.css') %]">
+<link rel="stylesheet" type="text/css" href="[% MagicRevision('../../libraries/elfinder/optimized/css/theme.css') %]">
+<link rel="stylesheet" type="text/css" href="[% MagicRevision('../../elfinder_dependencies/css/elfinder.css') %]">
+
+<!-- jQuery and jQuery UI (REQUIRED) -->
+[% IF CPANEL.is_debug_mode_enabled() %]
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/optimized/jquery/jquery-1.9.1.min.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/optimized/jquery/jquery-ui-1.10.1.custom.min.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/elFinder.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/elFinder.version.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/jquery.elfinder.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/elFinder.options.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/elFinder.history.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/elFinder.command.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/elFinder.resources.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/jquery.dialogelfinder.js') %]"></script>
+
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/button.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/contextmenu.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/cwd.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/dialog.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/navbar.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/overlay.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/panel.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/path.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/places.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/searchbutton.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/sortbutton.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/stat.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/toolbar.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/tree.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/uploadButton.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/viewbutton.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/ui/workzone.js') %]"></script>
+
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/archive.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/back.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/copy.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/cut.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/download.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/duplicate.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/edit.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/extract.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/forward.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/getfile.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/help.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/home.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/info.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/mkdir.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/mkfile.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/netmount.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/open.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/paste.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/quicklook.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/quicklook.plugins.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/reload.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/rename.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/resize.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/rm.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/search.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/sort.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/up.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/upload.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/source/js/commands/view.js') %]"></script>
+
+[% IF use_locale == "true" %]
+<script type="text/javascript" src="[% MagicRevision(lang_file_path_debug) %]"></script>
+[% END %]
+
+[% ELSE %]
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/optimized/jquery/jquery-1.9.1.min.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/optimized/jquery/jquery-ui-1.10.1.custom.min.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/elfinder/optimized/js/elfinder.min.js') %]"></script>
+
+[% IF use_locale == "true" %]
+<script type="text/javascript" src="[% MagicRevision(lang_file_path) %]"></script>
+[% END %]
+
+[% END %]
+
+<!-- elFinder Container -->
+<div id="elfinder">
+</div>
+
+<script type="text/javascript" charset="utf-8">
+(function() {
+    /**
+    * Helper method to get URL parameters
+    *
+    * @method getUrlParam
+    * @param String paramName name of the parameter
+    * @return string
+    */
+    function getUrlParam(paramName)
+    {
+        var reParam = new RegExp("(?:[\?&]|&amp;)" + paramName + "=([^&]+)", "i") ;
+        var match = window.location.search.match(reParam) ;
+
+        return (match && match.length > 1) ? match[1] : "" ;
+    }
+
+    // ondomready
+    $().ready(function() {
+        var funcNum = getUrlParam("CKEditorFuncNum");
+
+        var dir = decodeURIComponent(getUrlParam("dir"));
+        var baseURL = decodeURIComponent(getUrlParam("url"));
+        var dirPath = decodeURIComponent(getUrlParam("dirPath"));
+
+        var encodedURLForConnector = "[% security_token %]" + "/backend/elfinder_connector.cgi?dir=" + encodeURIComponent(dir) + "&dirPath=" + encodeURIComponent(dirPath);
+
+        var config = {
+            url : encodedURLForConnector,
+            lang: "[% account_locale %]",
+            height: "530",
+            uiOptions : {
+                // toolbar configuration
+                toolbar : [
+                    ["back", "forward"],
+                    ["info"],
+                    ["search"]
+                ],
+
+                // directories tree options
+                tree : {
+                    // expand current root on init
+                    openRootOnLoad : true,
+                    // auto load current dir parents
+                    syncTree : true
+                },
+
+                // navbar options
+                navbar : {
+                    minWidth : 150,
+                    maxWidth : 500
+                },
+
+                // current working directory options
+                cwd : {
+                    // display parent directory in listing as ".."
+                    oldSchool : false
+                }
+            },
+
+            contextmenu : {
+                // navbarfolder menu
+                navbar : ["open", "|", "info"],
+
+                // current directory menu
+                cwd    : ["reload", "back", "|", "info"],
+
+                // current directory file menu
+                files  : [
+                    "getfile", "|", "open", "|", "info"
+                ]
+            },
+
+            /**
+            * callback method after a file has been selected in elfinder
+            *
+            * @method getFileCallback
+            * @param String file filepath
+            */
+            getFileCallback : function(file) {
+                var fileURL = decodeURIComponent(file);
+                window.opener.CKEDITOR.tools.callFunction(funcNum, fileURL);
+                window.close();
+            },
+
+            resizable: true
+        };
+
+        var elf = $("#elfinder").elfinder(config).elfinder("instance");
+    });
+})();
+</script>

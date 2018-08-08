@@ -1,0 +1,10 @@
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'webemail'
+    page_title = 'Webmail'
+-%]
+<div class="body-content">
+    [% IF CPANEL.feature('webmail') %]
+        [% INCLUDE "_assets/webmaillogininclude.html.tt" %]
+    [% END %]
+</div>
+[% END %]

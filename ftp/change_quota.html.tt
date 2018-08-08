@@ -1,0 +1,62 @@
+<script id="change-quota-template" type="text/x-handlebars-template">
+    <div id="changequota_module_{{ index }}" class="dt_module" style="display: none">
+        <!-- quota form fields -->
+        <div class="form-group">
+            <label>[% locale.maketext("FTP Quota") %]</label>
+            <!-- text-input field row -->
+            <div class="row">
+                <div class="col-sm-6 col-md-3">
+                    <div class="form-inline">
+                        <input id="change_quota_radio_number_{{ index }}"
+                            type="radio"
+                            name="change_quota_{{ index }}"
+                            onclick="toggle_quota_input('number', '{{ index }}', true)" />
+                        <input id="change_quota_number_input_{{ index }}"
+                            type="text"
+                            class="form-control"
+                            size="7"
+                            maxlength="9"
+                            onfocus="toggle_quota_input('number', '{{ index }}', true)" />
+                        <span>MB</span>
+                    </div>
+                </div>
+                <!-- error div for text-input field -->
+                <div class="col-sm-6 col-md-9">
+                    <span id="change_quota_number_input_{{ index }}_error"></span><br />
+                </div>
+            </div>
+            <!-- unlimited field row -->
+            <div class="row">
+                <div class="col-sm-6 col-md-3">
+                    <label class="form-inline">
+                        <input id="change_quota_radio_unlimited_{{ index }}"
+                            type="radio"
+                            name="change_quota_{{ index }}"
+                            onclick="toggle_quota_input('unlimited', '{{ index }}', true)" />
+                        <span>[% locale.maketext("Unlimited") %]</span>
+                    </label>
+                </div>
+                <!-- error div for unlimited field -->
+                <div class="col-sm-6 col-md-9">
+                    <span id="change_quota_radio_unlimited_{{ index }}_error"></span>
+                </div>
+            </div>
+        </div>
+        {{#if isSpecial}}
+            <em>[% locale.maketext("Note: all anonymous FTP accounts share the same quota.") %]</em>
+        {{/if}}
+        <!-- form control buttons -->
+        <div class="form-group" id="change_quota_input_{{ index }}">
+            <input id="change_quota_button_{{ index }}"
+                type="button"
+                class="btn btn-primary"
+                value="[% locale.maketext("Change Quota") %]" />
+            <button id="change_quota_cancel_button_{{ index }}"
+                class="btn btn-link"
+                onclick="toggle_module('changequota_module_{{ index }}')">
+                [% locale.maketext("Cancel") %]
+            </button>
+        </div>
+        <div id="change_quota_status_{{ index }}"></div>
+    </div>
+</script>

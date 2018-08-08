@@ -1,0 +1,245 @@
+[%
+
+SET CPANEL.CPVAR.dprefix = "../";
+Api2.pre_exec("Email", "listmaildomains");
+SET mail_domains =  Api2.exec("Email", "listmaildomains", {} );
+Api2.post_exec("Email", "listmaildomains");
+
+%]
+
+[% js_code = PROCESS js_block %]
+[% page_css = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'email_routing'
+    page_js = js_code
+    embed_scripts = ['js2/mail/mx.js']
+    page_styles = page_css
+%]
+<div class="body-content">
+    <p class="description" id="descMx">
+        [% locale.maketext("Route a domain’s incoming mail to a specific server. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/EmailRouting", "_blank", "lnkMxEntryDocumentation") %]
+    </p>
+    <div class="alert alert-warning">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        <div class="alert-message">
+            [% locale.maketext("[output,strong,Warning:] Setting the wrong option here can break receiving mail on your server. If you are at all unsure about which option to select, contact your system administrator.") %]
+        </div>
+    </div>
+    <div class="alert alert-info">
+        <span class="glyphicon glyphicon-info-sign"></span>
+        <div class="alert-message">
+            [% locale.maketext("[output,strong,Note:] To manage [asis,MX] records, use the new [output,url,_1,Zone Editor].","../zone_editor/index.html") %]
+        </div>
+    </div>
+    <input type="hidden" name="mxcheck_state" value="auto" id="mxcheck_state">
+    <input type="hidden" name="detected_state" value="remote" id="detected_state">
+    <div class="section">
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label class="control-label">[% locale.maketext("Domain") %]</label>
+                </div>
+            </div>
+            <div class="row" id="domain_selection">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [% IF mail_domains.size() == "1" %]
+                        <p class="form-control-static">[% mail_domains.0.domain.html() %] <input type="hidden" id="domain" value="[%  mail_domains.0.domain.html() %]" /></p>
+                    [% ELSE %]
+                        <select id="domain" class="form-control">
+                            <option value="_select_">[% locale.maketext("Select a domain.") %]</option>
+                        [% IF mail_domains.size() %]
+                            [% FOREACH domain_info IN mail_domains %]
+                                <option value="[% domain_info.domain.html() %]">[%  domain_info.domain.html() %]</option>
+                            [% END %]
+                        [% END %]
+                        </select>
+                    [% END %]
+                </div>
+            </div>
+        </div>
+    </div>
+    <div id="mx_input_and_table" [% IF (CPANEL.CPVAR.item('maildomainscount') > "1") %]style="display: none"[% END %] >
+        <div class="section">
+            <div id="mxcheck_options_div">
+                <label class="control-label">[% locale.maketext("Configure Email Routing") %]</label>
+                <div class="form-group routing-group">
+                    <label id="mxcheck_auto_label">
+                        <input type="radio" name="mxcheck" id="mxcheck_auto" value="auto" />
+                        <span>[% locale.maketext("Automatically Detect Configuration") %]</span>
+                    </label>
+                    <span class="status" id="mxcheck_auto_current_setting" style="font-weight: bold"></span>
+                    ([% locale.maketext("recommended") %])
+                    <button id="mxcheck_auto_toggle" class="btn btn-link" role="button">
+                        <div id="auto_toggle_more" class="toggle_more_link">[% locale.maketext("More")  %]<span class="far fa-caret-square-down fa-lg"></span></div>
+                        <div id="auto_toggle_less" class="toggle_less_link">[% locale.maketext("Less")  %]<span class="far fa-caret-square-up fa-lg"></span></div>
+                    </button>
+                    <div id="mxcheck_auto_desc" class="callout callout-info toggle-description less">
+                        <p>[% locale.maketext('The system uses the following criteria to detect the email routing settings:') %]</p>
+                        <ul class="mxcheck_autolist" id="listMxCheck">
+                            <li>
+                                <em>[% locale.maketext("Local Mail Exchanger") %]</em>
+                                <span id="mxcheck_detected_state_local"></span>
+                                <p>
+                                    [% locale.maketext("Lowest numbered mail exchanger points to an [asis,IP] address on this server.") %]
+                                </p>
+                            </li>
+                            <li>
+                                <em>[% locale.maketext("Backup Mail Exchanger") %]</em>
+                                <span id="mxcheck_detected_state_secondary"></span>
+                                <p>
+                                    [% locale.maketext("Lowest numbered mail exchanger points to an [asis,IP] address [output,strong,not] on this server.") %]
+                                </p>
+                            </li>
+                            <li>
+                                <em>[% locale.maketext("Remote Mail Exchanger") %]</em>
+                                <span id="mxcheck_detected_state_remote"></span>
+                                <p>
+                                    [% locale.maketext("No mail exchangers point to an [asis,IP] address on this server.") %]
+                                </p>
+                            </li>
+                        </ul>
+                        <p>
+                            [% locale.maketext("[output,strong,Note:] Automatic detection is [output,strong,not] possible if the configured [asis,MX] records do not resolve.") %]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group routing-group">
+                    <label id="mxcheck_local_label">
+                        <input type="radio" name="mxcheck" id="mxcheck_local" value="local" />
+                        <span>[% locale.maketext("Local Mail Exchanger") %]</span>
+                    </label>
+                    <button id="mxcheck_local_toggle" class="btn btn-link" role="button">
+                        <div id="local_toggle_more" class="toggle_more_link">[% locale.maketext("More")  %]<span class="far fa-caret-square-down fa-lg"></span></div>
+                        <div id="local_toggle_less" class="toggle_less_link">[% locale.maketext("Less")  %]<span class="far fa-caret-square-up fa-lg"></span></div>
+                    </button>
+                    <div id="mxcheck_local_desc" class="callout callout-info toggle-description less">
+                        <p class="highlight-accordian-desc" id="descConfigMailServer">
+                            [% locale.maketext("The server will always accept mail for this domain. The system will deliver mail to the local mailbox.") %]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group routing-group">
+                    <label id="mxcheck_secondary_label">
+                        <input type="radio" name="mxcheck" id="mxcheck_secondary" value="secondary" />
+                        <span>[% locale.maketext("Backup Mail Exchanger") %]</span>
+                    </label>
+                    <button id="mxcheck_secondary_toggle" class="btn btn-link" role="button">
+                        <div id="secondary_toggle_more" class="toggle_more_link">[% locale.maketext("More")  %]<span class="far fa-caret-square-down fa-lg"></span></div>
+                        <div id="secondary_toggle_less" class="toggle_less_link">[% locale.maketext("Less")  %]<span class="far fa-caret-square-up fa-lg"></span></div>
+                    </button>
+                    <div id="mxcheck_secondary_desc" class="callout callout-info toggle-description less">
+                        <p class="highlight-accordian-desc" id="descConfigMailExchangeBackup">
+                            [% locale.maketext("The server will act as a backup mail exchanger. The system will hold mail for this domain until a lower number mail exchanger is available.") %]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group routing-group">
+                    <label id="mxcheck_remote_label">
+                        <input type="radio" name="mxcheck" id="mxcheck_remote" value="remote" />
+                        <span>[% locale.maketext("Remote Mail Exchanger") %]</span>
+                    </label>
+                    <button id="mxcheck_remote_toggle" class="btn btn-link" role="button">
+                        <div id="remote_toggle_more" class="toggle_more_link">[% locale.maketext("More")  %]<span class="far fa-caret-square-down fa-lg"></span></div>
+                        <div id="remote_toggle_less" class="toggle_less_link">[% locale.maketext("Less")  %]<span class="far fa-caret-square-up fa-lg"></span></div>
+                    </button>
+                    <div id="mxcheck_remote_desc" class="callout callout-info toggle-description less">
+                        <p class="highlight-accordian-desc" id="descConfigNoMail">
+                            [% locale.maketext("The server will not accept mail for this domain. The system sends all mail for this domain to the lowest numbered mail exchanger.") %]
+                        </p>
+                    </div>
+                </div>
+
+                <div class="form-group" id="submit_button_group">
+                    <input class="btn btn-primary" type="button" value="[% locale.maketext("Change") %]" id="change_mxcheck_button" />
+                    <span class="help-block" id="txtHelpBlock">[% locale.maketext("Current setting is shown in [output,strong,bold].") %]</span>
+                    <span id="mxcheck_status"></span>
+                </div>
+            </div>
+        </div>
+    <div id="error_message_box" class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div id="error_message_text" class="alert-message"></div>
+    </div>
+    </div><!-- end mx_input_and_table -->
+</div><!-- end body-content -->
+[% END %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+    .control-label {
+        margin-bottom: 14px;
+        font-size: 18px;
+    }
+    html[dir=ltr] #mx_input_and_table div.form-group,
+    html[dir=ltr] #domain_selection label.control-label,
+    html[dir=ltr] #domain_selection p.form-control-static {
+        padding-left: 15px;
+    }
+    html[dir=rtl] #mx_input_and_table div.form-group,
+    html[dir=rtl] #domain_selection label.control-label,
+    html[dir=rtl] #domain_selection p.form-control-static {
+        padding-right: 15px;
+    }
+    #mx_input_and_table div#submit_button_group {
+        padding-left: 5px;
+        padding-right: 5px;
+    }
+    #error_message_box {
+        display: none;
+    }
+    html[dir=ltr] #mxcheck_options_div label span {
+        padding-left: 5px;
+    }
+    html[dir=rtl] #mxcheck_options_div label span {
+        padding-right: 5px;
+    }
+    html[dir=ltr] div.toggle_more_link span.far,
+    html[dir=ltr] div.toggle_less_link span.far {
+        margin-left: 5px;
+    }
+    html[dir=rtl] div.toggle_more_link span.far,
+    html[dir=rtl] div.toggle_less_link span.far {
+        margin-right: 5px;
+    }
+    .toggle_more_link {
+        display: inline;
+    }
+    .toggle_less_link {
+        display: none;
+    }
+    .toggle-description {
+        max-height: 600px;
+        overflow: hidden;
+        margin-top: 0;
+        margin-bottom: 0;
+        padding-top: 8px;
+        padding-bottom: 5px;
+        -webkit-transition: all 0.25s;
+        transition: all 0.25s;
+    }
+    .less {
+        padding-top: 0;
+        padding-bottom: 0;
+        max-height: 0;
+    }
+    .routing-group {
+        margin-bottom: 5px;
+    }
+</style>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+var LANG = {
+    MX_changing : "[% locale.maketext('Changing …') %]",
+    MX_current_detected_setting : "[% locale.maketext('Current Detected Setting') %]",
+    MX_Local : "[% locale.maketext('Local') %]",
+    MX_Backup : "[% locale.maketext('Backup') %]",
+    MX_Remote : "[% locale.maketext('Remote') %]"
+};
+</script>
+
+[% END %]

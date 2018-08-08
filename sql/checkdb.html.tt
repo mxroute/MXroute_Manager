@@ -1,0 +1,48 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../";
+    SET checkdb = execute("Mysql", "check_database", { "name" => FORM.db });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrChecking">
+        [% locale.maketext("Checking Database") %]
+    </h2>
+
+    <p id="checkdbBeginMsg">
+        [% locale.maketext("Database “[_1]” is now being checked.", FORM.db) %]
+    </p>
+
+    [% IF checkdb.status %]
+
+    <pre id="checkdbStatusMsg">
+    [%- FOREACH result IN checkdb.data %]
+    [[%- FORM.db FILTER html -%].[%- result.table -%]] [%- result.msg_text -%]
+    [% END -%]
+    </pre>
+
+    <div id="checkdbSuccess" class="alert alert-success">
+        <span id="checkdbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <span id="checkdbSuccessMsg" class="text">
+            [% locale.maketext("Check Complete") %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="checkdbError" class="alert alert-danger">
+        <span id="checkdbErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="checkdbErrorMsg" class="text">
+            [% locale.maketext("There was a problem checking the database “[_1]”.", FORM.db) %]
+            [% FOREACH q = checkdb.errors %]
+                [% q.html() %]
+            [% END %]
+            [% CPANEL.CPERROR.item('mysql').html %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

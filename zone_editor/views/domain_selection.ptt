@@ -1,0 +1,178 @@
+<div class="row">
+    <div class="col-xs-12">
+        <h2 class="view-title">[% locale.maketext('Domains') %]</h2>
+    </div>
+</div>
+<div id="notAllowedWarning" class="alert alert-danger ng-hide" ng-show="list.loading_error">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" ng-bind-html="list.loading_error_message">
+    </div>
+</div>
+<div id="tableShowHideContainer" ng-hide="list.loading_error">
+    <div id="paginationControls" class="row search-page-container">
+        <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+            <search id="filterList"
+                ng-model="list.meta.filterValue"
+                placeholder="[% locale.maketext('Filter by domain') %]"
+                autofocus
+                ng-change="list.searchList()"></search>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+            <div id="paginator" class="pagination-container pull-right hidden-xs hidden-sm">
+                <page-size id="topPageSize"
+                    allowed-sizes="list.meta.pageSizes"
+                    total-items="list.meta.totalItems"
+                    ng-model="list.meta.pageSize"
+                    show-all="false"
+                    ng-change="list.selectPageSize()">
+                </page-size>
+                <uib-pagination id="topPager"
+                    ng-change="list.selectPage()"
+                    ng-model="list.meta.pageNumber"
+                    max-size="list.meta.maxPages"
+                    items-per-page="list.meta.pageSize"
+                    total-items="list.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+    <div id="tableStats" class="row hidden-xs hidden-sm">
+        <div class="col-xs-8">
+            <div class="page-stats selected-stats">
+            </div>
+        </div>
+        <div class="col-xs-4">
+            <div class="page-stats pull-right">
+            {{list.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+    <div id="tableContainer">
+        <table id="table" class="table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th id="domainHeader">
+                        <span toggle-sort id="sortByDomain" onsort="list.sortList" sort-meta="list.meta" sort-field="domain">
+                            [% locale.maketext('Domain') %]
+                        </span>
+                    </th>
+                    <th id="actionsHeader">[% locale.maketext('Actions') %]</th>
+                    <th id="gearMenuContainer" class="gear-column">
+                        <span class="dropdown" uib-dropdown>
+                            <a href id="gearMenu" class="dropdown-toggle" uib-dropdown-toggle>
+                              <span class="fas fa-cog fa-lg"></span>
+                            </a>
+                            <ul class="dropdown-menu[%- IF locale.get_html_dir_attr() != 'rtl' -%] dropdown-menu-right[% END %] gear-menu" uib-dropdown-menu>
+                                <li>
+                                    <a id="refreshList" href ng-click="list.refresh()">[% locale.maketext('Refresh List') %]</a>
+                                </li>
+                            </ul>
+                        </span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr id="loadingNotice" class="info empty-row ng-hide" ng-show="list.ui.is_loading">
+                    <td colspan="3" id="loadingMessage">
+                        <i id="loadingSpinner" class="fas fa-spinner fa-spin"></i>
+                        [% locale.maketext('Loading …') %]
+                    </td>
+                </tr>
+                <tr id="emptyListNotice" class="info empty-row ng-hide" ng-show="list.filteredList.length == 0 && !list.ui.is_loading">
+                    <td colspan="3" id="emptyMessage">[% locale.maketext('The system could not find any domains that match your criteria.') %]</td>
+                </tr>
+                <tr ng-repeat="domain_obj in list.filteredList" ng-hide="list.ui.is_loading || list.filteredList.length == 0">
+                    <td data-title="[% locale.maketext('Domain') %]">
+                        <span>{{ domain_obj.domain }}</span>
+                    </td>
+                    <td class="action-buttons" data-title="[% locale.maketext('Actions') %]">
+                        <button type="button" id="add_a_for_{{ domain_obj.domain | qaSafeID }}" class="btn btn-link"
+                            ng-if="list.Features.simple || list.Features.advanced"
+                            ng-click="list.create_a_record(domain_obj)">
+                            <span class="fas fa-plus"></span>
+                            [% locale.maketext('[asis,A] Record') %]
+                        </button>
+                        <button type="button" id="add_cname_for_{{ domain_obj.domain | qaSafeID }}" class="btn btn-link"
+                            ng-if="list.Features.simple || list.Features.advanced"
+                            ng-click="list.create_cname_record(domain_obj)">
+                            <span class="fas fa-plus"></span>
+                            [% locale.maketext('[asis,CNAME] Record') %]
+                        </button>
+                        <button type="button" id="add_mx_for_{{ domain_obj.domain | qaSafeID }}" class="btn btn-link"
+                            ng-if="list.Features.mx"
+                            ng-click="list.create_mx_record(domain_obj)">
+                            <span class="fas fa-plus"></span>
+                            [% locale.maketext('[asis,MX] Record') %]
+                        </button>
+                        <button type="button" id="dnssec_for_{{ domain_obj.domain | qaSafeID }}" class="btn btn-link"
+                            ng-if="list.Features.dnssec"
+                            ng-click="list.goToView('dnssec', domain_obj.domain)">
+                            <span class="fas fa-lock"></span>
+                            [% locale.maketext("[asis,DNSSEC]") %]
+                        </button>
+                        <button type="button" id="manage_for_{{ domain_obj.domain | qaSafeID }}" class="btn btn-link"
+                            ng-click="list.goToView('manage', domain_obj.domain)">
+                            <span class="fas fa-wrench"></span>
+                            [% locale.maketext('Manage') %]
+                        </button>
+                    </td>
+                    <td class="gear-column">&nbsp;</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="row hidden-md hidden-lg">
+        <div class="col-xs-4">
+            <div class="page-stats selected-stats">
+            </div>
+        </div>
+        <div class="col-xs-8">
+            <div class="page-stats pull-right">
+                {{list.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+    <div class="row search-page-container visible-sm-block visible-xs-block hidden-lg hidden-md">
+        <div class="col-xs-12 col-sm-12">
+            <div id="paginatorBottom" class="pagination-container">
+                <page-size id="bottomPageSize"
+                    allowed-sizes="list.meta.pageSizes"
+                    total-items="list.meta.totalItems"
+                    ng-model="list.meta.pageSize"
+                    show-all="false"
+                    ng-change="list.selectPageSize()">
+                </page-size>
+                <uib-pagination id="bottomPager"
+                    ng-change="list.selectPage()"
+                    ng-model="list.meta.pageNumber"
+                    max-size="list.meta.maxPages"
+                    items-per-page="list.meta.pageSize"
+                    total-items="list.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+</div>
+<script id="views/cname_record_form.html" type="text/ng-template">
+[% INSERT "zone_editor/views/cname_record_form.html" %]
+</script>
+<script id="views/a_record_form.html" type="text/ng-template">
+[% INSERT "zone_editor/views/a_record_form.html" %]
+</script>
+<script id="views/mx_record_form.html" type="text/ng-template">
+[% INSERT "zone_editor/views/mx_record_form.html" %]
+</script>

@@ -1,0 +1,24 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET return_link = 'index.html?db=' _ RAW_FORM.item('db').uri();
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    <p id="descConfirm">
+        [% locale.maketext("Are you sure you wish to remove the user “[_1]” from the database “[_2]”?", FORM.user, FORM.db) %]
+    </p>
+    <a id="btnDelete" class="btn btn-primary" href="deluserfromdb.html?user=[% FORM.user | uri %]&db=[% RAW_FORM.db | uri %]">
+        [% locale.maketext("Delete User from Database") %]
+    </a>
+    <a id="btnCancel" class="btn btn-link" href="[% return_link %]">
+        [% locale.maketext("Cancel") %]
+    </a>
+
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

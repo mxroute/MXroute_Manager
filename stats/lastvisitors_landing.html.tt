@@ -1,0 +1,53 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'visitors'
+-%]
+
+
+[% SET list_last_visitors =  Api2.exec("Stats", "listlastvisitors", {} ); %]
+
+<div class="body-content">
+    <p id="dscLastVisitors" class="description">
+        [% locale.maketext("This function displays up to [numf,_1] of the most recent entries in the Apache log for a given domain’s web site.", 1000)  %]
+    </p>
+    <div class="section">
+        <h2 id="hdrSelectDomain">
+            [% locale.maketext("Select a Domain") %]
+        </h2>
+        <table class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">
+                        [% locale.maketext("Domain") %]
+                    </th>
+                    <th nowrap nonsortable="true" scope="col">
+                        [% locale.maketext("View") %]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                [% IF list_last_visitors.size; %]
+                    [% FOREACH lastVisitor IN list_last_visitors; %]
+                    <tr class="row-[%  loop.index % 2 == 0 ? 'even' : 'odd' %]" >
+                        <td>[%  lastVisitor.txt.html() %]</td>
+                        <td class="nobrd-center-t">
+                            <a href="lastvisit.html?domain=[%  lastVisitor.domain | url %]&ssl=[%  lastVisitor.ssl | url %]" >
+                            <span class="glyphicon glyphicon-search"></span>
+                            </a>
+                        </td>
+                    </tr>
+                    [% END %]
+                [% ELSE %]
+                    <tr>
+                        <td class="errors" colspan="2">
+                        [% locale.maketext("There are no domains which have last visitors stats to display.") %]
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </div>
+</div>
+
+[% END #wrapper -%]

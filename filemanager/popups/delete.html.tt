@@ -1,0 +1,17 @@
+<div style="display:none;" id="delete">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Delete") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="delete-filecontent">
+            <form>
+                [% locale.maketext("Are you sure you wish to delete the following files?") %]
+                <span id="delete-filelist"></span>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>
+

@@ -1,0 +1,94 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+    SET url = "../filemanager/index.html?dir=" _ CPANEL.homedir.uri() _ "/" _ RAW_FORM.dir.uri();
+
+    IF RAW_FORM.create_ftp_account;
+        SET is_ftp_optional = 0; # We are creating an FTP so we should perform the FTP quota check as a precondition
+    ELSE;
+        SET is_ftp_optional = 1; # We are not creating an FTP so we should don't need FTP quota check as a precondition
+    END;
+
+    Api2.pre_exec("AddonDomain", "addaddondomain");
+    SET addon_results = Api2.exec("AddonDomain" , "addaddondomain" , {
+        "subdomain" => FORM.subdomain,
+        "newdomain" => FORM.domain,
+        "dir"       => FORM.dir,
+        "ftp_is_optional" => is_ftp_optional,
+    });
+    Api2.post_exec("AddonDomain", "addaddondomain");
+
+    SET addon_error = CPANEL.CPERROR.addondomain;
+
+    # if ftp is requested, we need to check that addon
+    # does not throw an error before proceeding.
+    SET ftp_is_blocked = addon_error.length() > 0;
+    SET create_ftp = !!RAW_FORM.create_ftp_account && !ftp_is_blocked;
+    IF (create_ftp);
+        SET ftp_results = execute("Ftp", "add_ftp", {
+            "user"    => RAW_FORM.ftpuser,
+            "pass"    => RAW_FORM.pass,
+            "homedir" => RAW_FORM.dir,
+            "domain"  => RAW_FORM.domain,
+        });
+    END;
+
+    SET errors = [];
+    SET successes = [];
+
+    IF addon_error;
+        errors.push(addon_error.html());
+    ELSE;
+        successes.push(locale.maketext("The addon domain “[_1]” has been created.", FORM.domain));
+
+        IF create_ftp;
+            IF ftp_results.status;
+                SET full_username = FORM.ftpuser _ '@' _ FORM.domain;
+                successes.push( locale.maketext("The FTP account “[_1]” has been created.", full_username ));
+            ELSE;
+                FOR msg IN ftp_results.errors;
+                    errors.push(msg.html());
+                END;
+            END;
+        END;
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'addon_domains'
+ -%]
+<div class="body-content">
+    [% IF errors.size() > 0 %]
+        <div id="addError" class="alert alert-danger">
+            <span id="addErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            [% FOREACH msg = errors %]
+            <div class="alert-message">
+                [% msg %]
+            </div>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% IF successes.size() > 0 %]
+        <div id="addSuccess" class="alert alert-success">
+            <span id="addSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            [% FOREACH msg = successes %]
+            <div class="alert-message">
+                [% msg %]
+            </div>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% UNLESS addon_error %]
+        <div id="details" class="alert alert-info">
+            <span id="detailsInfoImg" class="glyphicon glyphicon-info-sign"></span>
+            <div class="alert-message" id="detailsInfoMsg">
+                [% locale.maketext("If you would like to manage the files for this domain, you can do so here: [output,url,_1,File Manager,target,_blank,class,ajaxfiles,id,_2]", url, "lnkFileManager") %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html"  return_link_text=locale.maketext("Go Back" ) %]
+
+</div><!-- end body-content -->
+[% END #wrapper %]

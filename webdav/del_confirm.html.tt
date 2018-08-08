@@ -1,0 +1,25 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+-%]
+
+<div class="body-content">
+    <p class="description" id="descConfirm">
+        [% locale.maketext("Are you sure you want to delete “[output,strong,_1]”?",FORM.item('login')) %]
+    </p>
+    <p>
+        <a class="btn btn-primary" href="del.html?login=[% FORM.item('login') %]" id="btnDeleteWebDiskAccount">
+            [% locale.maketext("Delete Web Disk Account") %]
+        </a>
+        <a class="btn btn-link" href="accounts_webdav.html" id="btnCancel">
+            [% locale.maketext("Cancel") %]
+        </a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='accounts_webdav.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]

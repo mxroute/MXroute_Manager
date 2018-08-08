@@ -1,0 +1,6 @@
+.instance-actions a.icon-link:hover {
+  text-decoration: none;
+}
+.instance-actions a.icon-link:hover span {
+  text-decoration: underline;
+}

@@ -1,0 +1,168 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../../";
+
+USE ExpVar;
+SET is_secpolicy_enabled = ExpVar.expand('$is_twofactorauth_sec_policy_enabled');
+SET has_feature = CPANEL.feature('twofactorauth');
+
+SET setup_data = {};
+SET api_call_result = {};
+
+SET doing_a_reset = 0;
+IF CPANEL.FORM.reconfigure;
+    SET doing_a_reset = 1;
+END;
+
+IF CPANEL.FORM.defined('enable_2fa_btn');
+    SET api_call_result = execute("TwoFactorAuth", "set_user_configuration", {
+        "secret" => RAW_FORM.item('2fa_secret_code'),
+        "tfa_token" => RAW_FORM.item('2fa_security_token')
+    });
+    IF !api_call_result.status;
+        SET setup_data = {
+            "secret" => RAW_FORM.item('2fa_secret_code'),
+            "otpauth_str" => RAW_FORM.item('2fa_otpauth_str'),
+        };
+    END;
+
+ELSE;
+    SET setup_call = execute("TwoFactorAuth", "generate_user_configuration", {});
+    IF setup_call.status;
+        SET setup_data = {
+            "secret" => setup_call.data.secret,
+            "otpauth_str" => setup_call.data.otpauth_str,
+        };
+    END;
+END;
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'two_factor_authentication'
+    include_legacy_stylesheets = 0
+    page_stylesheets = ['security/2fa/index.min.css']
+    page_scripts = ['libraries/qrcodejs/0.0.1/qrcode.min.js','security/2fa/index.min.js']
+    page_init_js = js_code
+%]
+<div class="body-content">
+[% IF is_secpolicy_enabled && has_feature %]
+    <p class="description">
+    [% locale.maketext("To use two-factor authentication, you will need a [output,url,_1,supported phone app,_2].", "https://go.cpanel.net/2facp", { id => "2fa_external_link", target => "_blank" }) %]
+    </p>
+
+
+    [% IF api_call_result.defined('status') && api_call_result.status %]
+        <div id="success" class="alert alert-success">
+            <span id="successImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("[output,strong,Success:] Two-factor authentication is now configured on your account.") %]
+            </div>
+        </div>
+        [%
+            SET return_link = "index.html";
+            INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back')
+        %]
+    [% ELSE %]
+
+        [% IF doing_a_reset %]
+            <div id="reset_warning" class="alert alert-warning">
+                <span class="glyphicon glyphicon-exclamation-sign"></span>
+                <div class="alert-message">
+                    [% locale.maketext("[output,strong,Warning:] This will overwrite your current [output,acronym,2FA,Two-Factor Authentication] configuration; any existing configurations will no longer produce valid security codes.") %]
+                </div>
+            </div>
+        [% END %]
+
+        [% IF api_call_result.defined('status') && !api_call_result.status %]
+            <div id="error" class="alert alert-danger">
+                <span id="errorImg" class="glyphicon glyphicon-remove-sign"></span>
+                [% FOREACH msg = api_call_result.errors; %]
+                <div class="alert-message">
+                    [% msg.html(); %]
+                </div>
+                [% END; %]
+            </div>
+        [% END %]
+    <form class="layout-medium" action="setup.html" method="post">
+    <input type="hidden" id="2fa_secret_code" name="2fa_secret_code" value="[% setup_data.secret | html %]">
+    <input type="hidden" id="2fa_otpauth_str" name="2fa_otpauth_str" value="[% setup_data.otpauth_str | html %]">
+    <input type="hidden" id="reconfigure" name="reconfigure" value="[% doing_a_reset | html %]">
+
+    <div class="row section">
+        <div class="col-xs-12 col-sm-8 col-md-8 col-lg-6">
+            <h3 class="step-title">[% locale.maketext("Step [numf,_1]", 1) %]</h3>
+            <p>
+            [% locale.maketext("Scan the following [asis,QR code] with a two-factor authentication app on your phone.") %]
+            </p>
+
+            <div class="image-container center-block" id="qr_code_container"></div>
+
+            <div class="alert alert-info">
+                <span class="glyphicon glyphicon-info-sign"></span>
+                <div class="alert-message">
+                    <p>
+                    <strong>[% locale.maketext("Don’t have a [asis,QR code] reader?") %]</strong>
+                    </p>
+                    <p>[% locale.maketext("Enter the following information to manually configure two-factor authentication in your app:") %]</p>
+                    <p><strong>[% locale.maketext('Account') %]</strong></p>
+                    <pre><code id="2fa_account">[% CPANEL.user | html %]</code></pre>
+                    <p><strong>[% locale.maketext('Key') %]</strong></p>
+                    <pre><code id="2fa_secret_text_code">[% setup_data.secret | html %]</code></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row section">
+        <div class="col-xs-12 col-sm-8 col-md-8 col-lg-6">
+            <h3 class="step-title">[% locale.maketext("Step [numf,_1]", 2) %]</h3>
+            <p class="description">
+            [% locale.maketext("Enter the security code generated by your two-factor authentication app.") %]
+            </p>
+
+            <div class="form-group">
+                <label for="2fa_security_token">
+                   [% locale.maketext("Security Code") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-6 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text"
+                            id="2fa_security_token"
+                            name="2fa_security_token"
+                            class="form-control"
+                            autocomplete="off"
+                            maxlength="10"
+                            placeholder="[% locale.maketext('six-digit code') %]"
+                            >
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group action-group">
+        <button type="submit"
+            class="btn btn-primary"
+            id="enable_2fa_btn"
+            name="enable_2fa_btn"
+            >[% locale.maketext("Configure Two-Factor Authentication") %]</button>
+    </div>
+    </form>
+    [% END %]
+[% ELSE %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+        [% locale.maketext('You do not have access to this feature. You must have the [asis,Two-factor Authentication] feature enabled for your account to use this interface.') %]
+        </div>
+    </div>
+[% END %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    window.PAGE.setup_data = [% setup_data.json() || '{}' %];
+</script>
+[% END %]

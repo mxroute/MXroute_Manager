@@ -1,0 +1,49 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/topsubdomains.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = '../addoncgi/cpaddons.html?addon=' _ FORM.from_cpaddon.uri() _ '&subdomain=' _ FORM.domain.uri() _ '.' _ FORM.rootdomain.uri();
+SET source_ip_check_account = Api2.exec("SourceIPCheck", "getaccount", {"account" => FORM.account}).0;
+
+
+Api2.pre_exec("SubDomain", "addsubdomain");
+SET domain_add = Api2.exec("SubDomain", "addsubdomain", {
+    domain => RAW_FORM.domain,
+    rootdomain => RAW_FORM.rootdomain,
+    canoff => "1",
+    disallowdot => "0",
+    dir => RAW_FORM.dir
+}).0;
+Api2.post_exec("SubDomain", "addsubdomain");
+%]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'subdomains'
+ -%]
+
+<div class="body-content">
+    [% IF domain_add.result %]
+        <div id="addSuccess" class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("[output,strong,Success]: “[_1]” has been created.", FORM.domain _ '.' _ FORM.rootdomain) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="addError" class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("There was a problem creating the sub-domain:") %]
+                <p>[% domain_add.reason.html() %]</p>
+            </div>
+        </div>
+    [% END %]
+
+    [% IF FORM.from_cpaddon %]
+        [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back to Site Software') %]
+    [% ELSE %]
+        [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+    [% END %]
+</div>
+[% END #wrapper -%]
+

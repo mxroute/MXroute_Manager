@@ -1,0 +1,143 @@
+[%
+    SET full_listname = RAW_FORM('email');
+    SET listdomain = full_listname.split('@').1;
+
+    #NOTE: Should this ever not be SSL?
+    SET webmailurl = "http://mail.$listdomain/webmail";
+    SET safewebmailurl = webmailurl.html;
+
+    SET delegates = execute('Email','get_mailman_delegates', {
+        'list' => (full_listname)
+    });
+
+    SET delegated_users = delegates.data.delegates.join(',');
+
+    IF delegates.status;
+        SET delegate_map = array_to_hash(delegates.data.delegates);
+    END;
+
+    SET all_email_users = execute('Email','list_pops');
+
+    IF all_email_users.status;
+        SET email_users = array_to_hash(all_email_users.data,'email');
+        email_users.delete( CPANEL.user );
+    END;
+
+    SET sorted_email_users = email_users.keys.sort();
+
+    SET CPANEL.CPVAR.dprefix = '../';
+
+    SET add_arrow = locale.is_rtl() ? '&larr;' : '&rarr;';
+    SET remove_arrow = locale.is_rtl() ? '&rarr;' : '&larr;';
+
+    SET securityurl = "https://go.cpanel.net/mailmandelegation";
+    SET safesecurityurl = securityurl.html;
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mailing_lists'
+    page_js_top = js_code
+    embed_scripts = ['js2/mail/delegatelist.js']
+    embed_stylesheets = ['css2/mail/delegatelist.css']
+-%]
+    [% PROCESS _assets/_ajaxapp_header.html.tt -%]
+    <div class="body-content">
+        <h2 id="hdrAdminPrivDelegation">
+            [% locale.maketext('Administrator Privileges Delegation') %]
+        </h2>
+        <div id="cjt_pagenotice_container"></div>
+        <h3 id="hdrGrantEmail">
+            [% locale.maketext("Grant email users administrative access to the mailing list “[_1]”", full_listname.html()) %]
+        </h3>
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                <strong>Warning:</strong>
+                [% locale.maketext('Do not delegate mailing list administration to virtual accounts that you do not trust. Delegation will give this virtual user a means by which they could take over the cPanel account. Please use this functionality with care. See [output,url,_1] for more information.', safesecurityurl) %]
+            </div>
+        </div>
+        [% IF email_users.size -%]
+            [% INCLUDE infoText %]
+            [% INCLUDE selectWrapper %]
+        [% ELSE %]
+            [% INCLUDE noUsersWarning %]
+        [% END %]
+
+
+        [% INCLUDE _assets/return_link.html.tt return_location='lists.html#listlists' return_link_text=locale.maketext('Go Back') %]
+    </div>
+
+    [% PROCESS _assets/_ajaxapp_footer.html.tt -%]
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var PAGE = [% JSON.stringify( {
+        list => full_listname,
+    }) %];
+    window.PAGE = PAGE;
+</script>
+[% END %]
+
+
+
+[% BLOCK infoText %]
+    <p id="descDelegateAdmin">
+        [% locale.maketext('You can delegate administrative privileges for the mailing list to the users you choose below.') %]
+        [% locale.maketext('Once you have delegated administrative privileges to an email user for a list, the user can login to the list’s administrative console from webmail ([output,url,_1]).', safewebmailurl) %]
+    </p>
+[% END %]
+
+[% BLOCK selectWrapper %]
+    <div id="delegateWrapper" >
+        <div class="row">
+            <div class="selectWrapper col-xs-5">
+                <label id="lblAvailableUsers" for="available_users">
+                    [% locale.maketext('Available Users') %]
+                </label>
+                <select multiple id="available_users" size="10" class="form-control" dir="ltr">
+                    [%
+                        FOR userEmail IN sorted_email_users;
+                            #If the user is a delegate we don't want to duplicate them
+                            NEXT IF delegate_map.$userEmail == 1;
+
+                            SET opt_id_html = 'listopt_' _ userEmail.html();
+                            "<option id=\"$opt_id_html\">" _ userEmail.html() _ '</option>';
+                        END;
+                    %]
+                </select>
+            </div>
+            <div class="col-xs-2">
+                <button id="add_button"  class="btn btn-default" title="[% locale.maketext('Delegate administrative privileges to the selected user(s).') %]">[% add_arrow %]</button>
+                <button id="del_button"  class="btn btn-default" title="[% locale.maketext('Revoke administrative privileges from the selected user(s).') %]">[% remove_arrow %]</button>
+            </div>
+            <div class="selectWrapper col-xs-5">
+                <label id="lblListAdmin" for="assigned_users">
+                    [% locale.maketext('List Administrators') %]
+                </label>
+                <select id="assigned_users"  multiple size="10" class="form-control" dir="ltr">
+                    [%
+                        FOR user IN delegates.data.delegates.sort();
+                            SET opt_id_html = 'listopt_' _ user.html();
+                            "<option id=\"$opt_id_html\">" _ user.html() _ '</option>';
+                        END;
+                    %]
+                </select>
+            </div>
+        </div>
+        <button id="save_button" class="btn btn-primary" disabled>[% locale.maketext("Save") %]</button>
+    </div>
+[% END %]
+
+[% BLOCK noUsersWarning %]
+    <div id="noUsersWarning">
+        <p>
+            [% locale.maketext('You have not set up any email accounts.') %]
+        </p>
+        <p>
+            [% locale.maketext('You must first create an email account for each user whom you wish to have administrative access.') %]
+        </p>
+    </div>
+[% END %]
+

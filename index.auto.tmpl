@@ -1,0 +1,9 @@
+ [%
+    SET CPANEL.current_style = execute("Styles", "current").data.name;
+%]
+
+[%- IF CPANEL.current_style == 'retro' -%]
+    [% PROCESS home/index_retro.tt %]
+[% ELSE %]
+    [%- PROCESS home/index.tt -%]
+[% END %]

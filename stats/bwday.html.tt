@@ -1,0 +1,109 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext("Bandwidth")
+    app_key = 'bandwidth'
+-%]
+
+[%
+USE CPDate;
+
+SET timezone = CPANEL.cookies.timezone;
+
+SET month_index = RAW_FORM('month') - 1;
+
+SET starttime = CPDate.timezone_timelocal(
+    timezone,
+    0, 0, 0, RAW_FORM('day'), month_index, RAW_FORM('year')
+);
+
+SET endtime = CPDate.add_local_interval(
+    starttime,
+    1, 'day',
+    timezone,
+) - 1;
+
+SET expirations = execute(
+    'Bandwidth',
+    'get_retention_periods',
+    {
+        'api.sort_column' => 'retention',
+        'api.sort_method' => 'numeric',
+    },
+).data;
+
+SET now  = CPANEL.now;
+
+SET time_grouping = 'year_month_day_hour_minute';
+SET interval = '5min';
+USE dumper;
+FOR exp = expirations;
+    IF (exp.interval == '5min') && (starttime < (now - exp.retention));
+        SET time_grouping = 'year_month_day_hour';
+        SET interval = 'hourly';
+    END;
+    IF exp.interval == 'hourly' && starttime < (now - exp.retention);
+        SET time_grouping = 'year_month_day';
+        SET interval = 'daily';
+    END;
+END;
+
+SET form_target = RAW_FORM('target');
+SET query_specific_domain_yn = (form_target != CPANEL.authuser);
+
+SET bwdata = execute(
+    'Bandwidth',
+    'query',
+    {
+        timezone => timezone,
+        grouping => "protocol|$time_grouping",
+        interval => interval,
+        domains => query_specific_domain_yn ? form_target : '',
+        start => starttime,
+        end => endtime,
+    },
+);
+
+PROCESS '_bandwidth_graph_include.tmpl';
+-%]
+
+<!-- TODO: put somewhere separately -->
+<style type="text/css">
+.data-descriptor {
+    text-align: center;
+}
+</style>
+
+<div class="body-content">
+    <p class="description">[% your_timezone_is() %]</p>
+
+    <h4 class="data-descriptor">
+        [% query_specific_domain_yn ? form_target.html() _ ' — ' : '' %]
+        [% locale.datetime( CPDate.timegm( 0, 0, 0, RAW_FORM('day'), month_index, RAW_FORM('year') ), 'date_format_full' ); %]
+    </h4>
+    <div class="bw-time-graph" id="bwgraph_el"></div>
+    [% INCLUDE _assets/return_link.html.tt return_location="javascript:history.go(-1)" return_link_text=locale.maketext("Go Back") %]
+</div>
+
+<script>
+//XXX: LOCALE’s CLDR isn’t loading correctly on page load.
+wait_for_CLDR_to_load( function() {
+    var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
+        time_format: function(t) { return LOCALE.local_datetime(t, "time_format_short") },
+        container_path: "#bwgraph_el",
+        min_date: [% "${starttime}000" %],
+        max_date: [% "${endtime}000" %],
+        resolution: [% JSON.stringify(interval) %],
+        api_protocol_data: [% JSON.stringify(bwdata.data) %]
+    } );
+    [% IF !query_specific_domain_yn -%]
+        if (did_sth) {
+            Bandwidth_Graph.draw_protocols_time_graph_key("#bwgraph_el");
+        }
+    [% END -%]
+} );
+
+CPTimezone.show_cookie_timezone_mismatch_nodes();
+</script>
+
+[% END #wrapper -%]

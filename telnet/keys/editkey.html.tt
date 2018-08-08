@@ -1,0 +1,76 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[%
+    Api2.pre_exec("SSH", "fetchkey");
+    SET fetchkey =  Api2.exec("SSH", "fetchkey", {"name"=>FORM.key, "pub"=>FORM.pub} ).0;
+    Api2.post_exec("SSH", "fetchkey");
+
+    Api2.pre_exec("SSH", "listkeys");
+    SET sshkeys_list =  Api2.exec("SSH", "listkeys", {"keys"=>FORM.key, "pub"=>FORM.pub} );
+    Api2.post_exec("SSH", "listkeys");
+
+    SET download_url = CPANEL.ENV.cp_security_token.html() _ "/download/" _ sshkeys_list.0.file.html();
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    <div id="sectionViewDownload" class="section">
+        <h2 id="hdrViewDownload">[% locale.maketext("View or Download [asis,SSH] Keys") %]</h2>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <span id="keyType">
+                        <strong>
+                            [% IF FORM.item('pub') %]
+                                [% locale.maketext("Public [asis,SSH] Key") %]
+                            [% ELSE %]
+                                [% locale.maketext("Private [asis,SSH] Key") %]
+                            [% END %]
+                            “[% FORM.key %]” [% locale.maketext("Open Key") %]
+                        </strong>
+                    </span>
+                    <pre id="key_area">[% fetchkey.key.html() %]</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <a id="lnkDownloadKey" class="btn btn-primary" href="[% download_url %]">[% locale.maketext("Download Key") %]</a>
+        </div>
+    </div>
+
+    [% IF !FORM.pub %]
+    <div id="sectionPrivateKey" class="section">
+        <h2 id="hdrPrivateKey">
+            [% locale.maketext("Convert the “[_1]” key to [output,acronym,PPK,Public Private Key] format:", FORM.key) %]
+        </h2>
+        <form action="puttyexport.html" method="post">
+            <!-- prevent password autofill -->
+            <input type="text" style="display:none">
+            <input type="password" autocomplete='off' style="display:none">
+            <input id="hidKey" type="hidden" name="key" value="[% FORM.key %]" />
+            <div class="form-group">
+                <label id="lblPass" for="pass">
+                    [% locale.maketext("Enter the passphrase to unlock the “[output,strong,_1]” key for conversion:", FORM.key) %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' name="pass" id="pass" class="form-control" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input id="btnConvert" type="submit" class="btn btn-primary" value="[% locale.maketext("Convert") %]" />
+            </div>
+        </form>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper %]

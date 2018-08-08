@@ -1,0 +1,10 @@
+#syncgrants-info {
+    cursor: help;
+}
+
+/* Extracted from mail.css */
+
+#spinner {
+    position: absolute;
+    display: none;
+}

@@ -1,0 +1,23 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    <div id="descSuccess" class="alert alert-success">
+        <span id="descSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="descSuccessMsg" class="alert-message">
+            [% locale.maketext("Deleted the user “[_1]”.", FORM.user) %]
+            [% #TODO: Cant detected the difference between a success and a failure.
+                Api1.pre_exec("Postgres", "deluser");
+                Api1.exec("Postgres", "deluser", [FORM.user]);
+                Api1.post_exec("Postgres", "deluser");
+            %]
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

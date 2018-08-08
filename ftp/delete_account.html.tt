@@ -1,0 +1,43 @@
+<script id="delete-account-template" type="text/x-handlebars-template">
+    <div id="delete_module_{{ index }}" class="dt_module" style="display: none">
+        <div class="form-group">
+            <p>
+                [% locale.maketext("Delete account:") %]
+                <strong>{{ login }}</strong>?<br />
+                <span class="fas fa-home"></span>: {{ home }}
+            </p>
+            <div class="row">
+                <div class="col-sm-6 col-md-3">
+                    <label class="checkbox">
+                        <input onclick="toggle_delete_home_message('{{index}}')" id="delete_account_files_{{ index }}"
+                            type="checkbox"
+                            name="delete_account_files_{{ index }}" />
+                        [% locale.maketext("Delete the User’s Home Directory") %]
+                    </label>
+                </div>
+            </div>
+            <div class="row" id="delete_home_dir_module_{{ index }}" style="display: none">
+                <div class="col-md-10">
+                    <div class="callout callout-danger">
+                        <p>[% locale.maketext("Please ensure that no other users on this account require these files.") %]</p>
+                        <p>[% locale.maketext("This option will permanently remove all files in the following directory:") %]</p>
+                        <p><strong>{{home}}</strong></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <input id="delete_account_{{ index }}"
+                type="button"
+                class="btn btn-primary"
+                value="[% locale.maketext("Delete") %]"
+                onclick="delete_account({{ index }})" />
+            <button id="cancel_delete_{{ index }}"
+                class="btn btn-link"
+                onclick="toggle_module('delete_module_{{ index }}')">
+                [% locale.maketext("Cancel") %]
+            </button>
+        </div>
+        <div id="delete_account_status_{{ index }}"></div>
+    </div>
+</script>

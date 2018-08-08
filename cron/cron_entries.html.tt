@@ -1,0 +1,74 @@
+[%-
+USE Api2;
+SET cron_list_results = Api2.exec( 'Cron', 'listcron', { 'omit_extra_record' => 1 } );
+-%]
+
+<table class="table table-striped responsive-table" id="cron_jobs_table">
+    <thead>
+        <tr>
+            <th>[% locale.maketext("Minute") %]</th>
+            <th>[% locale.maketext("Hour") %]</th>
+            <th>[% locale.maketext("Day") %]</th>
+            <th>[% locale.maketext("Month") %]</th>
+            <th>[% locale.maketext("Weekday") %]</th>
+            <th>[% locale.maketext("Command") %]</th>
+            <th>[% locale.maketext("Actions") %]</th>
+        </tr>
+    </thead>
+[% IF cron_list_results.size == 0 %]
+   <tr>
+        <td colspan="7">[% locale.maketext("No Cron Jobs") %]</td>
+   </tr>
+[% ELSE %]
+    [% FOREACH q IN cron_list_results -%]
+    <tr id="info_row_[% q.count %]">
+        <td data-title="[% locale.maketext("Minute") %]"><span id="minute_info_[% q.count %]">[% q.minute %]</span></td>
+        <td data-title="[% locale.maketext("Hour") %]"><span id="hour_info_[% q.count %]">[% q.hour %]</span></td>
+        <td data-title="[% locale.maketext("Day") %]"><span id="day_info_[% q.count %]">[% q.day %]</span></td>
+        <td data-title="[% locale.maketext("Month") %]"><span id="month_info_[% q.count %]">[% q.month %]</span></td>
+        <td data-title="[% locale.maketext("Weekday") %]"><span id="weekday_info_[% q.count %]">[% q.weekday %]</span></td>
+        <td data-title="[% locale.maketext("Command") %]" class="command-cell">
+            <code id="command_htmlsafe_[% q.count %]">[% q.command_htmlsafe %]</code>
+            <input type="hidden" id="command_info_[% q.count %]" value="[% q.command FILTER html %]" />
+            <input type="hidden" id="linekey_[% q.count %]" value="[% q.linekey %]" />
+        </td>
+        <td data-title="[% locale.maketext("Actions") %]">
+            <span class="btn btn-link" id="lnkEdit_[% q.count %]" onclick="toggle_module('edit_module_[% q.count %]')">
+                <span class="glyphicon glyphicon-pencil"></span> [% locale.maketext("Edit") %]
+            </span>&nbsp;&nbsp;&nbsp;
+            <span class="btn btn-link" id="lnkDelete_[% q.count %]" onclick="toggle_module('delete_module_[% q.count %]')">
+                <span class="glyphicon glyphicon-trash"></span> [% locale.maketext("Delete") %]
+            </span>
+        </td>
+    </tr>
+    <tr id="module_row_[% q.count %]" class="dt_module_row">
+        <td colspan="7">
+            [% PROCESS cron/edit_module.html.tt %]
+            <div class="dt_module" id="delete_module_[% q.count %]" style="display: none">
+                <div class="form-group">
+                    <p>[% locale.maketext("Delete this cron job?") %]</p>
+                </div>
+                <div class="form-group" id="delete_input_[% q.count %]">
+                    <input
+                        type="button"
+                        class="btn btn-primary"
+                        id="delete_line_[% q.count %]"
+                        value="[% locale.maketext("Delete") %]"
+                        onclick="delete_line('[% q.count %]')"
+                    />
+                    <button
+                        class="btn btn-link"
+                        id="cancel_delete_{{ index }}"
+                        onclick="toggle_module('delete_module_[% q.count %]')"
+                    >
+                        [% locale.maketext("Cancel") %]
+                    </button>
+                </div>
+                <div id="delete_status_[% q.count %]"></div>
+            </div>
+            <div class="cjt_status_bar" id="status_bar_[% q.count %]"></div>
+        </td>
+    </tr>
+    [% END -%]
+[% END %]
+</table>

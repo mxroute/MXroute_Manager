@@ -1,0 +1,77 @@
+<div id="editModeContainer" class="list-container">
+    <form class="layout-medium" novalidate>
+        <div class="row">
+            <div class="col-xs-12" ng-cloak>
+                <cp-alert-list></cp-alert-list>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-12">
+                <h3 class="section-header">[% locale.maketext("Edit [asis,PHP INI] settings[comment,action header]") %]</h3>
+                <span class="info-block" id="infoBlk">
+                    <span>
+                        [% locale.maketext("Select the home directory or a domain’s document root to open the corresponding [asis,PHP] configuration.") %]
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-12 col-sm-7 col-md-5">
+                <div class="form-group">
+                    <select id="selectLocation"
+                            class="form-control phpSelect"
+                            ng-disabled="noIniPaths"
+                            ng-options="path.name for path in iniPathNames"
+                            ng-model="selectedIniPath"
+                            ng-change="loadContent()">
+                        <option id="selectOption"
+                            value="">
+                            {{ txtInFirstOption }}
+                        </option>
+                    </select>
+                    <span spinner id="loadingSpinner" class="addSpinner" title="[% locale.maketext('Loading …') %]"></span>
+                </div>
+            </div>
+            <div class="col-xs-11 col-sm-5 col-md-7" ng-show="selectedIniPath.type">
+                <div class="form-group">
+                    <button id="btnSave"
+                        type="button"
+                        class="btn btn-primary floatDirection"
+                        title="[% locale.maketext('Save changed settings.') %]"
+                        cp-action="save()">
+                        [% locale.maketext('Save') %]
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="row well well-sm iniInfoBlock" ng-show="selectedIniPath.type">
+            <div id="pathInfo" class="col-sm-12 col-md-5">
+                <span class="iniInfoTitle">[% locale.maketext("Path") %]</span>
+                <span dir="ltr">{{currentIniPathInfo.inifullpath}}</span>
+            </div>
+            <div id="versionInfo" class="col-sm-12 col-md-3">
+                <span class="iniInfoTitle">[% locale.maketext("[asis,PHP] Version") %]</span>
+                <span dir="ltr">{{currentIniPathInfo.version}}</span>
+            </div>
+            <div id="domainInfo" class="col-sm-12 col-md-4" ng-show="selectedIniPath.type === 'vhost'">
+                <span class="iniInfoTitle">[% locale.maketext("Domain") %]</span>
+                <span dir="ltr">{{currentIniPathInfo.vhost}}</span>
+            </div>
+        </div>
+        <div ng-show="selectedIniPath.type" class="col-xs-11 col-sm-12 editorContainer">
+            <div id="editor"
+                ng-class="{ processing: processingEditor }"
+                class="iniEditor">
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <div class="callout callout-info" ng-if="!selectedIniPath.type">
+                    [% locale.maketext("You must select a location.") %]
+                </div>
+            </div>
+        </div>
+    </form>
+</div>

@@ -1,0 +1,34 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[%
+    Api2.pre_exec("SSH", "genkey");
+    SET genkey = Api2.exec("SSH", "genkey", {"pass"=>RAW_FORM.password, "name"=>FORM.name, "type"=>FORM.type, "bits"=>FORM.keysize}).0;
+    Api2.post_exec("SSH", "genkey");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    [% IF CPANEL.CPERROR.item('ssh') %]
+        <div id="addKeyError" class="alert alert-danger">
+            <span id="addKeyErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="addKeyErrorMsg" class="alert-message">
+                [% locale.maketext("Key Generation Failed.") %]
+                [% CPANEL.CPERROR.item('ssh').html() %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="addKeySuccess" class="alert alert-success">
+            <span id="addKeySuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="addKeySuccessMesg" class="alert-message">
+                [% locale.maketext("Key Generation Complete!") %]
+            </div>
+        </div>
+        <pre id="addKeyInformationMsg">[% genkey.reason.html() %]</pre>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,126 @@
+[% SET CPANEL.CPVAR.dprefix = "../../";
+
+SET leech_protection_nvdata = execute( 'NVData', 'get', { 'names' => 'optionselect_leechprotect' } );
+
+SET directory = RAW_FORM.dir;
+SET default_dir = "";
+
+Api2.pre_exec("Email", "listmaildomains");
+SET domains_list =  Api2.exec("Email", "listmaildomains", {} );
+Api2.post_exec("Email", "listmaildomains");
+
+IF leech_protection_nvdata.status;
+    SET nvdata_value = leech_protection_nvdata.data.0.value,
+        value = nvdata_value.split(':'),
+        selected_option = value.0,
+        domain = value.1,
+        always_open_dir = value.2;
+
+    IF always_open_dir == 1;
+        IF selected_option == 'webroot';
+            default_dir = CPANEL.homedir _ '/public_html';
+        ELSIF selected_option ==  'domainrootselect';
+            default_dir = Api2.exec("DomainLookup" , "getdocroot" , {"domain" => domain}).0.docroot;
+        ELSE;
+            default_dir = CPANEL.homedir _ '/public_html'
+            selected_option = 'webroot';
+        END;
+    END;
+END;
+
+directory = directory || default_dir;
+
+Api1.pre_exec("Htaccess", "htdirls");
+SET htdirs = Api1.exec("Htaccess", "htdirls", [directory,"2"]);
+Api1.post_exec("Htaccess", "htdirls");
+
+%]
+
+[% css_code = PROCESS css_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'leech_protection'
+    page_styles = css_code
+    use_master_bootstrap = 0
+-%]
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+
+<div class="body-content">
+    <p id="descLeechProtect">[% locale.maketext("Leech Protect allows you to prevent your users from giving out or publicly posting their passwords to a restricted area of your site. This feature will redirect accounts which have been compromised to a URL of your choice (and suspend them, if you choose).") %]</p>
+    <p id="descPleaseSelect">[% locale.maketext("Please select the folder you wish to protect by clicking on its name. You can navigate by clicking on icons.") %]</p>
+
+    <div class="clearfix">
+        <button id="btnSettings" type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#modalSettings">
+          <span class='fas fa-cog fa-lg'></span> [% locale.maketext("Settings") %]
+        </button>
+    </div>
+
+    <div id="leech_dirs" class="section">
+    [% htdirs %]
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='../../index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+<!-- Modal -->
+<div class="modal fade" id="modalSettings" tabindex="-1" role="dialog" aria-labelledby="lblModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button id="btnHeaderSettingsClose" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="lblModalLabel">[% locale.maketext("Leech Protection") %]</h4>
+            </div>
+            <div class="modal-body">
+                <div class="radio" id="settings_webroot">
+                    <label for="dirselect_webroot">
+                      <input type="radio" name="dirselect" value="webroot" id="dirselect_webroot" [% selected_option == 'webroot' ? ' checked' : '' %]/>
+                      [% locale.maketext("Web Root ([asis,public_html or www])") %]
+                    </label>
+                </div>
+                <div class="radio" id="settings_domainroot">
+                    <label for="optionselect_domainrootselect_radio">
+                      <input  type="radio" name="dirselect" id="optionselect_domainrootselect_radio" value="domainrootselect" [% selected_option == 'domainrootselect' ? ' checked' : '' %]/>
+                      [% locale.maketext("Document Root for:") %]
+                    </label>
+                    <select id="ddlDomainSelect" name="domainselect" class="form-control option-directory-select" [% selected_option == 'domainrootselect' ? '' : 'disabled' %]>
+                        [% IF domains_list.size(); %]
+                           [% FOREACH item IN domains_list; %]
+                                <option value="[%  item.domain.html() %]" [% IF selected_option == 'domainrootselect' AND domain == item.domain.html();%] selected="true"[% END %]>
+                                    [%  item.domain.html() %]
+                                </option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                </div>
+
+                <div class="settings-select-extras">
+                    <div class="checkbox">
+                        <label for="settings_saved">
+                            <input type="checkbox" id="settings_saved" name="saveoption" [% always_open_dir == "1" ? 'checked': "" %] />
+                            <span id="lblOpenDirectoryTxt">
+                                [% locale.maketext("Always open this directory in the future") %]
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSettingsCancel" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button id="btnSettingsSave" type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+[% END #wrapper %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+
+.settings-select-extras {
+    padding-top: 20px;
+}
+</style>
+[% END %]

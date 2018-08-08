@@ -1,0 +1,25 @@
+<script id="list_template" type="text/x-handlebars-template">
+<ul class="elided-list {{listClass}}">
+{{#each items}}
+    <li {{#if title}}title="{{title}}"{{/if}} {{#if itemClass}}class="{{itemClass}}"{{/if}}>
+        <i class="fas fa-{{#if isWorking}}lock{{else}}unlock{{/if}}" aria-hidden="true"></i>
+        {{text}}
+    </li>
+{{/each}}
+</ul>
+</script>
+
+<script id="content_with_warning_template" type="text/x-handlebars-template">
+{{{content_html}}}
+{{#if warning_html}}
+    <span class="content-note {{warning_class}}" title="{{{warning_html}}}"></span>
+{{/if}}
+</script>
+
+<script>
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('sharedjs/ssltable.js');
+    INSERT $lex_path IF lex_path;
+    INSERT 'sharedjs/ssltable_optimized.js';
+%]
+</script>

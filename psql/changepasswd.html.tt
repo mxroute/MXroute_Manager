@@ -1,0 +1,27 @@
+[%
+CPANEL.CPVAR.dprefix = '../';
+
+
+PROCESS '_assets/_ajaxapp_header.html.tt';
+-%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+
+<div class="body-content">
+    <h2>[% locale.maketext('Set PostgreSQL User Password') %]</h2>
+    <div id="cjt_pagenotice_container"></div>
+    [% PROCESS '_assets/sql/sql_password.html.tt'
+        dbuser = RAW_FORM('user'),
+        db_engine = 'postgresql',
+        action_context = RAW_FORM('action_context'),
+        success_url = 'index.html',
+    -%]
+</div>
+
+[% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Back to Manage Databases') %]
+
+[% PROCESS '_assets/_ajaxapp_footer.html.tt' -%]
+
+[% END %]

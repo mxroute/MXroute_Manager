@@ -1,0 +1,80 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    # Case 158089: Determine how much to chop off of the database name before returning to step 2
+    SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+    SET prefix_length = dbownerprefix.length();
+
+    SET server_location = execute("Mysql", "locate_server" {});
+
+    # 94937: Errors can contain XSS. We don't want this function to output directly to the page.
+
+    SET privs = [];
+    FOR pair = RAW_FORM;
+        IF pair.key.match('^privileges');
+            privs.push(pair.value);
+        END;
+    END;
+
+    SET setprivs = execute('Mysql', 'set_privileges_on_database', {
+        user       => RAW_FORM.item('user'),
+        database   => RAW_FORM.item('db'),
+        privileges => privs.join(','),
+    });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_database_wizard'
+ -%]
+
+<div class="body-content">
+
+    <div class="section">
+    <h2>[% locale.maketext("Step 4: Complete the Task") %]</h2>
+
+    [% IF !setprivs.status %]
+    <div class="alert alert-danger" id="userAddedError">
+        <span class="glyphicon glyphicon-remove-sign" id="userAddedErrorImg"></span>
+        <span id="userAddedErrorMsg">[% locale.maketext("User “[_1]” could not be added to the database “[_2]”.",FORM.item('user'),FORM.item('db')) %]</span>
+        <span id="userAddedErrorDetails">[% setprivs.errors.join('<br>') FILTER html %]</span>
+    </div>
+    [% ELSE %]
+    <div class="alert alert-success" id="userAddedSuccess">
+        <span class="glyphicon glyphicon-ok-sign" id="userAddedSuccessImg"></span>
+        <span id="userAddedSuccessMsg">[% locale.maketext("User “[_1]” was added to the database “[_2]”.",FORM.item('user'),FORM.item('db')) %]</span>
+    </div>
+    [% END %]
+
+    [% IF server_location.data.is_remote %]
+    <br />
+    <div class="formbox">
+        <h4>[% locale.maketext("Remote MySQL Host") %]</h4>
+        <p id="remoteMySQL">
+            [% locale.maketext("The [asis,MySQL] server‘s address is “[_1]”. When connecting to the [asis,MySQL] server you must specify this host.", server_location.data.remote_host) %]
+        </p>
+    </div>
+    <br />
+    [% END %]
+    <br />
+    <br />
+
+        <div>
+            <a href="wizard1.html" id="step1">
+                [% locale.maketext("Add another database.") %]
+            </a><br />
+            <br />
+            <a href="wizard2.html?db=[% RAW_FORM.item('db').substr(prefix_length) FILTER uri %]&nocreate=1" id="step2">
+                [% locale.maketext("Add another user for your MySQL database.") %]
+            </a><br />
+            <br />
+            <a href="index.html" id="index">
+                [% locale.maketext("Return to MySQL Databases.") %]
+            </a><br />
+            <br />
+            <a href="../index.html" id="home">
+                [% locale.maketext("Return Home") %]
+            </a>
+        </div>
+    </div>
+</div>
+[% END #wrapper -%]

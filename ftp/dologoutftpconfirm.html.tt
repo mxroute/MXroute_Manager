@@ -1,0 +1,22 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ftp_connections'
+-%]
+<div class="body-content">
+    <p>
+        [% locale.maketext('Are you certain that you wish to disconnect the “[_1]” [output,acronym,FTP,File Transfer Protocol] user?',FORM.user) %]
+    </p>
+    [%# note: login is really a PID; no URI encoding issues %]
+    <a id="btnDisconnectUser" class="btn btn-primary" href="dologoutftp.html?login=[% FORM.login %]">
+        [% locale.maketext('Disconnect “[_1]”', FORM.user) %]
+    </a>
+    <a id="btnCancel"
+        class="btn btn-link"
+        href="session.html">
+        [% locale.maketext('Cancel') %]
+    </a>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='session.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

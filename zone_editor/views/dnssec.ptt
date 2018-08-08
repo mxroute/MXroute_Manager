@@ -1,0 +1,95 @@
+<ol class="breadcrumb">
+    <li><a href id="gotoDomainList" ng-click="dnssec.goToView('list')">[% locale.maketext('Domains') %]</a></li>
+    <li class="active">[% locale.maketext('[asis,DNSSEC]') %]</li>
+</ol>
+
+<div class="row">
+    <div class="col-xs-6">
+        <h2 class="view-title">[% locale.maketext('[asis,DNSSEC] for “[_1]”', '{{ dnssec.domain }}') %]</h2>
+    </div>
+</div>
+<div cp-loading-panel id="loading-panel" ng-show="dnssec.is_loading">
+[% locale.maketext("Loading …") %]
+</div>
+<div id="notAllowedWarning" class="alert alert-danger ng-hide" ng-show="dnssec.loading_error">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message">
+        {{ dnssec.loading_error_message }}
+    </div>
+</div>
+<div id="dns_toggle_container" ng-hide="dnssec.is_loading || dnssec.loading_error">
+    <div class="form-group">
+        <div class="row">
+            <div class="col-xs-12">
+                <label class="toggle-control-label" for="toggle_dnssec_status">[% locale.maketext("Status") %]</label>
+                <toggle-switch
+                    id="toggle_dnssec_status"
+                    ng-model="dnssec.enabled"
+                    enabled-label="[% locale.maketext('Enabled') %]"
+                    disabled-label="[% locale.maketext('Disabled') %]"
+                    on-toggle="dnssec.toggle_status()"></toggle-switch>
+            </div>
+        </div>
+    </div>
+    <div id="dnssec-disable-warning" class="ng-hide" ng-show="dnssec.show_disable_warning">
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                <p>[% locale.maketext('[output,strong,Warning:] If you disable [asis,DNSSEC] on a domain, you must ensure that the domain registrar does not have a [asis,DS] record configured for the domain. Failure to do so will cause [asis,DNS] resolution issues.') %]</p>
+                <p>[% locale.maketext('Are you sure you want to disable [asis,DNSSEC] on the domain “[_1]”?', '{{ dnssec.domain }}') %]</p>
+                <div class="form-group">
+                <button type="button"
+                    id="confirm_disable"
+                    name="confirm_disable"
+                    cp-action="dnssec.confirm_disable()"
+                    button-class="btn btn-primary">[% locale.maketext('Disable [asis,DNSSEC]') %]</button>
+                <button type="button"
+                    id="cancel_disable"
+                    name="cancel_disable"
+                    ng-click="dnssec.cancel_disable()"
+                    class="btn btn-link">[% locale.maketext('Cancel') %]</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div id="dns_sec_keys_container" ng-hide="dnssec.is_loading || dnssec.loading_error || !dnssec.enabled">
+<p class="section-text">[% locale.maketext('Select a Digest Type for each active key. You must configure a [asis,DS] record at your domain registrar with the corresponding Digest Type and Digest.') %]</p>
+<table id="dns_sec_keys" class="table table-striped responsive-table">
+    <thead>
+    <tr>
+        <th>&nbsp;</th>
+        <th>[% locale.maketext('Key Tag') %]</th>
+        <th>[% locale.maketext('Algorithm') %]</th>
+        <th id="digest-type-header">[% locale.maketext('Digest Type') %]</th>
+        <th>[% locale.maketext('Digest') %]</th>
+    </tr>
+    </thead>
+    <tbody>
+        <tr ng-repeat="key in dnssec.keys">
+            <td class="icon-column" data-title="[% locale.maketext('Active key') %]">
+                <span class="fas fa-star fa-lg" title="[% locale.maketext('Active key') %]" ng-if="key.active"></span>
+            </td>
+            <td class="keytag-column" data-title="[% locale.maketext('Key Tag') %]">{{ key.key_tag }}</td>
+            <td class="algo-column" data-title="[% locale.maketext('Algorithm') %]">
+                {{ key.algo_num }} {{ key.algo_desc }}
+                {{ key.bits_msg }}
+            </td>
+            <td class="digest-type-column" data-title="[% locale.maketext('Digest Type') %]">
+                <select id="digest_type_{{ key.key_tag }}"
+                    name="digest_type_{{ key.key_tag }}"
+                    class="form-control"
+                    ng-model="key.selected_digest"
+                    ng-options="digest.algo_num + ' ' + digest.algo_desc for digest in key.digests"
+                    aria-labelledby="digest-type-header"></select>
+            </td>
+            <td class="digest-column" data-title="[% locale.maketext('Digest') %]">
+                <span ng-repeat="digest in key.digests"
+                    id="record_{{ digest.key_tag }}_algo_{{ digest.algo_num}}"
+                    ng-show="key.selected_digest.algo_num == digest.algo_num">
+                    {{ digest.digest }}</span>
+            </td>
+        </tr>
+    </tbody>
+</table>
+</div>

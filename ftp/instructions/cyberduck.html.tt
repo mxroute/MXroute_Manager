@@ -1,0 +1,122 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    page_styles = css_code
+    app_key = 'ftp_accounts'
+ -%]
+
+<div class="body-content">
+
+    <h2>[% locale.maketext("Cyberduck Instructions") %]</h2>
+    <table width='100%'>
+        <tr>
+            <td class="step_number"><div class="round">[% locale.numf(1) %]</div></td>
+            <td class="step"><h2>[% locale.maketext("Step One") %]</h2><br/>
+                [% locale.maketext("If you haven’t installed Cyberduck, you can download it [output,url,_1,here]. If you have Cyberduck, skip to step 2.", "https://go.cpanel.net/cyberduck") %]
+            </td>
+        </tr>
+        <tr>
+            <td class="step_number"><div class="round">[% locale.numf(2) %]</div></td>
+            <td class="step"><h2>[% locale.maketext("Step Two") %]</h2>&nbsp;&nbsp;<span id='ss1' class='toggle_link'><img src="images/screenshot.png" alt="[% locale.maketext("Toggle Screenshot") %]"></span>
+                <br/>[% locale.maketext("Download the FTP configuration or SFTP configuration and save it onto your desktop.") %]
+                <img src="../../images/cyberduck-ss1.png" class="hidden_screen" id="ss1_img"/>
+            </td>
+        </tr>
+        <tr>
+            <td class="step_number"><div class="round">[% locale.numf(3) %]</div></td>
+            <td class="step"><h2>[% locale.maketext("Step Three") %]</h2>&nbsp;&nbsp;<span id='ss2' class='toggle_link'><img src="images/screenshot.png" alt="[% locale.maketext("Toggle Screenshot") %]"></span><br/>
+                [% locale.maketext("Double-click on the download file.") %]
+                <img src="../../images/cyberduck-ss2.png" class="hidden_screen" id="ss2_img"/>
+            </td>
+        </tr>
+        <tr>
+            <td class="step_number"><div class="round">[% locale.numf(4) %]</div></td>
+            <td class="step"><h2>[% locale.maketext("Step Four") %]</h2>
+                [% locale.maketext("Cyberduck will open the download file and log you into your FTP account.") %]
+            </td>
+        </tr>
+    </table>
+    <br/><br/>
+    <p>[% locale.maketext("Note: Third party products are subject to change due to circumstances beyond cPanel’s control, potentially rendering these instructions invalid. If this occurs, please consult the product manual for the correct procedure.") %]
+    </p>
+
+</div>
+[% END #wrapper -%]
+
+
+[%# TODO: remove inline style chunk! %]
+[% BLOCK css_block %]
+<style type="text/css">
+    .step_number {
+        width: 40px;
+        vertical-align: middle;
+        text-align: center;
+        font-size: 13pt;
+        background-color: #DDDDDD;
+        border-radius: 10px;
+    }
+    .step {
+        min-height: 100px;
+        color: #666666;
+        font-size: 11pt;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        padding-left: 20px;
+    }
+    .step h2 {
+        font-weight: bold;
+        font-size: 13pt;
+        margin-left: 0px;
+        display: inline;
+    }
+    .round {
+        margin-left: auto;
+        margin-right: auto;
+        border-radius: 90px;
+        width: 26px;
+        background-color: #04586c;
+        color: white;
+        border: 2px solid #aaaaaa;
+        font-weight: bold;
+        font-size: 15pt;
+    }
+    .heading {
+        font-size: 16pt;
+        color: #04586c;
+    }
+    td {
+        border-bottom: 1px solid #dddddd;
+    }
+    .hidden_screen {
+        display: none;
+        max-width: 99%;
+        padding-top: 10px;
+    }
+    .toggle_link {
+        text-decoration: underline;
+        font-size: 9pt;
+        cursor: pointer;
+
+    }
+</style>
+[% END #css_block -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    YAHOO.util.Event.onDOMReady( function () {
+        elements = YAHOO.util.Dom.getElementsByClassName('toggle_link');
+        for (var i=0; i<elements.length; i++) {
+            YAHOO.util.Event.on(elements[i],'click', function () {
+                if (document.getElementById(this.id+'_img').style.display==='block') {
+                    CPANEL.animate.slide_up(this.id+'_img');
+                } else {
+                    CPANEL.animate.slide_down(this.id+'_img');
+                }
+            });
+        }
+    });
+</script>
+[% END #js_block -%]

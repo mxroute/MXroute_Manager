@@ -1,0 +1,26 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    <h2 id="hdrManageUserPrivs">[% locale.maketext("Manage User Privileges") %]</h2>
+
+    <p>[% locale.maketext("User") %]: <b>[% FORM.item('user') %]</b></p>
+    <p>[% locale.maketext("Database") %]: <b>[% FORM.item('db') %]</b></p>
+
+    <form method="post" action="addusertodb.html" name="adduserdb">
+        <input id="hidDb" type="hidden" name="db" value="[% FORM.item('db') %]" />
+        <input id="hidUser" type="hidden" name="user" value="[% FORM.item('user') %]" />
+        <input id="hidUpdate" type="hidden" name="update" value="[% FORM.item('update') %]" />
+         [% PROCESS 'sql/userrights_include.html.tt' -%]
+        <div class="form-group">
+            <input type="submit" value="[% locale.maketext("Make Changes") %]" class="btn btn-primary" id="submit" />
+        </div>
+    </form>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

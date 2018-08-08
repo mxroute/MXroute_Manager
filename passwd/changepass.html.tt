@@ -1,0 +1,36 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET passwd_change_password = Api2.exec("Passwd", "change_password", {
+    "enabledigest" => FORM.item('enabledigest'),
+    "oldpass" => RAW_FORM.item('oldpass'),
+    "enablemysql" => FORM.item('enablemysql'),
+    "newpass" => RAW_FORM.item('newpass')
+});
+SET passwd_change_password = passwd_change_password.0;
+%]
+
+[% IF passwd_change_password.status %]
+    [%# Users are logged out after a successful password reset, so we take them back to the login page.
+      # The cookie data for the cpsession will be invalid.
+      # The user should see a message on the login page about having an invalid session.%]
+    <p> [% locale.maketext("Success! The browser is now redirecting …"); %] </p>
+    <meta http-equiv="refresh" content="2;url=/" />
+[% ELSE %]
+    [% WRAPPER '_assets/master.html.tt'
+        app_key = 'change_password'
+    -%]
+    <div class="body-content">
+        <div class="alert alert-danger" id="alertPasswordError">
+            <span class="glyphicon glyphicon-remove-sign" id="alertPasswordErrorIcon"></span>
+            <div class="alert-message" id="alertPasswordErrorIconMessage">
+                [%# TODO: The error message for passwd contains html so it must not be escaped here. Fix this later. %]
+                [% passwd_change_password.statustxt %]
+            </div>
+        </div>
+        [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+    </div>
+    [% END #wrapper %]
+[% END %]
+

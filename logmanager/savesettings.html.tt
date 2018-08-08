@@ -1,0 +1,19 @@
+[% SET CPANEL.CPVAR.headerimg = "../images/tools.gif" %]
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'raw_access'
+-%]
+<div class="body-content">
+    <p id="descSuccess">
+        [% locale.maketext("Your new settings have been saved.") %]
+        [%
+        Api1.pre_exec("LogManager", "savesettings");
+        Api1.exec("LogManager", "savesettings", [RAW_FORM.archivelogs, RAW_FORM.remoldarchivedlogs]);
+        Api1.post_exec("LogManager", "savesettings")
+        %]
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='../raw/index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

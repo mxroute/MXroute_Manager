@@ -1,0 +1,44 @@
+[%
+    USE Api2;
+
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    SET account_name = CPANEL.FORM.item('account');
+    SET ip = CPANEL.FORM.ip;
+    SET ip2 = CPANEL.FORM.ip2;
+    SET ip3 = CPANEL.FORM.ip3;
+    SET ip4 = CPANEL.FORM.ip4;
+
+    SET account_info = Api2.exec( 'SourceIPCheck', 'getaccount', { 'account' =>  account_name });
+    SET addip_result = Api2.exec('SourceIPCheck', 'addip', {'ip' => ip, 'ip2' => ip2, 'ip3' => ip3, 'ip4' => ip4, 'account' =>  account_info.0.account});
+    SET return_link = 'accessip.html?account=' _ account_info.0.account;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'security_policy'
+%]
+<div class="body-content">
+    <h1>
+        [% locale.maketext("Add Access IP for “[output,inline,_1,class,status]”.", account_info.0.account) %]
+    </h1>
+
+    [%- IF addip_result.0.status == 1 -%]
+        <div class="alert alert-success">
+            <span class="glyphicon glyphicon-ok-sign"></span>
+            <div class="alert-message" id="addip-success">
+                [% locale.maketext("The access IP “[_1]” has been added.", addip_result.0.ip.html()) %]
+            </div>
+        </div>
+    [%- ELSE -%]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message" id="addip-error">
+                [% addip_result.0.error.html() %]
+            </div>
+        </div>
+    [%- END -%]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper %]

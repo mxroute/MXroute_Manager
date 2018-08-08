@@ -1,0 +1,14 @@
+<div class="alert"
+     ng-repeat="issue in issues"
+     ng-class="{
+        'alert-warning': issue.type === 'warning',
+        'alert-danger': issue.type === 'error',
+        'alert-info': issue.type === 'info'
+     }">
+    <i id="icoError_{{ idPrefix }}_{{ $index }}" class="glyphicon glyphicon-remove-sign" ng-show="issue.type === 'error'"></i>
+    <i id="icoWarn_{{ idPrefix }}_{{ $index }}" class="glyphicon glyphicon-exclamation-sign" ng-show="issue.type === 'warning'"></i>
+    <i id="icoInfo_{{ idPrefix }}_{{ $index }}" class="glyphicon glyphicon-info-sign" ng-show="issue.type === 'info'"></i>
+    <span id="issue_{{ idPrefix }}_{{ $index }}" class="alert-message">
+        <strong>{{ getIssueTitle(issue) }}</strong> {{ issue.message }}
+    </span>
+</div>

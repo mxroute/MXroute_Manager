@@ -1,0 +1,35 @@
+<div style="display:none;" id="newfolder">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("New Folder") %]</span>
+        <div class="rt"></div>
+    </div>
+
+    <div class="bd">
+        <div class="filecontent" id="newfolder-foldercontent">
+            <form action="[% CPANEL.ENV.item("cp_security_token").html %]/json-api/cpanel">
+                <input type="hidden" name="cpanel_jsonapi_version" value="2" />
+                <input type="hidden" name="cpanel_jsonapi_module" value="Fileman" />
+                <input type="hidden" name="cpanel_jsonapi_func" value="mkdir" />
+                <div class="form-group">
+                    <label for="newdir">
+                        [% locale.maketext("New Folder Name:") %]
+                    </label>
+                    <input type="text" class="form-control" name="name" id="new-folder-name" />
+                </div>
+                <div class="form-group">
+                    <label for="new-folder-path">
+                        [% locale.maketext("New Folder will be created in:") %]
+                    </label>
+                    <div class="input-group">
+                          <span class="input-group-addon">
+                              <span class="fas fa-home"></span>
+                          </span>
+                          <input type="text" class="form-control" name="path" id="new-folder-path" value="/path/to/location/" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>

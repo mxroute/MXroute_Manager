@@ -1,0 +1,172 @@
+
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'apache_handlers'
+    page_js = js_code
+-%]
+
+[% user_result = execute('Mime', 'list_handlers', { type='user' }) -%]
+[% system_result = execute('Mime', 'list_handlers', { type='system' }) -%]
+<div class="body-content">
+    <p id="descApacheHandlers" class="description">
+        [% locale.maketext('Apache handlers control how the Apache web server software manages certain file types and extensions for your site. Apache comes configured to handle CGI scripts and server-parsed files. You can configure Apache to handle a new file type with an existing handler by manually adding the handler and extension below. For example, to have the server treat files with the extension [output,em,.example] as CGI files, you would type “cgi-script” under [output,em,Handler] and “.example” under [output,em,Extension(s)].') %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrCreateApacheHandler">
+            [% locale.maketext("Create an Apache Handler") %]
+        </h2>
+        <form action="addhandle.html" onsubmit="return do_validate(this.id);" name="apache" id="apache">
+            <div class="form-group">
+                <label id="lblHandler" for="handle">
+                    [% locale.maketext("Handler") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" id="handle" name="handle" size="22" />
+                    </div>
+                    <div id="handle_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblExtensions" for="ext">
+                    [% locale.maketext("Extension(s)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" id="ext" name="ext" size="22" />
+                        <span  id="descTipSeparateMultipleExtensionTypes" class="help-block">
+                            [% locale.maketext("Tip: Separate multiple extension types with a space.") %]
+                        </span>
+                    </div>
+                    <div id="ext_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input name="submit" id="submit" disabled="disabled" class="btn btn-primary" type="submit" value="[% locale.maketext("Add") %]" />
+            </div>
+        </form>
+    </div><!-- end section -->
+
+    <div class="section">
+        <h2 id="hdrApacheHandlers1">[% locale.maketext("Apache Handlers") %]</h2>
+    </div>
+
+    <div class="section">
+    <h2 id="hdrUserDefinedApacheHandlers">[% locale.maketext("User Defined Apache Handlers") %]</h2>
+    <table class="sortable table table-striped" id="userhandletbl">
+        <thead>
+            <tr>
+                <th id="lblUserHandler">[% locale.maketext("Handler") %]</th>
+                <th id="lblUserExtensions">[% locale.maketext("Extension(s)") %]</th>
+                <th id="lblUserRemove" class="sorttable_nosort">
+                    [% locale.maketext("Actions") %]
+                </th>
+            </tr>
+        </thead>
+
+        [% IF !user_result.status %]
+        <tr>
+            <td class="errors" colspan="3">
+                [% user_result.errors_as_string FILTER html %]
+            </td>
+        </tr>
+        [% ELSIF user_result.data.size == 0 %]
+        <tr>
+            <td class="errors" colspan="3">
+                [% locale.maketext("There are no user-configured Apache Handlers.") %]
+            </td>
+        </tr>
+        [% ELSE %]
+            [% FOREACH q = user_result.data -%]
+            <tr>
+                <td>[% q.handler %]</td>
+                <td>[% q.extension %]</td>
+                <td>
+                    <div>
+                        <a class="btn btn-link" href="delhandleconfirm.html?userhandle=[% q.extension FILTER uri %]">
+                            <span class="glyphicon glyphicon-trash"></span> [% locale.maketext("Delete") %]
+                        </a>
+                    </div>
+                </td>
+            </tr>
+            [% END -%]
+        [% END %]
+    </table>
+    </div>
+
+    <div class="section">
+        <h2 id="lblSystemApacheHandlers">[% locale.maketext("System Apache Handlers") %]</h2>
+        <table class="sortable table table-striped" id="syshandletbl">
+            <thead>
+                <tr>
+                    <th id="lblSysHandlers">[% locale.maketext("Handler") %]</th>
+                    <th id="lblSysExtensions">[% locale.maketext("Extension(s)") %]</th>
+                </tr>
+            </thead>
+            [% IF system_result.data.size == 0 %]
+            <tr>
+                <td class="errors" colspan="2">
+                    [% locale.maketext("There are no system-configured Apache Handlers.") %]
+                </td>
+            </tr>
+            [% ELSE %]
+                [% FOREACH q = system_result.data -%]
+                <tr>
+                    <td>[% q.handler %]</td>
+                    <td>[% q.extension %]</td>
+                </tr>
+                [% END -%]
+            [% END %]
+        </table>
+    </div>
+</div><!-- end body-content -->
+
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var init_page = function() {
+        var validators = [];
+
+        var handler_validator = new CPANEL.validate.validator("[% locale.maketext('Apache Handler') %]");
+        handler_validator.add("handle", "apache_handler", [% locale.maketext("[asis,Apache] handler names must include a hyphen (for example, handler[asis,-]name[comment,this is meant to represent a variable]").json() %]);
+        handler_validator.attach();
+        validators.push(handler_validator);
+
+        var ext_validator = new CPANEL.validate.validator("[% locale.maketext('File Extension') %]");
+        ext_validator.add("ext", "mime_extension", [% locale.maketext("An [asis,Apache] extension must contain at least 1 alphanumeric character and cannot contain the following characters: /, ?, [output,chr,92], [output,amp]").json() %]);
+        ext_validator.attach();
+        validators.push(ext_validator);
+
+        var validationChanged = function() {
+            var isValid = validators.every(function(validator){
+                return validator.is_valid();
+            });
+
+            var submitEl = YAHOO.util.Dom.get("submit");
+            if (isValid) {
+                submitEl.removeAttribute("disabled");
+            } else {
+                submitEl.setAttribute("disabled", "disabled");
+            }
+
+        };
+
+        validators.forEach(function(validator) {
+            validator.validateFailure.subscribe(validationChanged, this);
+            validator.validateSuccess.subscribe(validationChanged, this);
+        } );
+
+        CPANEL.validate.attach_to_form("submit", validators);
+
+        YAHOO.util.Dom.get("handle").focus();
+    }
+    YAHOO.util.Event.onDOMReady(init_page);
+</script>
+[% END %]
+

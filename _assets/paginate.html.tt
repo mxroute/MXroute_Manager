@@ -1,0 +1,240 @@
+[%-
+
+#----------------------------------------------------------------------
+#For UAPI, this accepts:
+#   uapi_result     (a Cpanel::Result object)
+#
+#For API 2, this uses the following globals:
+#   CPANEL.CPVAR.api2_paginate_total
+#   CPANEL.CPVAR.api2_sort_column
+#   CPANEL.CPVAR.api2_sort_reverse
+#   CPANEL.CPVAR.currentpage
+#   CPANEL.CPVAR.itemsperpage
+#   CPANEL.CPVAR.pages
+#
+#In either case, this uses the following globals:
+#   CPANEL.CPVAR.pager_all_selected
+#   CPANEL.CPVAR.pager_scope
+#   CPANEL.FORM.searchregex
+#
+#...as well as everything in the "config" hash below.
+#----------------------------------------------------------------------
+
+# Define the leading/trailing window size
+SET MAX_LEADING_PAGES  = 0;
+SET MAX_TRAILING_PAGES = 0;
+
+# Define other module defaults
+SET DEFAULT_PAGE_SIZES = [ 10, 20, 50, 100, 500, 1000 ];
+SET DEFAULT_MAX_ITEMS_PER_PAGE = DEFAULT_PAGE_SIZES.last;   # LETS KEEP THE MAX ITEMS TO 1000
+SET DEFAULT_SHOW_PAGE_SIZE_SELECTOR = 1; # SHOW THE PAGE SIZE SELECTOR
+SET DEFAULT_SHOW_PAGE_SELECTOR = 1;      # SHOW THE PAGE SELECTOR
+SET DEFAULT_SHOW_ELLIPSIS = 0;
+SET DEFAULT_SHOW_ACTIVE_PAGE = 0;
+
+# Make sure the Scope has a default value. pager_scope is
+# defined externally only when you need two pagers on the same
+# page, otherwise leave it empty and it gets set to DEFAULT.
+SET pager_scope = CPANEL.CPVAR.pager_scope || "DEFAULT";
+
+SET max_items_per_page = DEFAULT_MAX_ITEMS_PER_PAGE;
+
+IF uapi_result;
+    SET items_per_page = uapi_result.metadata('paginate').results_per_page;
+    SET current_page   = uapi_result.metadata('paginate').current_page;
+    SET total_results  = uapi_result.metadata('paginate').total_results;
+    SET total_pages    = uapi_result.metadata('paginate').total_pages;
+
+    SET sort_column  = uapi_result.finished_sorts.0.column;
+    SET sort_reverse = uapi_result.finished_sorts.0.reverse;
+ELSE;
+    IF CPANEL.CPVAR.itemsperpage > max_items_per_page;
+        SET items_per_page =  max_items_per_page;
+    ELSE;
+        SET items_per_page =  CPANEL.CPVAR.itemsperpage;
+    END;
+
+    SET current_page = CPANEL.CPVAR.currentpage;
+    SET total_results = CPANEL.CPVAR.api2_paginate_total;
+    SET total_pages = CPANEL.CPVAR.pages;
+
+    SET sort_column = CPANEL.CPVAR.api2_sort_column;
+    SET sort_reverse = CPANEL.CPVAR.api2_sort_reverse;
+END;
+
+# Capture the data for the pager
+SET data = {
+    scope           => pager_scope,
+    search          => CPANEL.FORM.searchregex || "",
+    perpage         => items_per_page,
+    sortcolumn      => sort_column || "",
+    sortrev         => sort_reverse || 0,
+    page            => current_page || 1,
+    matches         => total_results || 0,
+    pagecount       => total_pages || 0,
+    all_selected    => CPANEL.CPVAR.pager_all_selected || 0,
+};
+
+# Capture the configuration for the pager template
+SET config = {
+    first_item_label      => CPANEL.CPVAR.pager_first_item_label || "<<",
+    previous_item_label   => CPANEL.CPVAR.pager_first_item_label || "<",
+    next_item_label       => CPANEL.CPVAR.pager_last_item_label || ">",
+    last_item_label       => CPANEL.CPVAR.pager_last_item_label || ">>",
+    page_title_key        => CPANEL.CPVAR.pager_page_title || "Navigate to page [numf,_1].",
+    items_per_page_label  => CPANEL.CPVAR.pager_items_per_page_label || locale.maketext("Page Size"),
+    items_per_page_title  => CPANEL.CPVAR.pager_items_per_page_title || locale.maketext("Items displayed per page."),
+    max_items_per_page    => max_items_per_page,
+    show_page_size_sel    => CPANEL.CPVAR.pager_show_page_size_sel || DEFAULT_SHOW_PAGE_SIZE_SELECTOR,
+    max_leading_pages     => CPANEL.CPVAR.pager_max_leading_pages || MAX_LEADING_PAGES,
+    max_trailing_pages    => CPANEL.CPVAR.pager_max_trailing_pages || MAX_TRAILING_PAGES,
+    show_page_sel         => CPANEL.CPVAR.pager_show_page_sel || DEFAULT_SHOW_PAGE_SELECTOR,
+    show_ellipsis         => CPANEL.CPVAR.pager_show_ellipsis || DEFAULT_SHOW_ELLIPSIS,
+    show_active_page      => CPANEL.CPVAR.pager_show_active_page || DEFAULT_SHOW_ACTIVE_PAGE,
+};
+
+# Force paramertized keys into the lexicon cache
+SET temp = locale.maketext("Navigate to page [numf,_1].", 1);
+SET temp = locale.maketext("View the items in sets of [numf,_1].", 1);
+
+# Calculate the paging window.
+SET first_leading_page = (((data.page - config.max_leading_pages) > 0) ? (data.page - config.max_leading_pages) : 1);
+SET last_trailing_page = (((data.page + config.max_trailing_pages) <= data.pagecount) ? (data.page + config.max_trailing_pages) : data.pagecount);
+
+# Make sure the page sizes are within our range
+IF data.perpage < DEFAULT_PAGE_SIZES.first;
+    data.perpage = DEFAULT_PAGE_SIZES.first;
+ELSIF data.perpage > DEFAULT_MAX_ITEMS_PER_PAGE;
+    data.perpage = DEFAULT_MAX_ITEMS_PER_PAGE;
+END;
+
+# Make sure the page size is set to something.
+# Default to the lowest value if not set.
+SET temp_per_page = 0;
+FOREACH temp_size = DEFAULT_PAGE_SIZES;
+    IF temp_size == data.perpage;
+        temp_per_page = 1;
+        last;
+    END;
+END;
+IF !temp_per_page;
+    data.perpage = DEFAULT_PAGE_SIZES.first;
+END;
+-%]
+
+<div class="row search-page-container">
+    <div class="col-xs-12 col-sm-12">
+        <div id="paginatorBottom" class="pagination-container">
+            [% IF config.show_page_size_sel %]
+            <div class="page-size">
+                <form onsubmit="CPANEL.ui.widgets.pager.fireChangePageSize('[% data.scope %]', YAHOO.util.Dom.get('[%data.scope%]-page-itemsperpage').value, true); return false;">
+                <div class="page-size">
+                    <label for="[%data.scope%]-page-itemsperpage"
+                        title="[% config.items_per_page_title %]"
+                        class="title">[% config.items_per_page_label %]</label>
+                    <select id="[%data.scope%]-page-itemsperpage"
+                        name="itemsperpage"
+                        class="form-control"
+                        onchange="return CPANEL.ui.widgets.pager.fireChangePageSize('[% data.scope %]', this.value, true);">
+                        [% FOREACH size = DEFAULT_PAGE_SIZES %]
+                            <option
+                                value="[% size %]"
+                                [% IF data.perpage == size; %]
+                                    selected
+                                [% END %]
+                            >[% size %]</option>
+                        [% END %]
+                    </select>
+                </div>
+                </form>
+            </div>
+            [% END %]
+            [% IF config.show_page_sel %]
+            <ul class="pagination">
+                [%- IF data.page == 1 -%]
+                    <li class="disabled"><a id="[%data.scope%]-navigate-first" href="javascript:void(0)" class="disabled" tabindex="-1"
+                        title="[% locale.maketext('Navigate to first page.') _ " " _ locale.maketext('Function disabled.') %]"
+                        aria-label="[% locale.maketext('Navigate to first page.') _ " " _ locale.maketext('Function disabled.') %]">[% config.first_item_label %]</a></li>
+                    <li class="disabled"><a id="[%data.scope%]-navigate-previous" href="javascript:void(0)" class="disabled" tabindex="-1"
+                        title="[% locale.maketext('Navigate to previous page.') _ " " _ locale.maketext('Function disabled.') %]"
+                        aria-label="[% locale.maketext('Navigate to previous page.') _ " " _ locale.maketext('Function disabled.') %]">[% config.previous_item_label %]</a></li>
+                [%- ELSE -%]
+                    <li><a id="[%data.scope%]-navigate-first" href="javascript:void(0)"
+                        title="[% locale.maketext('Navigate to first page.') %]"
+                        aria-label="[% locale.maketext('Navigate to first page.') %]"
+                        onclick="return CPANEL.ui.widgets.pager.fireGoToPage('[%data.scope%]',1, 1, 0);">[% config.first_item_label %]</a></li>
+                    <li><a id="[%data.scope%]-navigate-previous" href="javascript:void(0)"
+                        title="[% locale.maketext('Navigate to previous page.') %]"
+                        aria-label="[% locale.maketext('Navigate to previous page.') %]"
+                        onclick="return CPANEL.ui.widgets.pager.fireGoToPage('[%data.scope%]',[% ((data.page - 2) * data.perpage) + 1 %], [% data.page - 1 %], [% data.page - 2%]);">[% config.previous_item_label %]</a></li>
+                [%- END -%]
+                [%- IF config.show_ellipsis && (data.page - config.max_leading_pages > 1) %]
+                    <li class="disabled"><a id="[% data.scope %]-navigate-leading-ellipsis" class="disabled" tabindex="-1" href="javascript:void(0)">&hellip;</a></li>
+                [%- END -%]
+                [%- SET page = first_leading_page;
+                    WHILE page <= last_trailing_page;
+                      SET selected = (page == data.page);
+                      IF (page >= first_leading_page) && (page <= last_trailing_page);
+                        IF config.show_active_page && selected %]
+                        <li class="active"><a id="[% data.scope %]-navigate-[% page %]" tabindex="-1" href="javascript:void(0)">[% page %]</a></li>
+                    [%- ELSIF !selected -%]
+                    [%# start is index of first item, page to go to, skip is pages to skip %]
+                        <li><a id="[% data.scope %]-navigate-[% page %]" href="javascript:void(0)"
+                            title="[% locale.makevar(config.page_title_key, page) %]"
+                            aria-label="[% locale.makevar(config.page_title_key, page) %]"
+                            onclick="return CPANEL.ui.widgets.pager.fireGoToPage('[%data.scope%]',[% ((page - 1) * data.perpage) + 1 %], [% page %], [% page - 1 %]);">[% page %]</a></li>
+                    [%- END;
+                      END;
+                      SET page = page + 1;
+                END -%]
+
+                [%- IF config.show_ellipsis && ((data.page + config.max_trailing_pages) < data.pagecount) %]
+                    <li class="disabled"><a id="[% data.scope %]-navigate-trailing-ellipsis" class="disabled" tabindex="-1" href="javascript:void(0)">&hellip;</a></li>
+                [%- END -%]
+
+                [% IF data.page == data.pagecount || data.matches == 0 %]
+                    <li class="disabled"><a id="[%data.scope%]-navigate-next" class="disabled" tabindex="-1" href="javascript:void(0)"
+                    title="[% locale.maketext('Navigate to next page.') _ " " _ locale.maketext('Function disabled.') %]"
+                    aria-label="[% locale.maketext('Navigate to next page.') _ " " _ locale.maketext('Function disabled.') %]">[% config.next_item_label %]</a></li>
+                    <li class="disabled"><a id="[%data.scope%]-navigate-last" class="disabled" tabindex="-1" href="javascript:void(0)"
+                    title="[% locale.maketext('Navigate to last page.') _ " " _ locale.maketext('Function disabled.') %]"
+                    aria-label="[% locale.maketext('Navigate to last page.') _ " " _ locale.maketext('Function disabled.') %]">[% config.last_item_label %]</a></li>
+                [% ELSE %]
+                    <li><a id="[%data.scope%]-navigate-next" href="javascript:void(0)"
+                        title="[% locale.maketext('Navigate to next page.') %]"
+                        aria-label="[% locale.maketext('Navigate to next page.') %]"
+                        onclick="return CPANEL.ui.widgets.pager.fireGoToPage('[%data.scope%]',[% ((page - 1) * data.perpage) + 1 %], [% page %], [% page - 1 %]);">[% config.next_item_label %]</a></li>
+                    <li><a id="[%data.scope%]-navigate-last" href="javascript:void(0)"
+                        title="[% locale.maketext('Navigate to last page.') %]"
+                        aria-label="[% locale.maketext('Navigate to last page.') %]"
+                        onclick="return CPANEL.ui.widgets.pager.fireGoToPage('[%data.scope%]',[% ((data.pagecount - 1) * data.perpage) + 1 %], [% data.pagecount %], [% data.pagecount - 1 %]);" >[% config.last_item_label %]</a></li>
+                [% END %]
+            </ul>
+            [% END %]
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+(function(CPANEL) {
+    YAHOO.util.Event.onDOMReady( function() {
+        // Setup all the parameters from the form
+        var params = {};
+        [% FOREACH pair IN CPANEL.FORM.pairs %]
+        params[[% pair.key.json() %]] = [% pair.value.json() %];
+        [% END %]
+
+        // Configure the ones important for paging to match the data set conditions
+        params['api2_paginate_start'] = [% ((data.page - 1) * data.perpage) + 1 %];
+        params['page'] = [% data.page %];
+        params['skip'] = [% data.skip - 1 %];
+        params['api2_sort_column'] = [% data.sortcolumn.json() %];
+        params['api2_sort_reverse'] = [% data.sortrev.json() %];
+        params['itemsperpage'] = [% data.perpage.json() %];
+        params['searchregex'] = [% data.search.json() %];
+
+        // Initialize the pager
+        CPANEL.ui.widgets.pager.initialize('[% data.scope %]', null, params);
+    });
+})(window["CPANEL"]);
+</script>

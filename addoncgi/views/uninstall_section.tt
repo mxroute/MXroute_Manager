@@ -1,0 +1,49 @@
+[%
+# Arguments
+# data   - hash -
+#    sorted_instances - array of instances
+# environment - hash
+#    script_name   - string - name of the script
+# module - hash -
+#    name - string
+#    version - string
+#
+%]
+
+[% IF module.supports_action.uninstall && data.action_has_prerequisites.uninstall %]
+    [% IF has_instances %]
+    <form id="cpaddonsform_uninstall"
+          action="[% environment.script_name | url %]"
+          method="post" class="form-inline">
+        <input type="hidden" name="debug" value="[% environment.debug | html %]" />
+        <input type="hidden" name="verbose" value="[% environment.verbose | html %]" />
+        <input type="hidden" name="oneclick" value="[% form.oneclick | html %]" />
+        <input type="hidden" name="addon"
+               value="[% module.name | html %]"
+               id="hidUninstallModuleName" />
+        <input type="hidden" name="action" value="uninstall" />
+
+        <select name="workinginstall" id="selInstanceToUninstall" class="form-control">
+        [% FOREACH instance IN data.sorted_instances; %]
+            <option value="[% instance.install_filename | html %]">
+                [% instance.no_protocol_url_to_install | html %]
+                [% IF module.meta.display.versions %]
+                  (v[% instance.version | html %])
+                [% END %]
+            </option>
+        [% END %]
+        </select>
+        <button type="submit" class="btn btn-primary" id="btnUninstall">
+            [% locale.maketext('Uninstall') %]
+        </button>
+    </form>
+    [% ELSE %]
+    <span id="nothing_to_uninstall">
+        [% locale.maketext('There are no installed instances of this [asis,cPAddon].') %]
+    </span>
+    [% END %]
+[% ELSE %]
+    <span id="uninstall_not_supported">
+        [% locale.maketext('Uninstall is not supported.') %]
+    </span>
+[% END %]

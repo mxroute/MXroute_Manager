@@ -1,0 +1,503 @@
+@import (reference) "../libraries/bootstrap/source/less/variables.less";
+
+.action-column {
+    width: 350px;
+    text-align: right;
+}
+
+html[dir="rtl"] .action-column {
+    text-align: left;
+}
+
+.tooltip-wrap {
+    word-break: break-all;
+}
+
+.pointer {
+    cursor: pointer;
+}
+
+.row-expand-container {
+    display: table-cell;
+    width: 40px;
+}
+
+.repository-name {
+    display: table-cell;
+}
+
+.table > tbody > tr > td.expand-panel-data {
+    padding: 0;
+    border: 0;
+}
+
+.vc-list-panel {
+    padding: 8px 8px 8px 60px;
+    overflow: hidden;
+}
+
+.box {
+    margin-bottom: 20px;
+}
+
+.action-row {
+    margin-bottom: 5px;
+}
+
+.list-group a {
+    cursor: pointer;
+}
+
+.panel .form-group {
+    padding: 10px 15px;
+}
+
+.expand-panel .expand-actions {
+    text-align: right;
+}
+
+.info-spacing {
+    padding-bottom: 5px;
+}
+
+@media only screen and (max-width: @screen-xs-max) {
+    .expand-panel .expand-actions {
+        text-align: left;
+    }
+    .expand-actions button {
+        display: inline-block;
+    }
+}
+
+@media only screen and (max-width: 600px) {
+    .responsive-table > tbody > tr,
+    .responsive-table > tbody > tr > td {
+        border: 0;
+    }
+
+    .responsive-table > tbody > tr:nth-child(2n + 1) {
+        border-top: 1px solid #ccc;
+    }
+
+    .action-column {
+        width: 100%;
+    }
+}
+
+/*Basic Style*/
+.table-striped-child > tbody > tr:nth-child(4n + 1) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 2) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 1) > th,
+.table-striped-child > tbody > tr:nth-child(4n + 2) > th {
+    background-color: #f8f8f8;
+}
+.table-striped-child > tbody > tr:nth-child(4n + 3) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 4) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 3) > th,
+.table-striped-child > tbody > tr:nth-child(4n + 4) > th {
+    background-color: #f1f1f1;
+}
+
+/*Dark Style*/
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 1)
+    > td,
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 2)
+    > td,
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 1)
+    > th,
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 2)
+    > th {
+    background-color: #333;
+}
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 3)
+    > td,
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 4)
+    > td,
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 3)
+    > th,
+html[data-style="dark"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 4)
+    > th {
+    background-color: #2c2c2c;
+}
+
+/*Light Style*/
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 1)
+    > td,
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 2)
+    > td,
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 1)
+    > th,
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 2)
+    > th {
+    background-color: #f5f5f5;
+}
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 3)
+    > td,
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 4)
+    > td,
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 3)
+    > th,
+html[data-style="light"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 4)
+    > th {
+    background-color: #fcfcfc;
+}
+
+/*Retro Style*/
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 1)
+    > td,
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 2)
+    > td,
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 1)
+    > th,
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 2)
+    > th {
+    background-color: #f9f9f9;
+}
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 3)
+    > td,
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 4)
+    > td,
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 3)
+    > th,
+html[data-style="retro"]
+    .table-striped-child
+    > tbody
+    > tr:nth-child(4n + 4)
+    > th {
+    background-color: #fff;
+}
+
+.table > tbody > tr > td.info,
+.table > tbody > tr.info > td,
+html[data-style="dark"] .table > tbody > tr > td.info,
+html[data-style="dark"] .table > tbody > tr.info > td,
+html[data-style="light"] .table > tbody > tr > td.info,
+html[data-style="light"] .table > tbody > tr.info > td,
+html[data-style="retro"] .table > tbody > tr > td.info,
+html[data-style="retro"] .table > tbody > tr.info > td {
+    background-color: #d7edf9;
+}
+
+.table > tbody > tr > td.success,
+.table > tbody > tr.success > td,
+html[data-style="dark"] .table > tbody > tr > td.success,
+html[data-style="dark"] .table > tbody > tr.success > td,
+html[data-style="light"] .table > tbody > tr > td.success,
+html[data-style="light"] .table > tbody > tr.success > td,
+html[data-style="retro"] .table > tbody > tr > td.success,
+html[data-style="retro"] .table > tbody > tr.success > td {
+    background-color: #dff2d5;
+}
+
+.table > tbody > tr > td.warning,
+.table > tbody > tr.warning > td,
+html[data-style="dark"] .table > tbody > tr > td.warning,
+html[data-style="dark"] .table > tbody > tr.warning > td,
+html[data-style="light"] .table > tbody > tr > td.warning,
+html[data-style="light"] .table > tbody > tr.warning > td,
+html[data-style="retro"] .table > tbody > tr > td.warning,
+html[data-style="retro"] .table > tbody > tr.warning > td {
+    background-color: #fcf8e1;
+}
+
+html[data-style="dark"] .table > tbody > tr.success > td,
+html[data-style="dark"] .table > tbody > tr.warning > td,
+html[data-style="dark"] .table > tbody > tr.info > td,
+html[data-style="dark"] .table > tbody > tr.warning > td code.format {
+    color: #333;
+}
+
+.btn-default-white {
+    background-color: #fff;
+    color: #428bca;
+}
+
+.btn-default-white:hover,
+.btn-default-white:active,
+.btn-default-white:focus {
+    color: #2a6496;
+    background-color: #fff;
+}
+
+/* Delete Warning Mode */
+.delete-question-mark {
+    font-size: 45px;
+    color: #f1be38;
+    font-weight: 700;
+    position: relative;
+    top: -14px;
+    padding-right: 10px;
+}
+
+.delete-warning {
+    border-top: 1px solid #eee;
+    padding-top: 20px;
+}
+
+.delete-message {
+    font-weight: bold;
+}
+
+.delete-warning p {
+    padding-top: 10px;
+}
+
+.display-table-cell {
+    vertical-align: top;
+}
+
+/* Delete Warning Mode end */
+
+.wordbreak {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+    -ms-word-break: break-all;
+    word-break: break-all;
+    word-break: break-word;
+    white-space: normal;
+}
+
+.display-inline-block {
+    display: inline-block;
+}
+
+.display-table {
+    display: table;
+}
+
+.display-table-cell {
+    display: table-cell;
+}
+
+.clone-in-progress {
+    padding: 5px 40px 5px 40px;
+}
+
+@media only screen and (max-width: 600px) {
+    /* Overwrites master-ltr.cmb.min.css default table styles */
+    .responsive-table > thead > tr {
+        position: initial;
+    }
+    .responsive-table > tbody > tr > td.expand-panel-data:before {
+        content: none;
+    }
+}
+
+.alignment {
+    margin: 0 5px 0 5px;
+}
+
+.steps {
+    margin: 10px 0 20px 0;
+}
+
+.step-title {
+    font-weight: bold;
+}
+
+.summary-sections {
+    margin: 20px 0 60px 0;
+}
+
+.section-title {
+    font-weight: 600;
+    margin: 20px 0 20px 0;
+}
+
+.action-buttons {
+    display: inline-block;
+    margin-left: 40px;
+}
+
+.create-another {
+    display: inline-block;
+}
+
+.truncate {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.home-dir-text {
+    max-width: 150px;
+    display: inline-block;
+    text-align: left;
+}
+
+.search-create-link {
+    padding-left: 10px;
+}
+
+.margin-bottom-10 {
+    margin-bottom: 10px;
+}
+
+/* Overrides from base stylesheet */
+.validation-container {
+    margin-top: 5px;
+}
+
+.info-block {
+    margin-top: 0;
+    margin-bottom: 5px;
+}
+
+a.list-group-item {
+    color: #428bca;
+}
+
+code.commands {
+    display: block;
+    white-space: pre-wrap;
+    margin: 10px 0 10px 0;
+    padding: 0 20px 20px 20px;
+    background-color: #e5e5e5;
+    color: #24292e;
+}
+
+code.format {
+    background-color: transparent;
+    color: #24292e;
+    padding: 2px 0;
+}
+
+/*Dark Style*/
+html[data-style="dark"] code.format {
+    color: #d7d7d7;
+}
+
+.branch-callout .callout {
+    margin: 5px 0;
+    padding: 10px;
+}
+
+.branch-callout .callout p {
+    margin: 0;
+}
+
+.tab-content {
+    margin-top: 20px;
+}
+
+.manage-section {
+    margin-top: 15px;
+}
+
+.url-section {
+    margin-top: 30px;
+}
+
+.commit-changed {
+    background-color: transparent;
+    border: 1px solid transparent;
+    -webkit-animation-name: highlight-changes; /* Safari 4.0 - 8.0 */
+    -webkit-animation-duration: 10s; /* Safari 4.0 - 8.0 */
+    animation-name: highlight-changes;
+    animation-duration: 10s;
+}
+
+/* Safari 4.0 - 8.0 */
+@-webkit-keyframes highlight-changes {
+    from {
+        background-color: transparent;
+        border: 1px solid #faebcc;
+    }
+    to {
+        background-color: #faebcc;
+        border: 1px solid #faebcc;
+    }
+}
+
+/* Standard syntax */
+@keyframes highlight-changes {
+    from {
+        background-color: transparent;
+        border: 1px solid #faebcc;
+    }
+    to {
+        background-color: #faebcc;
+        border: 1px solid #faebcc;
+    }
+}
+
+.external-link {
+    cursor: pointer;
+}
+
+.font-weight-bold {
+    font-weight: bold;
+}
+
+.margin-top-10 {
+    margin-top: 10px;
+}

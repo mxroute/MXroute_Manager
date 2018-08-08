@@ -1,0 +1,223 @@
+<div class="panel" ng-class="{
+    'panel-default': !conflictResolutionRequired || !needsConflictResolution(),
+    'panel-warning': conflictResolutionRequired && (needsConflictResolution() || isLinking),
+    'panel-success': service.willLink && !isLinking,
+    'panel-danger': service.willDismiss
+}">
+    <div class="panel-heading">
+        <label>[% locale.maketext('Web Disk') %]</label>
+        <span class="pull-right flip ng-hide" ng-show="showToggle">
+            <toggle-switch id="toggleWebDisk"
+                       ng-model="service.enabled"
+                       no-spinner="true"
+                       label-position="left"
+                       on-toggle="toggleService()"
+                       enabled-label="[% locale.maketext('Enabled') %]"
+                       disabled-label="[% locale.maketext('Disabled') %]"
+                       ng-disabled="isDisabled || hasConflict() && isResolved() && !isLinking"
+                       ng-hide="(hasConflict() && !isResolved()) || isLinking">
+            </toggle-switch>
+        </span>
+        <span class="fas fa-exclamation-triangle" id="webdisk-has-conflicts-warning" ng-show=" conflictResolutionRequired && (needsConflictResolution() || isLinking)" title="[% locale.maketext('The system detected a service account with the same username.') %] [% locale.maketext('You must select an action.') %]"></span>
+        <span class="fas fa-info-circle"          id="webdisk-has-conflicts-info"    ng-show="!conflictResolutionRequired && (needsConflictResolution() || isLinking)" title="[% locale.maketext('The system detected a service account with the same username.') %]"></span>
+    </div>
+    <div class="panel-body">
+        <!-- Handle merge candidates -->
+        <div ng-class="{ 'text-warning': conflictResolutionRequired }" ng-show="needsConflictResolution() || isLinking">
+            <p>[% locale.maketext('A [asis,Web Disk] service account with the same username and domain as this [asis,subaccount] already exists.') %]</p>
+
+            <div class="well well-sm existing-service-summary" ng-show="needsConflictResolution() || isLinking">
+                <div id="webdisk-details-expander" class="text-center existing-service-summary-header" ng-click="toggleConflictSummary()">
+                    <label>[% locale.maketext('Existing Account Summary') %]</label>
+                    <span class="fas fa-fw fa-caret-down" ng-class="{ 'fa-rotate-180': !isSummaryCollapsed }"></span>
+                </div>
+                <div class="existing-service-summary-body" uib-collapse="isSummaryCollapsed">
+                    <hr>
+                    <ul>
+                        <li id="existing-webdisk-homedir">
+                            <label>[% locale.maketext('Home Directory') %]:</label>
+                            <span ng-bind-html="service.homedir | wrap:'':5"></span>
+                        </li>
+                        <li id="existing-webdisk-perms">
+                            <label>[% locale.maketext('Permissions') %]:</label>
+                            <span ng-show="service.perms === 'rw'">[% locale.maketext('Read-Write') %]</span>
+                            <span ng-show="service.perms === 'ro'">[% locale.maketext('Read-Only') %]</span>
+                        </li>
+                        <li id="existing-webdisk-enabledigest">
+                            <label>[% locale.maketext('Digest Authentication') %]:</label>
+                            <span ng-show="service.enabledigest">[% locale.maketext('Enabled') %]</span>
+                            <span ng-show="!service.enabledigest">[% locale.maketext('Disabled') %]</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <p>[% locale.maketext('You cannot create a duplicate [asis,Web Disk] service account. To manage their settings jointly, link the [asis,Web Disk] account to the [asis,subaccount].') %]</p>
+            <div class="conflict-button-container text-center">
+                <button id="webdisk-conflict-link"
+                        type="button"
+                        ng-disabled="isInProgress()"
+                        cp-action="runLinkAction()"
+                        button-ng-class="{ 'btn-warning': conflictResolutionRequired, 'btn-small': !conflictResolutionRequired, 'btn-default': !conflictResolutionRequired }">
+                    <span class="fas fa-link" ng-hide="isLinking"></span>
+                    [% locale.maketext('Link') %]
+                </button>
+                <button class="btn btn-warning"
+                        id="webdisk-conflict-dismiss"
+                        type="button"
+                        ng-click="setDismiss()"
+                        ng-show="showConflictDismiss">
+                    <span class="fas fa-unlink"></span>
+                    [% locale.maketext('Dismiss') %]
+                </button>
+            </div>
+        </div>
+
+        <div class="text-success" ng-show="service.willLink && !isLinking">
+            <p>[% locale.maketext('The system will link this [asis,Web Disk] service account to the [asis,subaccount].') %]</p>
+            <div class="conflict-button-container text-center">
+                <button class="btn btn-link"
+                        id="webdisk-link-undo"
+                        type="button"
+                        ng-click="clearConflictResolution()">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext('Undo') %]
+                </button>
+            </div>
+        </div>
+        <div class="text-danger" ng-show="service.willDismiss">
+            <p>[% locale.maketext('This [asis,subaccount] will not have [asis,Web Disk] access.') %] [% locale.maketext('You can edit this setting later in the User Manager interface.') %]</p>
+            <div class="conflict-button-container text-center">
+                <button class="btn btn-link"
+                        id="webdisk-dismiss-undo"
+                        type="button"
+                        ng-click="clearConflictResolution()">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext('Undo') %]
+                </button>
+            </div>
+        </div>
+
+        <!-- Normal configuration settings -->
+        <div ng-hide="hasConflict()">
+            <div class="ng-hide" cp-alert ng-show="showWarning" id="webdiskWarningMessage">
+                {{warningMessage}}
+            </div>
+            <div class="ng-hide" cp-alert ng-show="showInfo" id="webdiskInfoMessage" type="info">
+                {{infoMessage}}
+            </div>
+
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <label>[% locale.maketext('Home Directory') %]</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <span class="input-group">
+                            <span class="input-group-addon">
+                                <i class="fas fa-home"></i>
+                                <span>/</span>
+                            </span>
+                            <input id="txtWebDiskHomeDirectory"
+                               name="txtWebDiskHomeDirectory"
+                               class="form-control"
+                               ng-model="service.homedir"
+                               ng-disabled="!service.enabled"
+                               uib-typeahead="directory for directory in completeDirectory($viewValue)"
+                               typeahead-template-url="pathSuggester.html"
+                               autocomplete="off"
+                               class="form-control"
+                               ng-disabled="isDisabled" />
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <toggle-label-info
+                            label-text="[% locale.maketext('Permissions') %]"
+                            info-icon-id="icoWebDiskPermissions"
+                            info-block-id="textWebDiskPermissions"
+                            show-info-block="false">
+                            [% locale.maketext('Read-Write access level will permit all supported operations inside the directory assigned to this Web Disk account. Read-Only access will only permit this account to read, download, and list files inside the directory assigned to this Web Disk account.') %]
+                        </toggle-label-info>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <div class="radio">
+                            <label title="[% locale.maketext('Allow the user to read and write files to the Home Directory.') %]">
+                                <input id="rdoWebdiskRW"
+                                       type="radio"
+                                       ng-model="service.perms"
+                                       ng-disabled="!service.enabled || isDisabled"
+                                       name="permission" value="rw">
+                                [% locale.maketext('Read-Write') %]
+                            </label>
+                        </div>
+                        <div class="radio">
+                            <label title="[% locale.maketext('Allow the user to only read files in the Home Directory.') %]">
+                                <input id="rdoWebdiskRO"
+                                       type="radio"
+                                       ng-model="service.perms"
+                                       ng-disabled="!service.enabled || isDisabled"
+                                       name="permission" value="ro">
+                                [% locale.maketext('Read-Only') %]
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group ng-hide" ng-show="allowDigestAuth">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <toggle-label-info
+                            label-text="[% locale.maketext('Authentication (Optional)') %]"
+                            info-icon-id="icoWebDiskAuthentication"
+                            info-block-id="textWebDiskAuthentication"
+                            show-info-block="false">
+                            [% locale.maketext('[asis,Windows Vista®], [asis,Windows® 7], [asis,Windows® 8] and [asis,Windows® 10] require digest authentication support to be enabled in order to access your [asis,Web Disk] over a clear text/unencrypted connection. If the server has an SSL certificate signed by a recognized certificate authority and you are able to make an SSL connection over port 2078, you do not need to enable this.') %]
+                        </toggle-label-info>
+                    </div>
+                    <div class="col-xs-12 ng-hide" cp-alert ng-show="showDigestWarning" id="webdiskDigestWarningMessage">
+                        [% locale.maketext('You must provide a new password to enable Digest Authentication.') %]
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <div class="checkbox">
+                            <label>
+                                <input id="chkWebdiskEnableDigest"
+                                       type="checkbox"
+                                       ng-model="service.enabledigest"
+                                       ng-disabled="!service.enabled || isDisabled || !enableDigestControls">
+                                [% locale.maketext('Enable Digest Authentication') %]
+                            </label>
+                            <span class="help-block">[% locale.maketext('This option only applies to [asis,Windows Vista®], [asis,Windows® 7], [asis,Windows® 8] and [asis,Windows® 10].') %]</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="panel-footer ng-hide" ng-show="showUnlink">
+        <div class="row">
+            <div class="col-xs-12">
+                <action-button id="unlinkWebDisk"
+                               class="btn btn-link btn-xs pull-right"
+                               ng-click="unlinkService()"
+                               ng-disabled="isInProgress()"
+                               title="[% locale.maketext('Unlink this [asis,Web Disk] service account from this [asis,subaccount].') %]">
+                    <i class="fas fa-unlink"></i>
+                    [% locale.maketext('Unlink') %]
+                </action-button>
+            </div>
+        </div>
+    </div>
+
+</div>

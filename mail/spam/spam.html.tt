@@ -1,0 +1,168 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'apache_spam_assassin'
+%]
+
+<div class="body-content">
+    [% result = execute('Email', 'get_spam_settings') %]
+
+    [%# check for result.status first!? %]
+    [%
+        SET settings = result.data;
+
+        SET feature_spam_assassin = 0;
+        IF !CONF.skipspamassassin;
+            SET feature_spam_assassin = 1;
+        END;
+
+        SET feature_spam_box = 0;
+        IF !CONF.skipspambox;
+            SET feature_spam_box = 1;
+        END;
+    %]
+
+    [% IF feature_spam_assassin  ##<feature_spam_assassin> %]
+    <div id="sa-wrap" class="clear">
+        <p id="descSAWrap" class="description">[% locale.maketext("[asis,Apache SpamAssassin™] is a mail filter that identifies spam. It is an intelligent email filter that uses a diverse range of tests to identify unsolicited bulk email, more commonly known as spam. These tests examine email headers and content to classify email with advanced statistical methods. More information is available at [output,url,_1,spamassassin.apache.org]", 'http://spamassassin.apache.org') %]
+        </p>
+    </div>
+
+    <div id="hilight-box">
+        <p id="descApacheSpamAssassinStatus">
+            [% IF settings.spam_enabled %]
+            [% locale.maketext("[asis,Apache SpamAssassin™] is currently [output,class,enabled,status].") %]
+            [% ELSE %]
+            [% locale.maketext("[asis,Apache SpamAssassin™] is currently [output,class,disabled,status].") %]
+            [% END %]
+        </p>
+        [% IF settings.spam_status_changeable %]
+           [% IF settings.spam_enabled %]
+              <form id="frmDisableApacheSpamAssassin" action="delspam.html">
+                <p><input id="SAddis" type="submit" class="btn btn-primary" value="[% locale.maketext("Disable [asis,Apache SpamAssassin™]") %]" /></p>
+              </form>
+            [% ELSE %]
+              <form id="frmEnableApacheSpamAssassin" action="addspam.html">
+                <p><input id="SAenable" type="submit" class="btn btn-primary" value="[% locale.maketext("Enable [asis,Apache SpamAssassin™]") %]" /></p>
+              </form>
+            [% END %]
+        [% END %]
+    </div>
+
+    <div class="sa-box clear">
+        <h2 id="hdrFilters">[% locale.maketext("Filters") %]</h2>
+        <div id="sa-filters-main">
+
+            [% IF settings.spam_auto_delete %]
+                <p id="descSpamAutoDeleteIsEnabled"><b>[% locale.maketext("Spam Auto-Delete is [output,class,Enabled,status]") %]</b></p>
+                <p id="descMessagesWithSpamScore">[% locale.maketext("Messages with a Spam score of “[output,class,_1,status]” or higher will be deleted.", settings.spam_auto_delete_score) %]</p>
+            [% ELSE %]
+                <p id="descSpamAutoDeleteIsDisable"><b>[% locale.maketext("Spam Auto-Delete is [output,class,Disabled,status]") %]</b></p>
+            [% END %]
+
+            [% score_select = settings.spam_auto_delete_score || 5 %]
+
+            <p id="descYouCanAutomaticallyDeleteMessages">[% locale.maketext("You can automatically delete messages that the system marks as spam. First, set the number of hits that you wish to require before the system marks mail as spam.") %]</p>
+            <p id="descNoteDefaultSetting">[% locale.maketext("[output,strong,NOTE]: [asis,5] is the default setting. The higher the number, the more conservative the setting.") %]</p>
+
+            <form id="frmAddSpamFilter" action="addspamfilter.html">
+                <div class="form-group">
+                    <label id="lblScore" for="score">[% locale.maketext("Score") %]</label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <select name="score" id="autodel_score" class="form-control">
+                                [% score_select = settings.spam_auto_delete_score || 5 %]
+                                [% FOR score = [ 1 .. 10 ] %]
+                                  <option[% score == score_select ? ' selected="selected"' : '' %]>[% score %]</option>
+                                [% END %]
+                            </select>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input id="btnAutoDeleteSpam" type="submit" class="btn btn-primary" value="[% locale.maketext("Auto-Delete Spam") %]" />
+                </div>
+            </form>
+        </div>
+        <div id="sa-filters-sec">
+            <p id="descYouMayDisable">[% locale.maketext("You may also disable auto-deletion of spam.") %]</p>
+
+            <form id="frmDeleteFilter" action="deletefilter.html"><input id="btnDisableAutoDeleteSpam" type="submit" class="btn btn-primary" value="[% locale.maketext("Disable Auto-Delete Spam") %]" /></form>
+        </div>
+    </div>
+
+    [% IF feature_spam_box %]
+    <div class="sa-box clear">
+        <h2 id="hdrSpamBox">[% locale.maketext("Spam Box") %]</h2>
+        <p id="descSpamBoxWillDeliver">
+            [% locale.maketext("Spam Box will deliver any emails that the system identifies as spam into a separate mail folder named [output,em,spam]. This [output,em,spam] folder will fill quickly. You should empty it regularly.") %]
+        </p>
+
+
+        [% IF settings.spam_box_enabled %]
+            <p id="descSpamBoxIsCurrentlyEnabled">[% locale.maketext("Spam Box is currently [output,class,Enabled,status].") %]</p>
+        [% ELSE %]
+            <p id="descSpamBoxIsCurrentlyDisabled">[% locale.maketext("Spam Box is currently [output,class,Disabled,status].") %]</p>
+        [% END %]
+        <div class="row">
+            [% IF ! settings.spam_box_enabled %]
+            <form id="frmEnableSpamBox" action="addspambox.html">
+                <div class="form-group">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="SBenable" type="submit" value="[% locale.maketext("Enable Spam Box") %]" class="btn btn-primary" />
+                    </div>
+                </div>
+            </form>
+            [% ELSE %]
+            <form id="frmDisableSpamBox" action="delspambox.html">
+                <div class="form-group">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="SBddis" type="submit" value="[% locale.maketext("Disable Spam Box") %]" class="btn btn-primary" />
+                    </div>
+                </div>
+            </form>
+            [% END %]
+            <form action="clearspambox.html" id="clearspambox">
+                <div class="form-group">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="submit" value="[% locale.maketext("Clear Spam Box") %]" class="btn btn-primary" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    [% END %]
+
+
+    <div class="sa-box">
+    <h2 id="hdrApacheSpamAssassinConfiguration">[% locale.maketext("Apache SpamAssassin™ Configuration") %]</h2>
+    <p id="descYouMayAlsoConfigure">[% locale.maketext("You may also configure the different settings for Apache SpamAssassin™.") %]</p>
+
+    <form id="frmSpamAssassinConfig" action="spamassassinconfig.html"><p>
+
+    [% IF settings.spam_as_acl %]
+    <input id="btnConfigureSpamAssassin" type="submit" value="[% locale.maketext("Configure [asis,Apache SpamAssassin™]") %]" class="btn btn-primary" />
+    [% ELSE %]
+    <input id="btnConfigureSpamAssassin" type="submit" value="[% locale.maketext("Configure [asis,Apache SpamAssassin™] (required to rewrite Subjects)") %]" class="btn btn-primary" />
+    [% END %]
+
+    </p></form>
+    </div>
+
+    [% IF !settings.rewrites_subjects %]
+        <p id="descPleaseNoteThatApacheSpamAssassinNotConfiguredForRewrites">
+        [% locale.maketext("[output,strong,NOTE]: [asis,Apache SpamAssassin™] is not configured for rewrites. Check the [asis,X-Spam-Bar] header for the spam bar in your filter, or, check the [asis,X-Spam-Status] header for [output,em,Yes] or [output,em,No].") %] </p>
+    [% END %]
+
+    [% END  ##</feature_spam_assassin> %]
+
+
+</div>
+
+[% END %]
+
+

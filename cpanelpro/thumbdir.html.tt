@@ -1,0 +1,95 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    Api2.pre_exec("FSTest", "dirisempty");
+    SET api2_result_FSTest_dirisempty = Api2.exec("FSTest" , "dirisempty" , {"files_only" =>"1" , "dir" =>FORM.item("dir" ) _ "/"  _ FORM.item("file" )});
+    Api2.post_exec("FSTest", "dirisempty");
+
+    SET file_fullpath = FORM.dir _ '/' _ FORM.file;
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Thumbnailer")
+-%]
+
+<div class="body-content">
+    <div class="section">
+        [% IF CPANEL.CPVAR.last_dir_empty %]
+            <div id="alertThumbEmptyDir" class="alert alert-info">
+                <span id="alertThumbEmptyDirImg" class="glyphicon glyphicon-info-sign"></span>
+                <span id="alertThumbEmptyDirMsg">
+                [% locale.maketext("The directory is empty, no images found.") %]
+                </span>
+            </div>
+        [% ELSE %]
+            <p id="descDirectoryToThumb">[% locale.maketext("We will be thumbnailing images in “[_1]”.", file_fullpath) %]</p>
+
+            <form name="sff" action="dothumbdir.html">
+                <input type="hidden" name="dir" value="[% file_fullpath %]" />
+
+                <div class="form-group">
+                    <label id="lblScalePercent" for="widthpercent">
+                        [% locale.maketext("Scale Percent:") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-2">
+                            <div class="input-group">
+                                <input id="widthpercent" type="text" class="form-control" name="widthpercent"  size="3" value="25" onchange="checkwpdim();" />
+                                <span class="input-group-addon">%</span>
+                            </div>
+                        </div>
+                        <div class="col-xs-1"><span>x</span></div>
+                        <div class="col-xs-2">
+                            <div class="input-group">
+                                <input id="heightpercent" type="text" class="form-control" name="heightpercent"  size="3" value="25" onchange="checkhpdim();" />
+                                <span class="input-group-addon">%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox">
+                        <label id="lblAspectRatio">
+                            <input id="chkAspectRatio" type="checkbox" name="aspect" value="1" checked="checked" />
+                            [% locale.maketext("Keep Aspect Ratio") %]
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input id="btnDoThumbnail" type="submit" class="btn btn-primary" value="[% locale.maketext("Thumbnail Images") %]" />
+                    <input id="btnResetDimensions" type="button" class="btn btn-default" value="[% locale.maketext("Reset Dimensions") %]" onclick="document.sff.reset();" />
+                </div>
+            </form>
+        [% END %]
+    </div>
+    [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+
+</div><!-- end body-content -->
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+function checkhpdim() {
+    if (document.sff.aspect.checked == true) {
+        document.sff.widthpercent.value = document.sff.heightpercent.value;
+    }
+}
+
+function checkwpdim() {
+    if (document.sff.aspect.checked == true) {
+        document.sff.heightpercent.value = document.sff.widthpercent.value;
+    }
+}
+
+ [% IF !CPANEL.CPVAR.last_dir_empty %]
+checkwpdim();
+[% END %]
+
+</script>
+[% END %]
+
+[% END #wrapper -%]

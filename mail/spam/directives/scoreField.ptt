@@ -1,0 +1,25 @@
+<div class="score-field-directive">
+    <div>
+        <div class="row directive-parts">
+            <div class="col-xs-12 col-sm-9 col-md-9 col-lg-9">
+                <select
+                    chosen
+                    id="{{ :: parentID }}_scoreTypes"
+                    ng-model="selectedScoreType"
+                    ng-options="type.key for type in scoreTypes track by type.key"
+                    class="no-animate form-control sf-chosen-select"></select>
+            </div>
+            <div class="col-xs-12 col-sm-3 col-md-3 col-lg-3">
+                <input
+                    id="{{ :: parentID }}_input"
+                    name="{{ :: parentID }}_input"
+                    type="number"
+                    ng-disabled="!scoreType"
+                    ng-model="scoreValue"
+                    class="form-control sf-chosen-input"
+                    step="0.001"
+                    required />
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,25 @@
+<div class="alert alert-success">
+    <span class="glyphicon glyphicon-ok-sign"></span>
+    <div class="alert-message">
+        [% locale.maketext("Two-factor authentication is configured for your account.") %]
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12">
+        <div class="status-actions" ng-show="setup.isEnabled">
+            <a href="setup.html?reconfigure=1"
+                name="reconfigure"
+                id="reconfigure"
+                class="btn btn-default"
+                >[% locale.maketext('Reconfigure Two-Factor Authentication') %]</a>
+            <form action="remove.html" method="post">
+            <button type="submit"
+                name="disable"
+                id="disable"
+                class="btn btn-danger"
+                value="1"
+                >[% locale.maketext('Remove Two-Factor Authentication') %]</button>
+            </form>
+        </div>
+    </div>
+</div>

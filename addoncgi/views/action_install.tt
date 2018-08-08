@@ -1,0 +1,65 @@
+[% IF !data.notices.has() %]
+<p>
+    [% locale.maketext('The system successfully installed the [asis,cPAddon].') %]
+</p>
+[% ELSE %]
+    [% PROCESS 'addoncgi/views/notices.tt' notices => data.notices %]
+[% END %]
+
+[% IF data.success || data.partial_success %]
+    [% IF data.url_to_install %]
+<p>
+    [% locale.maketext('You can access this site at [output,url,_1,_1,id,_2,target,_blank]', data.url_to_install, 'site_url') %]
+</p>
+    [% END %]
+    [% IF data.url_to_install_admin %]
+<p>
+    [% locale.maketext('You can access the admin login page for this site at [output,url,_1,_1,id,_2,target,_blank].', data.url_to_install_admin, 'site_admin_url') %]
+</p>
+    [% END %]
+
+    [% IF data.username && data.password %]
+        <div id="credentials" class="callout
+            [% IF data.partial_success %]
+                callout-warning
+            [% ELSE %]
+                callout-success
+            [% END %]">
+            <p>
+            <strong>[% locale.maketext('Important:') %]</strong>
+            [% IF form.oneclick %]
+                [% locale.maketext('The system automatically generated your credentials, which are not available anywhere else. Save these credentials or use them to log in now and set up another account.') %]
+            [% ELSE %]
+                [% locale.maketext('Your login credentials are listed below:') %]
+            [% END %]
+            </p>
+            <div>[% locale.maketext('Username:') %] <strong id="username">[% data.username | html %]</strong></div>
+            <div>[% locale.maketext('Password:') %] <strong id="password">[% data.password | html %]</strong></div>
+        </div>
+    [% END %]
+[% END %]
+
+[%
+IF !environment.called_from_root;
+    IF data.notices.has('critical_error', 'error');
+        IF form.oneclick == '1';
+            SET fix_url = to_uri(environment, 'addon=' _ module.name _ '&subdomain=' _ form.subdomain _ '&oneclick=1' );
+        ELSE;
+            SET fix_url = to_uri(environment, actionlessuri);
+        END %]
+<p align="center" id="fix">
+    [<a href="[% fix_url | url %]">[% locale.maketext('Back') %]</a>]
+</p>
+[%  ELSE %]
+<p align="center" id="back">
+    [% SET back_url = to_uri(environment, 'addon=' _ module.name _ '&oneclick=' _ form.oneclick) %]
+    [<a href="[% back_url | url %]">[% locale.maketext('Back') %]</a>]
+</p>
+[%  END %]
+<p align="center" id="home">
+    [% SET home_url = to_uri(environment) %]
+    [<a href="[% home_url | url %]">[% locale.maketext('Home') %]</a>]
+</p>
+[% ELSE %]
+    [<a href="" onclick="window.close()">[% locale.maketext('Close') %]</a>]
+[% END %]

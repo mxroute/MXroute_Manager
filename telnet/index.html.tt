@@ -1,0 +1,28 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET has_valid_shell = ExpVar.expand('$hasvalidshell'),
+    has_ssh_feature =  CPANEL.feature('ssh'); %]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    <p id="descSsh1">
+        [% locale.maketext("SSH allows secure file transfer and remote logins over the internet. Your connection via SSH is encrypted allowing the secure connection. In this section you can manage your SSH keys to allow automation when logging in via SSH. Using public key authentication is an alternative to password authentication. Since the private key must be held to authenticate, it is virtually impossible to brute force. You can import existing keys, generate new keys, as well as [output,url,_1,manage]/delete keys.", 'keys/index.html') %]
+    </p>
+    <p id="descSsh2">
+        [% locale.maketext("SSH (Secure Shell) is a program to log into another computer/server over a network securely. It provides strong authentication and secure communications over insecure channels. Your login, commands, text are all encrypted when using ssh.") %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrManageSshKeys">
+            [% locale.maketext("Manage SSH Keys") %]
+        </h2>
+        <p id="descManageSshKeys" class="description">
+            [% locale.maketext("The public and private key are similar to a puzzle. They are created together to use during the login/authentication process. The public key resides on the server (the remote location). The private key resides locally on your computer/server. When you attempt to login to a server, the public and private key are compared. If they “match”, then you will be allowed to login to the server location.") %]
+        </p>
+        <a id="lnkManageSshKeys" href="keys/index.html" class="btn btn-primary">[% locale.maketext("Manage SSH Keys") %]</a>
+    </div>
+</div>
+[% END #wrapper %]

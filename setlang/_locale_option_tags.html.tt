@@ -1,0 +1,63 @@
+[%-
+###IMPORTANT: THIS TEMPLATE MUST NOT OUTPUT ANY SINGLE QUOTE LITERALS
+
+SET choose_one_option_value = data.locale_choose_one_option_value || '';
+SET choose_one_option_label = data.locale_choose_one_option_label || 'Please choose a locale … ';
+SET current_locale      = locale.get_language_tag();
+
+IF !selected_locale;
+    SET selected_locale = data.selected_locale.defined ? data.selected_locale : (data.locale_options_no_default ? '' : current_locale);
+END;
+
+SET locale_menu_data_ar = locale_menu_data_ar ? locale_menu_data_ar : locale.get_locale_menu_arrayref();
+SET current_locale_dir  = locale_menu_data_ar.2.exists(current_locale) ? locale_menu_data_ar.2.$current_locale : '';
+SET dir_text_align      = current_locale_dir == 'rtl' ? 'right' : 'left';
+SET do_exclude_from     = data.exists('exclude_from_locale_menu') ? 1 : 0;
+SET do_only_include     = data.exists('only_include_locale_menu') ? 1 : 0;
+
+IF selected_locale == 'en_us' || selected_locale == 'i_default';
+    SET selected_locale = 'en';
+END;
+
+IF !data.locale_options_no_default;
+    # default to 'en' when selected_locale will not be in the menu
+    IF !locale_menu_data_ar.2.exists(selected_locale) || (do_exclude_from && data.exclude_from_locale_menu.exists(selected_locale)) || (do_only_include && !data.only_include_locale_menu.exists(selected_locale));
+        SET selected_locale = 'en';
+    END;
+END;
+
+# just in case we set selected_locale to 'en' in the check above but
+# the caller has removed 'en' also we want to give an empty default to
+# avoid erroneously implicitly selecting a locale without their notice
+IF data.locale_options_no_default || !locale_menu_data_ar.2.exists(selected_locale) || (do_exclude_from && data.exclude_from_locale_menu.exists(selected_locale)) || (do_only_include && !data.only_include_locale_menu.exists(selected_locale));
+    "<option value=\""; choose_one_option_value FILTER html; "\">"; choose_one_option_label FILTER html; "</option>";
+END;
+
+FOREACH tag IN locale_menu_data_ar.1;
+    NEXT IF do_exclude_from && data.exclude_from_locale_menu.exists(tag);
+    NEXT IF do_only_include && !data.only_include_locale_menu.exists(tag);
+
+    SET dir_attr = '';
+    IF locale_menu_data_ar.2.exists(tag);
+        IF current_locale_dir != locale_menu_data_ar.2.$tag;
+            SET dir_attr = ' style="text-align: ' _ dir_text_align _ '" dir="' _ locale_menu_data_ar.2.$tag _ '"';
+        # NOTE: no need to set it since it matches the current locale
+        #and hence the <html> dir attr
+        #ELSE;
+            #SET dir_attr = ' dir="' _ locale_menu_data_ar.2.$tag _ '"'
+        END;
+    END;
+
+    IF selected_locale == tag;
+        "<option value=\"$tag\" selected=\"selected\"$dir_attr>"
+        _ locale_menu_data_ar.0.$tag
+        _ '</option>'
+        ;
+    ELSE;
+        "<option value=\"$tag\"$dir_attr>"
+        _ locale_menu_data_ar.0.$tag
+        _ '</option>'
+        ;
+    END;
+END;
+-%]

@@ -1,0 +1,28 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET is_api_shell_configured = CPANEL.CPCONF.api_shell == "disable" ? 0 : CPANEL.CPCONF.api_shell;
+%]
+
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'api_shell'
+    page_styles = css_code
+-%]
+
+    [% IF is_api_shell_configured && ExpVar.expand('$isreseller') %]
+        [% IF (CPANEL.feature("api_shell")) %]
+            <div class="body-content">
+                [% INCLUDE api_shell/_api_shell.html.tt %]
+            </div>
+        [% END %]
+    [% END %]
+[% END %]
+[% BLOCK css_block %]
+<style type="text/css">
+    #views_container {
+        padding-bottom : 20px;
+    }
+
+</style>
+[% END %]
+

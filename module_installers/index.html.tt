@@ -1,0 +1,53 @@
+[%
+USE Api2;
+USE CPScalar;
+
+SET CPANEL.CPVAR.dprefix = "../";
+PROCESS 'supported_langs.html.tt';
+
+SET is_supported = FORM.defined('lang') AND supported_langs.grep('^' _ CPScalar.quotemeta(FORM.lang) _ '$').size;
+IF is_supported;
+    SET lang_mods_get_key_name = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "name"} ).0;
+    SET lang_mods_setup = Api2.exec("LangMods", "setup", {"lang" => FORM.lang} ).0;
+    SET lang_mods_pre_run = Api2.exec("LangMods", "pre_run", {"lang" => FORM.lang} ).0;
+END;
+%]
+[% IF NOT is_supported %]
+    [% PROCESS 'not_supported.html.tt' lang=FORM.lang %]
+[% ELSE %]
+
+[% PROCESS installer_app_key.html.tt; %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = installer_app_key
+ -%]
+<div class="body-content">
+    <h2 id="hdrInstaller">[% locale.maketext("“[_1]” Installer[comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_name.key.html()) %]</h2>
+
+    [% IF (FORM.lang == "perl") %]
+        <p>
+            [% locale.maketext("Perl modules are collections of functions that allow you to perform tasks in Perl. You will need to install a Perl module before you can use it inside a Perl program.") %]
+            [% locale.maketext("[output,strong,Note:] Modules are installed directly from the CPAN repository.") %]
+        </p>
+    [% ELSIF (FORM.lang == "php-pear") %]
+        <p>
+            [% locale.maketext("PEAR packages are collections of functions that allow you to perform tasks in PHP. You will need to install a PEAR package before you can use it inside a PHP program.") %]
+            [% locale.maketext("[output,strong,Note:] Packages are installed directly from the PHP Extensions and Applications repository (PEAR).") %]
+        </p>
+    [% ELSIF (FORM.lang == "ruby") %]
+        <p>
+            [% locale.maketext("Ruby Gems are collections of functions that allow you to perform tasks in Ruby. You will need to install a Gem before you can use it inside a Ruby program.") %]
+            [% locale.maketext("[output,strong,Note:] Gems are installed directly from the RubyForge repository.") %]
+        </p>
+    [% END %]
+
+    <h2 id="hdrCheckSetup">[% locale.maketext("Checking Setup") %]</h2>
+    <div id="module-output">
+        <pre>[% lang_mods_setup.result.html() %]
+[% lang_mods_pre_run.result.html() %]
+        </pre>
+    </div>
+
+    <meta http-equiv="refresh" content="0;url=main.html?lang=[% FORM.lang | uri %]">
+</div>
+[% END #wrapper -%]
+[% END %]

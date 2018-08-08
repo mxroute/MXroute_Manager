@@ -1,0 +1,40 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[%
+    Api2.pre_exec("SSH", "authkey");
+    SET authkey = Api2.exec("SSH", "authkey", {"action"=>FORM.action, "key"=>FORM.key} );
+    Api2.post_exec("SSH", "authkey");
+%]
+
+[%
+IF (FORM.item('action') == "Deauthorize");
+    SET CPANEL.CPVAR.authorized = "0";
+ELSE;
+    SET CPANEL.CPVAR.authorized = "1";
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    [% IF !CPANEL.CPERROR.item('ssh') %]
+        <div id="authKeySuccess" class="alert alert-success">
+            <span id="authKeySuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="authKeySuccessMsg" class="alert-message">
+                [% locale.maketext("The key “[_1]” has been [boolean,_2,authorized,deauthorized].",FORM.key, CPANEL.CPVAR.authorized.html()) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="authKeyError" class="alert alert-danger">
+            <span id="authKeyErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="authKeyErrorMsg" class="alert-message">
+                [% CPANEL.CPERROR.item('ssh').html() %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

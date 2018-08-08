@@ -1,0 +1,160 @@
+[% SET  on_switch_text = "ON"
+        off_switch_text = "OFF"
+-%]
+[%
+    IF (locale.get_language_tag() != "en");
+        # These characters should not be translated.
+        on_switch_text = "I";
+        off_switch_text = "O";
+    END;
+-%]
+
+<!-- TABLE SECTION -->
+<div id="basicModeContainer" class="list-container">
+    <form name="basicModeForm" class="layout-medium" novalidate>
+        <div class="row">
+            <div class="col-xs-12" ng-cloak>
+                <cp-alert-list></cp-alert-list>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-12">
+                <h3 class="section-header">[% locale.maketext("Configure [asis,PHP INI] basic settings[comment,action header]") %]</h3>
+                <span class="info-block" id="infoBlk">
+                    <span>
+                        [% locale.maketext("Select the home directory or a domain’s document root to open the corresponding [asis,PHP] configuration.") %]
+                    </span>
+                </span>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-xs-12 col-sm-6">
+                <div class="form-group">
+                    <select id="selectLocation"
+                            class="form-control phpSelect"
+                            ng-disabled="noIniPaths"
+                            ng-options="path.name for path in iniPathNames"
+                            ng-model="selectedIniPath"
+                            ng-change="loadDirectives()">
+                        <option id="selectOption"
+                            value="">
+                            {{ txtInFirstOption }}
+                        </option>
+                    </select>
+                    <span spinner id="loadingSpinner" class="addSpinner" title="[% locale.maketext('Loading …') %]"></span>
+                </div>
+            </div>
+        </div>
+        <div class="row well well-sm iniInfoBlock" ng-show="selectedIniPath.type">
+            <div id="pathInfo" class="col-sm-12 col-md-5">
+                <span class="iniInfoTitle">[% locale.maketext("Path") %]</span>
+                <span dir="ltr">{{currentIniPathInfo.inifullpath}}</span>
+            </div>
+            <div id="versionInfo" class="col-sm-12 col-md-3">
+                <span class="iniInfoTitle">[% locale.maketext("[asis,PHP] Version") %]</span>
+                <span dir="ltr">{{currentIniPathInfo.version}}</span>
+            </div>
+            <div id="domainInfo" class="col-sm-12 col-md-4" ng-show="selectedIniPath.type === 'vhost'">
+                <span class="iniInfoTitle">[% locale.maketext("Domain") %]</span>
+                <span dir="ltr">{{currentIniPathInfo.vhost}}</span>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <table id="directivesTable"
+                    class="table table-striped responsive-table">
+                    <thead>
+                        <tr>
+                            <th>
+                                [% locale.maketext("[asis,PHP] Directive") %]
+                            </th>
+                            <th>
+                                [% locale.maketext("Information") %]
+                            </th>
+                            <th>
+                                [% locale.maketext("Setting") %]
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody ng-class="{ processing: loadingDirectiveList }">
+                        <tr id="directiveRow{{$index}}"
+                            ng-repeat="directive in directiveList">
+                            <td data-title="[% locale.maketext("[asis,PHP] Directive") %]" dir="ltr" ng-class="{ 'text-right': localeIsRTL }">
+                                {{ directive.key }}
+                            </td>
+                            <td dir="ltr" data-title="[% locale.maketext("Information") %]" class="infoSpace">
+                                {{ directive.info }}
+                            </td>
+                            <td data-title="[% locale.maketext("Setting") %]">
+                                <div ng-show="directive.type === 'boolean'">
+                                    <toggle-switch
+                                        id="switch_{{directive.key}}"
+                                        ng-model="directive.toggleValue"
+                                        on-toggle="toggle_status(directive)"
+                                        enabled-label ="[% locale.maketext('Enabled') %]"
+                                        disabled-label="[% locale.maketext('Disabled') %]">
+                                    </toggle-switch>
+                                </div>
+                                <div class="row" ng-show="directive.type !== 'boolean'">
+                                    <div class="col-xs-12">
+                                        <input type="text"
+                                            name="txt{{directive.key}}"
+                                            id="txt{{directive.key}}"
+                                            class="form-control valueBox"
+                                            ng-class="{ 'text-right': localeIsRTL }"
+                                            ng-model="directive.value"
+                                            dir="ltr"
+                                            ng-required="requiredValidation(directive)"
+                                            ng-change="directiveTextChange(directive)">
+                                        <span id="{{directive.key}}_default"
+                                            dir="ltr"
+                                            class="help-block defaultBlock"
+                                            ng-class="{ 'text-right': localeIsRTL }"
+                                            ng-bind-html="directive.defaultText">
+                                        </span>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <ul id="val_{{directive.key}}" validation-container field-name="txt{{directive.key}}">
+                                            <validation-item
+                                                field-name="txt{{directive.key}}"
+                                                validation-name="required">
+                                                [% locale.maketext("Required") %]
+                                            </validation-item>
+                                            <validation-item
+                                                field-name="txt{{directive.key}}"
+                                                validation-name="pattern">
+                                                    <span id="{{directive.key}}_valMsg"
+                                                        ng-bind-html="directive.validationMsg">
+                                                    </span>
+                                            </validation-item>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr id="phpNotSelected"
+                            ng-hide="selectedIniPath.type"
+                            class="info empty-row">
+                            <td colspan="3">[% locale.maketext("You must select a location.") %]</td>
+                        </tr>
+                        <tr id="listEmpty" ng-show="showEmptyMessage" class="info empty-row">
+                            <td colspan="3">[% locale.maketext("There are no directives found for the current [asis,PHP] selection.") %]</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="form-group">
+            <button id="btnApply"
+                type="button"
+                class="btn btn-primary"
+                ng-disabled="disableApply()"
+                title="[% locale.maketext('Apply changed settings.') %]"
+                cp-action="applyPhpSettings()">
+                [% locale.maketext('Apply') %]
+            </button>
+        </div>
+    </form>
+</div>

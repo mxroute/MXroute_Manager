@@ -1,0 +1,127 @@
+[% SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("LogManager", "listdownloads") ;
+    SET downloads_list = Api1.exec("LogManager", "listdownloads", [undef]) ;
+    Api1.post_exec("LogManager", "listdownloads");
+
+    Api1.pre_exec("LogManager", "showsettings") ;
+    SET settings = Api1.exec("LogManager", "showsettings", [undef]) ;
+    Api1.post_exec("LogManager", "showsettings");
+%]
+
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'raw_access'
+    page_styles = css_code
+-%]
+
+
+[% SET list_raw_logs =  Api2.exec("Stats", "listrawlogs", {} ); %]
+
+<div class="body-content">
+    <p id="descIntro" class="description">
+        [% locale.maketext("Raw Access Logs allow you to see who has visited your website without displaying graphs, charts, or other graphics. You can use the Raw Access Logs menu to download a zipped version of the server’s access log for your site. This can be very useful when you want to quickly see who has visited your site.")  %]
+    </p>
+    <div class="section">
+        <h2 id="hdrConfigureLogs">
+            [% locale.maketext("Configure Logs") %]
+        </h2>
+        <form id="formConfigureLogs" action="../logmanager/savesettings.html">
+            <div class="form-group">
+                [% settings %]
+            </div>
+            <div class="form-group">
+                <input id="btnSave" type="submit" class="btn btn-primary" value="[% locale.maketext("Save") %]" />
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrDownload">
+            [% locale.maketext("Download Current Raw Access Logs") %]
+        </h2>
+        [% IF CPANEL.CPCONF().dumplogs %]
+          <div class="alert alert-warning">
+              <span class="glyphicon glyphicon-exclamation-sign"></span>
+              <div class="alert-message">
+                  [% locale.maketext('Raw logs may only contain a few hours’ worth of data because they are discarded after the system processes them.')  %]
+                  [% locale.maketext('If archiving is enabled, the system archives the raw log data before the system discards it.') %]
+              </div>
+          </div>
+        [% ELSIF !CPANEL.CPCONF().keeplogs %]
+          <div class="alert alert-warning">
+              <span class="glyphicon glyphicon-exclamation-sign"></span>
+              <div class="alert-message">
+                  [% locale.maketext('The system empties raw logs at the beginning of each month.') %]
+                  [% locale.maketext('If archiving is enabled, the system archives the raw log data before the system discards it.') %]
+              </div>
+          </div>
+        [% END %]
+        <p id="descDownload">
+            [% locale.maketext("Click the domain name that corresponds to the raw access log that you want to download.") %]
+        </p>
+        <table class="sortable table table-striped responsive-table" id="rtt">
+            <thead>
+                <tr>
+                    <th>
+                        [% locale.maketext("Domain") %]
+                    </th>
+                    <th>
+                        [% locale.maketext("Last Update") %]
+                    </th>
+                    <th>
+                        [% locale.maketext("Disk Usage") %]
+                    </th>
+                    <th>
+                        [% locale.maketext("Linked Domains") %]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                [% IF list_raw_logs.size; %]
+                    [% FOREACH raw_logs IN list_raw_logs; %]
+                        <tr>
+                            <td class="row1" data-title="[% locale.maketext('Domain') %]">
+                                <a href="[%  raw_logs.link | url %]" >
+                                    [%  raw_logs.domain.html() %]
+                                </a>
+                            </td>
+                            <td class="raw1" data-title="[% locale.maketext('Last Update') %]">
+                                [%  raw_logs.humanupdatetime.html() %]
+                            </td>
+                            <td class="raw1" data-title="[% locale.maketext('Disk Usage') %]">
+                                [%  raw_logs.humansize.html() %]
+                            </td>
+                            <td class="row1-end" data-title="[% locale.maketext('Linked Domains') %]">
+                                <div class="linked_domains" >
+                                    [% FOREACH linked_domain IN raw_logs.linked_domains %]
+                                        <div class="linked_domain">[% linked_domain.domain.html() %]</div>
+                                    [% END %]
+                                </div>
+                            </td>
+                        </tr>
+                    [% END %]
+                [% END %]
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrArchived">
+            [% locale.maketext("Archived Raw Logs") %]
+        </h2>
+        <p id="descArchived">
+            [% locale.maketext("Click on a log archive to download it.") %]
+        </p>
+        <div id="descArchivedList">
+            [% downloads_list %]
+        </div>
+    </div>
+</div>
+[% END #wrapper -%]
+[% BLOCK css_block %]
+<style type="text/css">
+    #descArchivedList a {
+        display: block;
+    }
+</style>
+[% END %]

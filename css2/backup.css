@@ -1,0 +1,127 @@
+/* ------------------------------------
+   =BackupRestoreWizard :Change Style Section in Getting Started Wizard
+   ------------------------------------ */
+
+#backup-nav {
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+#backup-nav ol,
+#backup-nav ol li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#backup-nav ol li {
+    font-size: 129%;
+    width: 100%;
+    float: left;
+    border-bottom: 2px solid #333333;
+    border-top: 2px solid #333333;
+}
+
+#backup-nav ol li.two {
+    border-bottom: 0;
+    border-top: 0;
+}
+
+#backup-nav ol li span {
+    background: #e5e5e5;
+    display: block;
+    padding: 30px 10px 20px;
+    text-align: center;
+}
+
+#backup-nav ol li.current span {
+    background: #fff;
+}
+
+#backup-nav ol li a span {
+    background: #eee;
+}
+
+#backup-nav ol li a {
+    text-decoration: none;
+}
+
+#backup-nav ol li.one span {
+    background: #e5e5e5 url(../images/brwizard/01.png) no-repeat 8px 50%;
+}
+
+#backup-nav ol li.one span.current {
+    background-color: #fff;
+    color: #000;
+    font-weight: bold;
+}
+
+#backup-nav ol li.two span {
+    background: #e5e5e5 url(../images/brwizard/02.png) no-repeat 8px 50%;
+}
+
+#backup-nav ol li.two span.current {
+    background-color: #fff;
+    color: #000;
+    font-weight: bold;
+}
+
+#backup-nav ol li.three span {
+    background: #e5e5e5 url(../images/brwizard/03.png) no-repeat 8px 50%;
+}
+
+#backup-nav ol li.three span.current {
+    background-color: #fff;
+    color: #000;
+    font-weight: bold;
+}
+
+@media (min-width: 768px) {
+    #backup-nav ol li {
+        border-left: 2px solid #999;
+        width: 33.3333%;
+    }
+
+    #backup-nav ol li:first-child {
+        border-left: 0;
+    }
+
+    #backup-nav ol li.two {
+        border-bottom: 2px solid #333333;
+        border-top: 2px solid #333333;
+    }
+}
+
+/* ------------------------------------
+   =backup/restore wizard-backup-type.html & wizard-restore-type.html
+   ------------------------------------ */
+
+#br-type-content ul,
+#br-type-content ul li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#br-type-content ul {
+    border: 1px solid #eee;
+    margin: 15px 0 5px;
+    width: 300px;
+}
+
+#br-type-content li a {
+    background: transparent url(../images/brwizard/icon_package_get.gif)
+        no-repeat 95% 50%;
+    border-bottom: 1px solid #eee;
+    display: block;
+    padding: 10px;
+    text-decoration: none;
+}
+
+#br-type-content li a:hover {
+    background-color: #fff;
+}
+
+.available-downloads li {
+    padding: 10px 0 10px 0;
+}

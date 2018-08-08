@@ -1,0 +1,29 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET delhost = execute("Mysql", "delete_host", { "host" => FORM.host }); %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    [% IF delhost.status %]
+    <div id="delhostSuccess" class="alert alert-success">
+        <span id="delhostSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="delhostSuccessMsg" class="alert-message">
+            [% locale.maketext("Removed Host “[_1]” from the access list.",FORM.host) %]
+        </div>
+    </div>
+    [% ELSE %]
+    <div id="delhostError" class="alert alert-danger">
+        <span id="delhostErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <div id="delhostErrorMsg" class="alert-message">
+            [% FOREACH delhostError = delhost.errors %]
+                [% delhostError %]
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='managehost.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

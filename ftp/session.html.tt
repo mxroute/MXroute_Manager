@@ -1,0 +1,60 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ftp_connections'
+-%]
+<div class="body-content">
+
+    <p class="description">
+        [% locale.maketext("Monitor visitors that are logged into your site through FTP. Terminate FTP connections to prevent file access by unwarranted users. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/FtpConnections", "_blank", "lnkFtpConnectionsDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2>[% locale.maketext("Current Connections") %]</h2>
+        <p class="description note">[% locale.maketext('You may need to reload your page to view current connections.') %]</p>
+        <form>
+            <div class="form-group">
+                <input id="btnReload" type="button" value="[% locale.maketext('Reload') %]" onclick="window.location.reload()" class="btn btn-primary">
+            </div>
+        </form>
+        <table id="ftptbl" class="sortable table table-striped responsive-table">
+            <thead>
+              <tr>
+                <th id="sessionUser" width="15%">[% locale.maketext("User") %]</th>
+                <th id="sessionUserFrom" width="20%">[% locale.maketext("Logged in From") %]</th>
+                <th id="sessionLoginTime" width="20%">[% locale.maketext("Login Time") %]</th>
+                <th id="sessionStatus" width="15%">[% locale.maketext("Status") %]</th>
+                <th id="sessionProcessID" width="20%">[% locale.maketext("Process ID") %]</th>
+                <th id="sessionActions" width="10%" nonsortable="true">[% locale.maketext("Actions") %]</th>
+              </tr>
+            </thead>
+          <tbody>
+            [% sessions = execute("Ftp", "list_sessions") -%]
+            [% IF sessions.data.size %]
+                [% FOREACH q = sessions.data %]
+                <tr>
+                    <td data-title="[% locale.maketext("User") %]">[% q.user FILTER html %]</td>
+                    <td data-title="[% locale.maketext("Logged in From") %]">[% q.host FILTER html %]</td>
+                    <td data-title="[% locale.maketext("Login Time") %]">[% q.login FILTER html %]</td>
+                    <td data-title="[% locale.maketext("Status") %]">[% q.status FILTER html %]</td>
+                    <td data-title="[% locale.maketext("Process ID") %]">[% q.pid FILTER html %]</td>
+                    <td data-title="[% locale.maketext("Actions") %]">
+                        <a href="dologoutftpconfirm.html?login=[% q.pid FILTER uri %]&user=[% q.user FILTER uri %]">
+                            <span class="glyphicon glyphicon-trash"></span> [% locale.maketext('Disconnect') %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td id="noActiveSessionsTxt" class="empty-row info" colspan="6">
+                        [% locale.maketext("There are no active FTP connections for your account.") %]
+                    </td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+    </div>
+</div>
+
+[% END #wrapper -%]

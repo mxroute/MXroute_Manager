@@ -1,0 +1,16 @@
+<div style="display:none;" id="restore">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Restore") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="restore-filecontent">
+            <form>
+                [% locale.maketext("Are you sure you wish to restore the following files to their original locations?") %]
+                <span id="restore-filelist"></span>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>

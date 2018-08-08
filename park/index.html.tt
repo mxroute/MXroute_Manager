@@ -1,0 +1,180 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/topsubdomains.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+
+IF FORM.itemsperpage;
+    SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+END;
+
+IF (!( FORM.itemsperpage) || !( CPANEL.CPVAR.itemsperpage));
+    SET CPANEL.CPVAR.itemsperpage = "10";
+END;
+
+Api2.pre_exec("Park", "listparkeddomains");
+SET list = Api2.exec("Park", "listparkeddomains", {
+            "api2_paginate_size" => CPANEL.CPVAR.itemsperpage,
+            "regex"              => (RAW_FORM.searchregex),
+            "api2_paginate"      => "1",
+            "api2_paginate_start"=>(FORM.api2_paginate_start)
+        });
+Api2.post_exec("Park", "listparkeddomains");
+
+PROCESS '_assets/resource_usage_macro.html.tt';
+
+%]
+
+[%
+    # Note: a MACRO was not used here because we need to be able
+    # to access resource_usage_limits after the block runs
+    SET resource_usage_key = 'parkeddomains';
+    SET resource_usage_percent_used_to_warn = 80;
+    resource_code = PROCESS resource_usage_block;
+%]
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'aliases'
+ -%]
+
+<div class="body-content">
+    <p id="descAliases" class="description">
+        [% locale.maketext("Domain aliases make your website available from another domain name. For example, you can make [output,strong,www.example.net] and [output,strong,www.example.org] show content from [output,strong,www.example.com]. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Aliases", "_blank", "lnkAliasesDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrCreate">
+            [% locale.maketext("Create a New Alias") %]
+        </h2>
+
+        [% resource_code %]
+        [% IF !resource_usage_limits || !resource_usage_limits.is_maxed %]
+
+            <div class="parked-domain">
+                <form action="doaddparked.html" name="domainform" id="domainform">
+                    <div class="form-group">
+                        <label id="lblDomain" for="domain">
+                            [% locale.maketext("Domain") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                <input type="text" class="form-control" name="domain" id="domain" />
+                            </div>
+                            <div id="domain_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input type="submit" class="btn btn-primary" id="domain_submit" name="go" value="[% locale.maketext("Add Domain") %]" />
+                    </div>
+                </form>
+            </div>
+            <p id="descNoteDomain" class="note">
+                [% locale.maketext("[output,strong,Note:] Domains must be registered with a valid registrar and configured to point to your DNS servers before they can be used as an alias.") %]
+            </p>
+        [% END %]
+    </div>
+    <div class="section">
+        <h2 id="hdrRemoveAliases">
+            [% locale.maketext("Remove Aliases") %]
+        </h2>
+        <p id="descAliasesMore" class="description">
+            [% locale.maketext("Aliases are relative to your account’s home directory. The home icon ([_2]) signifies your home directory which is “[_1]”.", CPANEL.homedir,'<span class="fas fa-home"></span>') %]
+        </p>
+
+        <div class="search-panel">
+            <form method="get">
+                <div class="row">
+                    <div class="col-xs-9 col-sm-4">
+                        <input type="text" id="searchregex" class="form-control" size="15" name="searchregex" value="[% FORM.searchregex %]" placeholder="[% locale.maketext("Search")  %]">
+                    </div>
+                    <div class="col-xs-3 col-sm-2">
+                        <input type="submit" id="btnGo" class="btn btn-primary" value="[% locale.maketext("Go") %]">
+                        <input type="hidden" id="hidItemsPerPage" name="itemsperpage" value="[% CPANEL.CPVAR.itemsperpage.html %]" />
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <table id="parkeddomaintbl" class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Domain") %]</th>
+                    <th>[% locale.maketext("Domain Root") %]</th>
+                    <th nonsortable="true">[% locale.maketext("Redirects To") %]</th>
+                    <th nonsortable="true">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+
+        [%IF list.size();
+            FOREACH item IN list %]
+                <tr>
+                    <td data-title="[% locale.maketext('Domain') %]" class="nobrd-center-t">
+                        [%  item.domain.html() %]
+                    </td>
+                    <td data-title="[% locale.maketext('Domain Root') %]" nowrap="nowrap">
+                        <a href="../filemanager/index.html?dir=[%  item.dir | url %]" target="_blank" class="ajaxfiles" id="basedir_[% index() %]">
+                            <span class="fas fa-home fa-lg"></span>
+                            /[% item.basedir.html() %]
+                        </a>
+                    </td>
+                    <td data-title="[% locale.maketext('Redirects To') %]">
+                        [%  item.status.html() %]
+                    </td>
+                    <td data-title="[% locale.maketext('Actions') %]">
+                        <a id="del_[% index() %]" class="btn btn-link" href="dodelparkedconfirm.html?domain=[% item.domain | url %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext('Remove') %]
+                        </a>
+                        <a id="redirect_[% index() %]" class="btn btn-link" href="doredirectdomain.html?domain=[%  item.domain | url %]">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext("Manage Redirection") %]
+                        </a>
+                    </td>
+                </tr>
+           [% END %]
+        [% ELSE %]
+                <tr>
+                    <td colspan="4" class="errors">
+                        [% IF !FORM.searchregex %]
+                        [% locale.maketext("No aliases are present on your account.") %]
+                        [% ELSE %]
+                        [% locale.maketext("No aliases match your search expression.") %]
+                        [% END %]
+                    </td>
+                </tr>
+        [% END %]
+            </tbody>
+        </table>
+
+        [% INCLUDE _assets/paginate.html.tt %]
+    </div>
+</div>
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    var limitReached = [% resource_usage_limits && resource_usage_limits.is_maxed ? "true" : "false" %];
+
+    /**
+     * [init description]
+     * @return {[type]} [description]
+     */
+    var init = function() {
+        if (!limitReached) {
+            var validation = new CPANEL.validate.validator("[% locale.maketext('Domain Input')  %]");
+            validation.add("domain", "host", "[% locale.maketext('That is not a valid domain.')  %]");
+            validation.attach();
+
+            CPANEL.validate.attach_to_form("domain_submit", validation);
+
+            YAHOO.util.Dom.get("domain").focus();
+        }
+    };
+    YAHOO.util.Event.onDOMReady(init);
+})();
+</script>
+[% END %]
+

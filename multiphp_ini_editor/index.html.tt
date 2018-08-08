@@ -1,0 +1,68 @@
+[%
+USE Uapi;
+USE JSON;
+USE EasyApache;
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET styleSheets = [
+            "multiphp_ini_editor/index.css"
+        ];
+    SET locale_is_rtl = 0;
+    # Add RTL stylesheet if necessary.
+    IF locale.get_html_dir_attr() == 'rtl';
+        SET locale_is_rtl = 1;
+        styleSheets.push("libraries/bootstrap-rtl/optimized/dist/css/bootstrap-rtl.min.css");
+    END;
+
+SET ea_version = EasyApache.get_ea_version();
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'multiphp_ini_editor'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    page_stylesheets = styleSheets
+-%]
+[% IF ea_version >= 4 -%]
+[% SET ini_paths_data = Uapi.exec('LangPHP', 'php_ini_get_user_paths', {}) -%]
+<div class="body-content">
+    <div id="viewContent"
+         ng-cloak>
+        <!-- INI settings information -->
+        <div id="alertIniFiltering" class="row callout callout-info">
+            <div class="col-xs-12">
+                [%
+                    SET file_types = [".htaccess", ".user.ini", "php.ini"];
+                    locale.maketext("The MultiPHP INI editor writes to the [list_and,_1] [numerate,_2,file,files]. The system will only write a directive to a file if it is a valid directive for that file type. For more information, read our [output,url,_3,MultiPHP INI Editor documentation,target,_blank].", file_types, file_types.size, "https://go.cpanel.net/cPanelMultiPHPINI")
+                -%]
+            </div>
+        </div>
+        <ul class="nav nav-tabs">
+            <li ng-class="{active: currentRoute === '/basic'}"><a href="#/basic">[% locale.maketext('Basic Mode') %]</a></li>
+            <li ng-class="{active: currentRoute === '/editor'}"><a href="#/editor">[% locale.maketext('Editor Mode') %]</a></li>
+        </ul>
+        <div class="tab-content" ng-view></div>
+    </div>
+    <div growl></div>
+ </div>
+
+<script type="text/javascript">
+    PAGE.php_ini_data = [% ini_paths_data.json() %];
+    PAGE.locale_is_RTL = [% locale_is_rtl %];
+</script>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+[% ELSE -%]
+<div class="body-content">
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext("Error:") %]</strong> [% locale.maketext('This application only works with [asis,EasyApache4]. Contact your administrator to upgrade to [asis,EasyApache4].') %]
+        </div>
+    </div>
+</div>
+[% END -%]
+[% END #wrapper -%]

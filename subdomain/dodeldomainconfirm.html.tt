@@ -1,0 +1,24 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'subdomains'
+ -%]
+
+<div class="body-content">
+    <p id="confirmDesc">
+        [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove subdomain “[_1].[_2]”?", FORM.domain.split('_').item(0), FORM.domain.split('_').item(1)) %]
+    </p>
+    <p>
+        <a id="deleteSubdomain" class="btn btn-primary" href="dodeldomain.html?domain=[% FORM.domain | uri %]">[% locale.maketext("Delete Subdomain") %]</a>
+        <a id="cancel"
+            class="btn btn-link"
+            href="index.html">
+            [% locale.maketext('Cancel') %]
+        </a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

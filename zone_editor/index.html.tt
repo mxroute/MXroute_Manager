@@ -1,0 +1,77 @@
+[%
+USE Api2;
+USE Uapi;
+USE CPList;
+
+SET nvdata = execute( 'NVData', 'get', { 'names' => 'zones_per_page|domains_per_page' } );
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET has_simple_feature = CPANEL.feature('simplezoneedit');
+SET has_adv_feature = CPANEL.feature('zoneedit');
+SET has_dnssec_feature = CPANEL.feature('dnssec');
+SET has_mx_feature = CPANEL.feature('changemx');
+
+SET zones_per_page = nvdata.data.0.value;
+SET domains_per_page = nvdata.data.1.value;
+SET base_domains_result = Api2.exec('DomainLookup','getbasedomains');
+
+WRAPPER '_assets/master.html.tt'
+    app_key = 'zone_editor'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    page_stylesheets = [
+        'zone_editor/index.css'
+    ]
+    ;
+-%]
+
+[% IF has_simple_feature || has_mx_feature || has_adv_feature -%]
+
+    <div class="body-content">
+        <p id="descDns" class="description">
+            [% locale.maketext("DNS converts domain names into computer-readable IP addresses. DNS zone files configure domain names to the correct IP addresses. This feature allows you to create and edit these zone files. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/zoneeditor", "_blank", "lnkZoneEditorDocumentation") %]
+        </p>
+        <div id="viewContent"
+             class="ng-cloak section"
+             ng-view
+             ng-cloak></div>
+    </div>
+    <script type="text/javascript">
+        PAGE.has_simple_feature = [% has_simple_feature ? 'true' : 'false' %];
+        PAGE.has_adv_feature = [% has_adv_feature ? 'true' : 'false' %];
+        PAGE.has_dnssec_feature = [% has_dnssec_feature ? 'true' : 'false' %];
+        PAGE.has_mx_feature = [% has_mx_feature ? 'true' : 'false' %];
+        PAGE.domains = [% base_domains_result.json() %];
+        PAGE.zones_per_page = [% zones_per_page ? zones_per_page.json() : 50 %];
+        PAGE.domains_per_page = [% domains_per_page ? domains_per_page.json() : 50 %];
+    </script>
+
+    [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+    <div growl></div>
+
+    <script id="zone_editor/views/domain_selection.ptt" type="text/ng-template">
+        [% PROCESS "zone_editor/views/domain_selection.ptt" %]
+    </script>
+    <script id="zone_editor/views/manage.ptt" type="text/ng-template">
+        [% PROCESS "zone_editor/views/manage.ptt" %]
+    </script>
+    <script id="zone_editor/views/dnssec.ptt" type="text/ng-template">
+        [% PROCESS "zone_editor/views/dnssec.ptt" %]
+    </script>
+[% ELSE -%]
+
+<div class="body-content">
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            [% locale.maketext('This feature is not available to your account.'); %]
+        </div>
+    </div>
+</div>
+
+[% END -%]
+
+[% END #wrapper -%]

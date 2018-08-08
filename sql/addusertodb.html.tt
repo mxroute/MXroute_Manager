@@ -1,0 +1,56 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    SET privs = [];
+    FOR pair = RAW_FORM;
+        IF pair.key.match('^privileges');
+            privs.push(pair.value);
+        END;
+    END;
+
+    SET setprivs = execute('Mysql', 'set_privileges_on_database', {
+        user => RAW_FORM('user'),
+        database => RAW_FORM('db'),
+        privileges => privs.join(','),
+    });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    [% IF !FORM.item('update') %]
+    <h2>[% locale.maketext("Add User to MySQL® Database") %]</h2>
+    [% ELSE %]
+    <h2>[% locale.maketext("Update User Privileges for MySQL® Database") %]</h2>
+    [% END %]
+
+    [% IF setprivs.status %]
+        <div id="addusertodbSuccess" class="alert alert-success">
+            <span id="addusertodbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <span id="addusertodbSuccessMsg">
+                [% IF !FORM.update %]
+                [% locale.maketext("You have given the requested privileges on the database “[_1]” to the user “[_2]”.",FORM.db,FORM.user) %]
+                [% ELSE %]
+                [% locale.maketext("You have updated the privileges for the user “[_1]” on the database “[_2]”.",FORM.user,FORM.db) %]
+                [% END %]
+            </span>
+        </div>
+    [% ELSE %]
+        <div id="addusertodbError" class="alert alert-danger">
+            <span id="addusertodbErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            <span id="addusertodbErrorMsg">
+                [% IF !FORM.update %]
+                    [% locale.maketext("There was a problem adding the user: [_1]", setprivs.errors_as_string().html() ) %]
+                [% ELSE %]
+                [% locale.maketext("There was a problem updating the user: [_1]", setprivs.errors_as_string().html() ) %]
+                [% END %]
+            </span>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

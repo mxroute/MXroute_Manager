@@ -1,0 +1,31 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET deluser = execute("Mysql", "delete_user", { "name" => FORM.user });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrDeluser">[% locale.maketext("Delete MySQL Users") %]</h2>
+
+    [% IF deluser.status %]
+    <div id="deluserSuccessMsg" class="alert alert-success">
+        <span id="addbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        [% locale.maketext("Deleted the user “[_1]”.", FORM.user) %]
+    </div>
+    [% ELSE %]
+    <div id="deluserErrorMsg" class="alert alert-danger">
+        <span id="addbErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        [% FOREACH q = deluser.errors %]
+            [% q %]
+        [% END %]
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+[% END #wrapper -%]

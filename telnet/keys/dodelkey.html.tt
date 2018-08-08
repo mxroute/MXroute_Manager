@@ -1,0 +1,32 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+[%
+    Api2.pre_exec("SSH", "delkey");
+    SET delkey = Api2.exec("SSH", "delkey", {"name"=>FORM.key, "pub"=>FORM.pub} ).0;
+    Api2.post_exec("SSH", "delkey");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+
+    [% IF !CPANEL.CPERROR.item('ssh') %]
+        <div id="delKeySuccess" class="alert alert-success">
+            <span id="delKeySuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="delKeySuccessMsg" class="alert-message">
+                [% locale.maketext("The key with the name “[_1]” which was located at “[_2]” has been removed.", delkey.name.html(), delkey.keyfile.html()) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="delKeyError" class="alert alert-danger">
+            <span id="delKeyErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="delKeyErrorMsg" class="alert-message">
+                [% CPANEL.CPERROR.item('ssh').html() %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

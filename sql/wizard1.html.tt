@@ -1,0 +1,96 @@
+[%
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET dbprefix = ExpVar.expand('$dbprefix');
+SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+SET max_length = 64 - dbownerprefix.length() - dbprefix;
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_database_wizard'
+    page_js = js_code
+ -%]
+
+<div class="body-content">
+    <p class="description" id="descMySQLWizard">
+        [% locale.maketext("MySQL Databases allow you to store lots of information in an easy to access manner. The databases themselves are not easily read by humans. MySQL databases are required by many web applications including some bulletin boards, content management systems, and others. To use a database, you’ll need to create it. Only MySQL Users (different than mail or other users) that have privileges to access a database can read from or write to that database.")  %]
+    </p>
+
+    <div class="section">
+        <h2>[% locale.maketext("Step 1: Create A Database") %]</h2>
+        <form method="post" action="wizard2.html" name="mainform" id="mainform">
+            <div class="form-group">
+                <label for="db">
+                    [% locale.maketext("New Database:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% IF dbprefix %]
+                        <div class="input-group">
+                            <span class="input-group-addon" id="dbPrefix">[% dbownerprefix %]</span>
+                            <input type="text" class="form-control" name="db" id="db" maxlength="[% max_length %]" />
+                        </div>
+                        [% ELSE %]
+                        <input type="text" class="form-control" name="db" id="db" maxlength="[% max_length %]" />
+                        [% END %]
+                    </div>
+                    <div id="db_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+                <span class="help-block" id="helpBlock">
+                    [% locale.maketext("[output,strong,Note:] [quant,_1,character,characters] max.", max_length) %]
+                </span>
+            </div>
+            <div class="form-group">
+                <input type="submit" id="submit" class="btn btn-primary" value="[% locale.maketext("Next Step") %]" />
+            </div>
+        </form>
+    </div>
+
+
+</div><!-- end body-content -->
+
+[% PROCESS 'sqlui.tmpl'
+    db_engine => 'mysql',
+-%]
+
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+    [% SET lex_path = locale.cpanel_get_lex_path('/usr/local/cpanel/base/cjt/sql.js', '/cjt/sql.js') %]
+    [% IF lex_path %]<script src="[% lex_path %]"></script>[% END %]
+    <script src="[% CPANEL.get_js_url('/cjt/sql.js') %]"></script>
+
+    [%
+        SET mysql_server_info = execute('Mysql','get_server_information');
+        IF !mysql_server_info.status;
+            THROW 'uapi', mysql_server_info.errors_as_string();
+        END;
+    -%]
+    <script type="text/javascript">
+        var max_length = [% max_length %];  // mysql database names have a max length of 64 characters
+
+        var MYSQL_SERVER_VERSION = [% JSON.stringify(mysql_server_info.data.version) -%];
+
+        /**
+         * [init_newdb_validation description]
+         * @return {[type]} [description]
+         */
+        var init_newdb_validation = function() {
+            var dbname_validator = new CPANEL.validate.validator("New Database");
+
+            dbname_validator.add_thrower( "db", function(el) {
+                return CPANEL.sql.verify_mysql_database_name(el.value)
+            } );
+
+            dbname_validator.attach();
+
+            CPANEL.validate.attach_to_form("submit", dbname_validator);
+
+            YAHOO.util.Dom.get("db").focus();
+        };
+        YAHOO.util.Event.onDOMReady(init_newdb_validation);
+    </script>
+[% END %]

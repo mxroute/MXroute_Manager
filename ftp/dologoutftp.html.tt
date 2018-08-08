@@ -1,0 +1,19 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ftp_connections'
+-%]
+
+<div class="body-content">
+    [%# note: login is really a PID; no URI encoding issues %]
+    [% kill_session = execute('Ftp', 'kill_session', { login=RAW_FORM('login') }) %]
+    [% IF kill_session.status == '1' %]
+        <p id="terminatedTxt">
+        [% locale.maketext("The FTP session with PID “[_1]” was terminated.",FORM.login) %]
+        </p>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='session.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

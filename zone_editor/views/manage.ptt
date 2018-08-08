@@ -1,0 +1,849 @@
+<ol class="breadcrumb">
+    <li><a href id="gotoDomainList" ng-click="manage.goToView('list')">[% locale.maketext('Domains') %]</a></li>
+    <li class="active">[% locale.maketext('Manage Zone') %]</li>
+</ol>
+
+<div class="row">
+    <div class="col-xs-12">
+        <h2 class="view-title">[% locale.maketext('Zone Records for “[_1]”', '{{ manage.domain }}') %]</h2>
+    </div>
+</div>
+<div class="row">
+    <div class="col-xs-12">
+        <div class="hidden-sm hidden-md hidden-lg pull-right flip">
+            <div class="btn-group btn-margin" uib-dropdown>
+                <button type="button"
+                    id="title_add_record_btn"
+                    class="btn btn-primary add-record-btn"
+                    ng-disabled="manage.adding_record || manage.editing_record || manage.is_loading"
+                    ng-click="manage.open_add_record()">
+                    <span class="fas fa-plus"></span>
+                    [% locale.maketext('Add Record') %]</button>
+                <button type="button"
+                    class="btn btn-primary dropdown-toggle"
+                    ng-disabled="manage.adding_record || manage.editing_record || manage.is_loading"
+                    id="title_add_record_dropdown_btn"
+                    uib-dropdown-toggle>
+                    <span class="caret"></span>
+                    <span class="sr-only">Click for more options</span></button>
+                <ul uib-dropdown-menu class="dropdown-menu dropdown-menu-right text-left flip" role="menu">
+                    <li ng-if="manage.Features.simple || manage.Features.advanced">
+                        <a id="title_add_a_record_btn" href ng-click="manage.open_add_record('A')">[% locale.maketext('Add [asis,A] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="title_add_aaaa_record_btn" href ng-click="manage.open_add_record('AAAA')">[% locale.maketext('Add [asis,AAAA] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="title_add_caa_record_btn" href ng-click="manage.open_add_record('CAA')">[% locale.maketext('Add [asis,CAA] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.simple || manage.Features.advanced">
+                        <a id="title_add_cname_record_btn" href ng-click="manage.open_add_record('CNAME')">[% locale.maketext('Add [asis,CNAME] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="title_add_dmarc_record_btn" href ng-click="manage.open_add_record('DMARC')">[% locale.maketext('Add [asis,DMARC] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.mx">
+                        <a id="title_add_mx_record_btn" href ng-click="manage.open_add_record('MX')">[% locale.maketext('Add [asis,MX] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="title_add_srv_record_btn" href ng-click="manage.open_add_record('SRV')">[% locale.maketext('Add [asis,SRV] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="title_add_txt_record_btn" href ng-click="manage.open_add_record('TXT')">[% locale.maketext('Add [asis,TXT] Record') %]</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+    </div>
+</div>
+<div id="notAllowedWarningManage" class="alert alert-danger ng-hide" ng-show="manage.loading_error">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" ng-bind-html="manage.loading_error_message">
+    </div>
+</div>
+<div id="tableShowHideContainerManage" ng-hide="manage.loading_error">
+    <div id="paginationControls" class="row search-page-container">
+        <div class="col-xs-12 col-sm-6 col-md-4 col-lg-4">
+            <search id="filterList"
+                ng-model="manage.meta.filterValue"
+                placeholder="[% locale.maketext('Filter by name') %]"
+                autofocus
+                ng-change="manage.searchList()"></search>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+            <div class="hidden-xs">
+            <div class="btn-group" uib-dropdown>
+                <button type="button"
+                    id="search_add_record_btn"
+                    class="btn btn-primary add-record-btn"
+                    ng-disabled="manage.adding_record || manage.editing_record || manage.is_loading"
+                    ng-click="manage.open_add_record()">
+                    <span class="fas fa-plus"></span>
+                    [% locale.maketext('Add Record') %]</button>
+                <button type="button"
+                    id="search_add_record_dropdown_btn"
+                    class="btn btn-primary dropdown-toggle"
+                    ng-disabled="manage.adding_record || manage.editing_record || manage.is_loading"
+                    uib-dropdown-toggle>
+                    <span class="caret"></span>
+                    <span class="sr-only">Click for more options</span></button>
+                <ul uib-dropdown-menu class="dropdown-menu dropdown-menu-right text-left flip" role="menu">
+                    <li ng-if="manage.Features.simple || manage.Features.advanced">
+                        <a id="search_add_a_record_btn" href ng-click="manage.open_add_record('A')">[% locale.maketext('Add [asis,A] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="search_add_aaaa_record_btn" href ng-click="manage.open_add_record('AAAA')">[% locale.maketext('Add [asis,AAAA] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="search_add_caa_record_btn" href ng-click="manage.open_add_record('CAA')">[% locale.maketext('Add [asis,CAA] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.simple || manage.Features.advanced">
+                        <a id="search_add_cname_record_btn" href ng-click="manage.open_add_record('CNAME')">[% locale.maketext('Add [asis,CNAME] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="search_add_dmarc_record_btn" href ng-click="manage.open_add_record('DMARC')">[% locale.maketext('Add [asis,DMARC] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.mx">
+                        <a id="search_add_mx_record_btn" href ng-click="manage.open_add_record('MX')">[% locale.maketext('Add [asis,MX] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="search_add_srv_record_btn" href ng-click="manage.open_add_record('SRV')">[% locale.maketext('Add [asis,SRV] Record') %]</a>
+                    </li>
+                    <li ng-if="manage.Features.advanced">
+                        <a id="search_add_txt_record_btn" href ng-click="manage.open_add_record('TXT')">[% locale.maketext('Add [asis,TXT] Record') %]</a>
+                    </li>
+                </ul>
+            </div>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
+            <div id="paginator" class="pagination-container pull-right hidden-xs hidden-sm">
+                <page-size id="topPageSize"
+                    allowed-sizes="manage.meta.pageSizes"
+                    total-items="manage.meta.totalItems"
+                    ng-model="manage.meta.pageSize"
+                    show-all="false"
+                    ng-change="manage.selectPageSize()">
+                </page-size>
+                <uib-pagination id="topPager"
+                    ng-change="manage.selectPage()"
+                    ng-model="manage.meta.pageNumber"
+                    max-size="manage.meta.maxPages"
+                    items-per-page="manage.meta.pageSize"
+                    total-items="manage.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+    <div id="tableStats" class="row">
+        <div class="col-xs-12 col-sm-8">
+            <quick-filters title="[% locale.maketext('Filter:') %]" active="manage.meta.quickFilterValue" on-filter-change="manage.render()">
+                <quick-filter-item id="show_all_records" value="">[% locale.maketext('All') %]</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.simple || manage.Features.advanced" id="show_a_records" value="A">A</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.advanced" id="show_aaaa_records" value="AAAA">AAAA</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.advanced" id="show_caa_records" value="CAA">CAA</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.simple || manage.Features.advanced" id="show_cname_records" value="CNAME">CNAME</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.mx" id="show_mx_records" value="MX">MX</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.advanced" id="show_srv_records" value="SRV">SRV</quick-filter-item>
+                <quick-filter-item ng-if="manage.Features.advanced" id="show_txt_records" value="TXT">TXT</quick-filter-item>
+            </quick-filters>
+        </div>
+        <div class="col-xs-4 col-sm-4">
+            <div class="page-stats pull-right hidden-xs hidden-sm">
+            {{manage.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+    <div id="tableContainer">
+        <form name="manage.add_zr_form" class="ng-pristine" novalidate>
+            <table id="table" class="table table-striped responsive-table">
+                <thead>
+                    <tr>
+                        <th id="nameHeader">
+                            <span toggle-sort id="sortByName" onsort="manage.sortList" sort-meta="manage.meta" sort-field="name">
+                                [% locale.maketext('Name') %]
+                            </span>
+                        </th>
+                        <th id="ttlHeader">
+                            <span toggle-sort id="sortByTTL" onsort="manage.sortList" sort-meta="manage.meta" sort-field="ttl">
+                                [% locale.maketext('TTL') %]
+                            </span>
+                        </th>
+                        <th id="classHeader">
+                            [% locale.maketext('Class') %]
+                        </th>
+                        <th id="typeHeader">
+                            <span toggle-sort id="sortByType" onsort="manage.sortList" sort-meta="manage.meta" sort-field="type">
+                                [% locale.maketext('Type') %]
+                            </span>
+                        </th>
+                        <th id="recordHeader">
+                            [% locale.maketext('Record') %]
+                        </th>
+                        <th id="actionsHeader">[% locale.maketext('Actions') %]</th>
+                        <th id="gearMenuContainer" class="gear-column">
+                            <span class="dropdown" uib-dropdown>
+                                <a href id="gearMenu" class="dropdown-toggle" uib-dropdown-toggle>
+                                  <span class="fas fa-cog fa-lg"></span>
+                                </a>
+                                <ul uib-dropdown-menu class="dropdown-menu dropdown-menu-right text-left flip gear-menu">
+                                    <li role="menuitem"
+                                        ng-class="{disabled: (manage.editing_record || manage.adding_record)}">
+                                        <a id="refreshList" href ng-click="manage.refresh()">[% locale.maketext('Refresh List') %]</a>
+                                    </li>
+                                    <li role="separator" ng-if="manage.Features.advanced" class="divider"></li>
+                                    <li role="menuitem" ng-if="manage.Features.advanced"
+                                        ng-class="{disabled: (manage.editing_record || manage.adding_record)}">
+                                        <a id="resetZone" href ng-click="manage.confirm_reset_zone()">[% locale.maketext('Reset Zone') %]</a>
+                                    </li>
+                                </ul>
+                            </span>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr id="addRecordForm" class="inline-form info ng-hide" ng-show="manage.adding_record || manage.editing_record">
+                        <td id="nameInlineEditor">
+                            <div class="record_elements">
+                                <div class="record_element">
+                                    <div class="record_subelement" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'recordName') }">
+                                        <label for="recordName" class="table-form-label">
+                                        [% locale.maketext('Name') %]
+                                        </label>
+                                        <input type="text"
+                                            class="form-control"
+                                            ng-model="manage.new_record.name"
+                                            id="recordName"
+                                            name="recordName"
+                                            required
+                                            zone-name
+                                            convert_to_full_record_name
+                                            domain="manage.domain"
+                                            ng-disabled="manage.editing_dmarc"
+                                            placeholder="[% locale.maketext('Valid zone name') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement">
+                                        <ul validation-container field-name="recordName">
+                                            <li validation-item
+                                                field-name="recordName"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td id="ttlInlineEditor">
+                            <div class="record_elements ttl">
+                                <div class="record_element">
+                                    <div class="record_subelement" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'recordTTL') }">
+                                        <label for="recordTTL" class="table-form-label">
+                                        [% locale.maketext('TTL') %]
+                                        </label>
+                                        <input type="text"
+                                            class="form-control"
+                                            ng-model="manage.new_record.ttl"
+                                            required
+                                            positive-integer
+                                            num-less-than="2147483647"
+                                            maxlength="10"
+                                            id="recordTTL"
+                                            name="recordTTL"
+                                            ng-disabled="!manage.Features.advanced"
+                                            placeholder="[% locale.maketext('Time in seconds') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement">
+                                        <ul validation-container field-name="recordTTL">
+                                            <li validation-item
+                                                field-name="recordTTL"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td id="classDisplayField">
+                            <label for="recordClass" class="table-form-label">
+                            [% locale.maketext('Class') %]
+                            </label>
+                            <span class="class-display">IN</span>
+                        </td>
+                        <td>
+                            <label for="recordType" class="table-form-label">
+                            [% locale.maketext('Type') %]
+                            </label>
+                            <select id="recordType"
+                                ng-disabled="manage.editing_dmarc"
+                                name="recordType"
+                                class="form-control"
+                                ng-model="manage.new_record.type">
+                                <option ng-if="manage.Features.simple || manage.Features.advanced" value="A">A</option>
+                                <option ng-if="manage.Features.advanced" value="AAAA">AAAA</option>
+                                <option ng-if="manage.Features.advanced" value="CAA">CAA</option>
+                                <option ng-if="manage.Features.simple || manage.Features.advanced" value="CNAME">CNAME</option>
+                                <option ng-if="manage.Features.mx" value="MX">MX</option>
+                                <option ng-if="manage.Features.advanced" value="SRV">SRV</option>
+                                <option ng-if="manage.Features.advanced" value="TXT">TXT</option>
+                            </select>
+                        </td>
+                        <td id="recordInlineEditor">
+                            <div class="record_elements" ng-if="manage.new_record.type == 'MX'">
+                                <div class="record_element first_inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_priority_mx') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_priority_mx" class="control-label">[% locale.maketext('Priority') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_priority_mx"
+                                            name="record_priority_mx"
+                                            ng-model="manage.new_record.preference"
+                                            required
+                                            positive-integer
+                                            num-less-than-equal="65535"
+                                            maxlength="5"
+                                            placeholder="[% locale.maketext('Integer') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_priority_mx">
+                                            <li validation-item
+                                                field-name="record_priority_mx"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="record_element inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_exchanger') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_exchanger" class="control-label">[% locale.maketext('Destination') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_exchanger"
+                                            name="record_exchanger"
+                                            required
+                                            zone-fqdn
+                                            ng-model="manage.new_record.exchanger"
+                                            placeholder="[% locale.maketext('Fully qualified domain name') %]">
+                                     </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_exchanger">
+                                            <li validation-item
+                                                field-name="record_exchanger"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record_elements" ng-if="manage.new_record.type == 'SRV'">
+                                <div class="record_element first_inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_priority') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_priority" class="control-label">[% locale.maketext('Priority') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_priority"
+                                            name="record_priority"
+                                            required
+                                            positive-integer
+                                            num-less-than-equal="65535"
+                                            maxlength="5"
+                                            ng-model="manage.new_record.priority"
+                                            placeholder="[% locale.maketext('Integer') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_priority">
+                                            <li validation-item
+                                                field-name="record_priority"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="record_element inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_weight') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_weight" class="control-label">[% locale.maketext('Weight') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_weight"
+                                            name="record_weight"
+                                            required
+                                            positive-integer
+                                            num-less-than-equal="65535"
+                                            maxlength="5"
+                                            ng-model="manage.new_record.weight"
+                                            placeholder="[% locale.maketext('Integer') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_weight">
+                                            <li validation-item
+                                                field-name="record_weight"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="record_element inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_port') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_port" class="control-label">[% locale.maketext('Port') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                        class="form-control"
+                                        id="record_port"
+                                        name="record_port"
+                                        required
+                                        positive-integer
+                                        num-less-than-equal="65535"
+                                        maxlength="5"
+                                        ng-model="manage.new_record.port"
+                                        placeholder="[% locale.maketext('Port number') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_port">
+                                            <li validation-item
+                                                field-name="record_port"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="record_element inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_target') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_target" class="control-label">[% locale.maketext('Target') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_target"
+                                            name="record_target"
+                                            required
+                                            zone-fqdn
+                                            ng-model="manage.new_record.target"
+                                            placeholder="[% locale.maketext('Valid zone name') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_target">
+                                            <li validation-item
+                                                field-name="record_target"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record_elements" ng-if="manage.new_record.type == 'CAA'">
+                                <div class="record_element first_inner_record">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="caa_flag_0">[% locale.maketext('Flag') %]</label>
+                                        <span class="fas fa-info-circle"
+                                            uib-tooltip="[% locale.maketext('If “[_1]”, the certificate issuer must understand the tag in order to correctly process the [asis,CAA] record.', '1') %]">
+                                        </span>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <div class="form-inline non-inset-radio-group">
+                                            <label class="radio-inline">
+                                                <input type="radio"
+                                                    name="caa_flag"
+                                                    id="caa_flag_0"
+                                                    value="0"
+                                                    ng-model="manage.new_record.flag"> 0
+                                            </label>
+                                            <label class="radio-inline">
+                                                <input type="radio"
+                                                    name="caa_flag"
+                                                    id="caa_flag_1"
+                                                    value="1"
+                                                    ng-model="manage.new_record.flag"> 1
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="caa_tag_0" class="inset-radio-label">[% locale.maketext('Tag') %]</label>
+                                        <span class="fas fa-info-circle"
+                                            uib-tooltip="[% locale.maketext('The type of [asis,CAA] record that this [asis,DNS] entry represents. The [asis,issue] and [asis,issuewild] values represent the certificate authority’s domain name. The [asis,iodef] value is the location to which the authority reports exceptions.') %]">
+                                        </span>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <div class="form-inline non-inset-radio-group">
+                                            <label class="radio-inline">
+                                                <input type="radio"
+                                                    name="caa_tag"
+                                                    id="caa_tag_0"
+                                                    value="issue"
+                                                    ng-model="manage.new_record.tag"> [% locale.maketext("[asis,issue]") %]
+                                            </label>
+                                            <label class="radio-inline">
+                                                <input type="radio"
+                                                    name="caa_tag"
+                                                    id="caa_tag_1"
+                                                    value="issuewild"
+                                                    ng-model="manage.new_record.tag"> [% locale.maketext("[asis,issuewild]") %]
+                                            </label>
+                                            <label class="radio-inline">
+                                                <input type="radio"
+                                                    name="caa_tag"
+                                                    id="caa_tag_2"
+                                                    value="iodef"
+                                                    ng-model="manage.new_record.tag"> [% locale.maketext("[asis,iodef]") %]
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="record_element" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_caa_value') }">
+                                    <div class="record_subelement subelement_label">
+                                        <label for="record_caa_value" class="control-label">[% locale.maketext('Value') %]</label>
+                                        <span
+                                            class="fas fa-info-circle"
+                                            uib-tooltip="{{manage.valueTooltip()}}">
+                                        </span>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_caa_value"
+                                            name="record_caa_value"
+                                            required
+                                            caa-value="{{manage.new_record.tag}}"
+                                            ng-model="manage.new_record.value"
+                                            placeholder="{{manage.valuePlaceholder()}}">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement subelement_label">
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <ul validation-container field-name="record_caa_value">
+                                            <li validation-item
+                                                field-name="record_caa_value"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record_elements" ng-if="manage.new_record.type == 'CNAME'">
+                                <div class="record_element first_inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_cname') }">
+                                    <div class="record_subelement subelement_label table-form-label">
+                                        <label for="record_cname" class="control-label">CNAME</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_cname"
+                                            name="record_cname"
+                                            required
+                                            cname
+                                            ng-model="manage.new_record.cname"
+                                            placeholder="[% locale.maketext('Fully qualified domain name') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement">
+                                        <ul validation-container field-name="record_cname">
+                                            <li validation-item
+                                                field-name="record_cname"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record_elements" ng-if="manage.new_record.type == 'TXT'">
+                                <div id="dmarc_custom_editor" ng-if="manage.editing_dmarc" ng-include="'views/dmarc_editor.ptt'"></div>
+                                <div class="record_elements" ng-if="!manage.editing_dmarc">
+                                    <div class="record_element first_inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_txtdata') }">
+                                        <div class="record_subelement subelement_label table-form-label">
+                                            <label for="record_txtdata" class="control-label">[% locale.maketext('[asis,TXT] Data') %]</label>
+                                        </div>
+                                        <div class="record_subelement subelement_input">
+                                            <textarea
+                                                ng-model="manage.new_record.txtdata"
+                                                name="record_txtdata"
+                                                id="record_txtdata"
+                                                class="form-control record_txt_data"
+                                                maxlength="2500"
+                                                required
+                                                placeholder="[% locale.maketext('Text') %]">
+                                            </textarea>
+                                        </div>
+                                    </div>
+                                    <div class="record_element">
+                                        <div class="record_subelement">
+                                            <ul validation-container field-name="record_txtdata">
+                                                <li validation-item
+                                                    field-name="record_txtdata"
+                                                    validation-name="required">[% locale.maketext("This field is required.") %]
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record_elements" ng-if="manage.new_record.type == 'A'">
+                                <div class="record_element first_inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_a_address') }">
+                                    <div class="record_subelement subelement_label table-form-label">
+                                        <label for="record_a_address" class="control-label">[% locale.maketext('Address') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_a_address"
+                                            name="record_a_address"
+                                            required
+                                            ipv4
+                                            ng-model="manage.new_record.a_address"
+                                            placeholder="[% locale.maketext('[asis,IPv4] address') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement">
+                                        <ul validation-container field-name="record_a_address">
+                                            <li validation-item
+                                                field-name="record_a_address"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="record_elements ipv6" ng-if="manage.new_record.type == 'AAAA'">
+                                <div class="record_element first_inner_record" ng-class="{ 'has-error': manage.field_has_error(manage.add_zr_form, 'record_aaaa_address') }">
+                                    <div class="record_subelement subelement_label table-form-label">
+                                        <label for="record_aaaa_address" class="control-label">[% locale.maketext('[asis,IPv6] Address') %]</label>
+                                    </div>
+                                    <div class="record_subelement subelement_input">
+                                        <input type="text"
+                                            class="form-control"
+                                            id="record_aaaa_address"
+                                            name="record_aaaa_address"
+                                            required
+                                            ipv6
+                                            ng-model="manage.new_record.aaaa_address"
+                                            placeholder="[% locale.maketext('[asis,IPv6] address') %]">
+                                    </div>
+                                </div>
+                                <div class="record_element">
+                                    <div class="record_subelement">
+                                        <ul validation-container field-name="record_aaaa_address">
+                                            <li validation-item
+                                                field-name="record_aaaa_address"
+                                                validation-name="required">[% locale.maketext("This field is required.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        <td colspan="2" class="record_manipulation_buttons">
+                            <button class="btn btn-primary btn-sm"
+                                    id="inline_add_record_button"
+                                    type="submit"
+                                    ng-disabled="manage.add_zr_form.$invalid || manage.add_zr_form.$pristine"
+                                    ng-if="manage.adding_record"
+                                    cp-action="manage.confirm_add_record()">[% locale.maketext('Add Record') %]
+                            </button>
+                            <button class="btn btn-primary btn-sm"
+                                    id="inline_edit_record_button"
+                                    type="submit"
+                                    ng-disabled="manage.add_zr_form.$invalid || manage.add_zr_form.$pristine"
+                                    ng-if="manage.editing_record"
+                                    cp-action="manage.save_edited_record()">[% locale.maketext('Save Record') %]
+                            </button>
+                            <button class="btn btn-link btn-sm"
+                                    id="inline_cancel_button"
+                                    type="button"
+                                    ng-disabled="manage.save_in_progress"
+                                    ng-click="manage.close_add_record()">[% locale.maketext('Cancel') %]
+                            </button>
+                        </td>
+                    </tr>
+                    <tr id="loadingNotice" class="info empty-row ng-hide" ng-show="manage.is_loading">
+                        <td colspan="7" id="loadingMessage">
+                            <i id="loadingSpinner" class="fas fa-spinner fa-spin"></i>
+                            [% locale.maketext('Loading …') %]
+                        </td>
+                    </tr>
+                    <tr id="emptyListNotice" class="info empty-row ng-hide" ng-show="manage.filteredList.length == 0 && !manage.is_loading">
+                        <td colspan="7" id="emptyMessage">[% locale.maketext('No records found.') %]</td>
+                    </tr>
+                    <tr id="zone_rec_row_{{ zone_rec.line }}"
+                        ng-repeat="zone_rec in manage.filteredList"
+                        ng-hide="manage.is_loading || manage.filteredList.length == 0 || manage.record_being_edited == zone_rec.line">
+                        <td data-title="[% locale.maketext('Name') %]" id="zone_rec_name_{{ zone_rec.line }}">
+                            <span>{{ zone_rec.name }}</span>
+                        </td>
+                        <td data-title="[% locale.maketext('TTL') %]" id="zone_rec_ttl_{{ zone_rec.line }}">
+                            <span>{{ zone_rec.ttl }}</span>
+                        </td>
+                        <td data-title="[% locale.maketext('Class') %]" id="zone_rec_class_{{ zone_rec.line }}">
+                            <span>{{ zone_rec.class }}</span>
+                        </td>
+                        <td data-title="[% locale.maketext('Type') %]" id="zone_rec_type_{{ zone_rec.line }}">
+                            <span>{{ zone_rec.type }}</span>
+                        </td>
+                        <td data-title="[% locale.maketext('Record') %]" ng-switch="zone_rec.type" class="zone-record-col potentially-really-long-text" id="zone_rec_record_{{ zone_rec.line }}">
+                            <div ng-switch-when="MX" id="mx_detail_{{ zone_rec.line }}">
+                                <span class="record-property-label">[% locale.maketext('Priority:') %] </span>{{ zone_rec.preference }}<br>
+                                <span class="record-property-label">[% locale.maketext('Destination:') %] </span>{{ zone_rec.exchange }}
+                            </div>
+                            <div ng-switch-when="CAA" id="caa_detail_{{ zone_rec.line }}">
+                                <span class="record-property-label">[% locale.maketext('Flag:') %] </span>{{ zone_rec.flag}}<br>
+                                <span class="record-property-label">[% locale.maketext('Tag:') %] </span>{{ zone_rec.tag }}<br>
+                                <span class="record-property-label">[% locale.maketext('Value:') %]  </span>{{ zone_rec.value }}
+                            </div>
+                            <div ng-switch-when="SRV" id="srv_detail_{{ zone_rec.line }}">
+                                <span class="record-property-label">[% locale.maketext('Priority:') %] </span>{{ zone_rec.priority }}<br>
+                                <span class="record-property-label">[% locale.maketext('Weight:') %] </span>{{ zone_rec.weight}}<br>
+                                <span class="record-property-label">[% locale.maketext('Port:') %] </span>{{ zone_rec.port }}<br>
+                                <span class="record-property-label">[% locale.maketext('Target:') %]  </span>{{ zone_rec.target }}
+                            </div>
+                            <div ng-switch-when="TXT" id="txt_detail_{{ zone_rec.line }}">
+                                {{ zone_rec.record }}
+                            </div>
+                            <div ng-switch-default id="default_detail_{{ zone_rec.line }}">{{ zone_rec.record }}</div>
+                        </td>
+                        <td class="action-buttons" data-title="[% locale.maketext('Actions') %]">
+                            <button type="button" id="edit_btn_for_{{ zone_rec.type | qaSafeID }}_{{ zone_rec.name | qaSafeID }}_{{ zone_rec.line }}" class="btn btn-link"
+                                ng-click="manage.edit_record(zone_rec)"
+                                ng-click="manage.edit_record(zone_rec)"
+                                ng-disabled="manage.editing_record || manage.adding_record">
+                                <span class="glyphicon glyphicon-pencil"></span>
+                                [% locale.maketext('Edit') %]
+                            </button>
+                            <button type="button" id="delete_btn_for_{{ zone_rec.type | qaSafeID }}_{{ zone_rec.name | qaSafeID }}_{{ zone_rec.line }}" class="btn btn-link"
+                                ng-click="manage.confirm_delete_record(zone_rec)"
+                                ng-disabled="manage.editing_record || manage.adding_record">
+                                <span class="glyphicon glyphicon-trash"></span>
+                                [% locale.maketext('Delete') %]
+                            </button>
+                        </td>
+                        <td class="gear-column">&nbsp;</td>
+                    </tr>
+                </tbody>
+            </table>
+        </form>
+    </div>
+    <div class="row hidden-md hidden-lg">
+        <div class="col-xs-4">
+            <div class="page-stats selected-stats">
+            </div>
+        </div>
+        <div class="col-xs-8">
+            <div class="page-stats pull-right">
+                {{manage.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+    <div class="row search-page-container visible-sm-block visible-xs-block hidden-lg hidden-md">
+        <div class="col-xs-12 col-sm-12">
+            <div id="paginatorBottom" class="pagination-container">
+                <page-size id="bottomPageSize"
+                    allowed-sizes="manage.meta.pageSizes"
+                    total-items="manage.meta.totalItems"
+                    ng-model="manage.meta.pageSize"
+                    show-all="false"
+                    ng-change="manage.selectPageSize()">
+                </page-size>
+                <uib-pagination id="bottomPager"
+                    ng-change="manage.selectPage()"
+                    ng-model="manage.meta.pageNumber"
+                    max-size="manage.meta.maxPages"
+                    items-per-page="manage.meta.pageSize"
+                    total-items="manage.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+</div>
+<script id="views/dmarc_editor.ptt" type="text/ng-template">
+[% PROCESS "zone_editor/views/dmarc_editor.ptt" %]
+</script>
+<script type="text/ng-template" id="confirm_delete.html">
+    <div class="modal-header">
+        <h4>[% locale.maketext('Confirm Deletion') %]</h4>
+    </div>
+    <div class="modal-body">
+        [% locale.maketext('Are you certain that you want to delete this record?') %]
+    </div>
+    <div class="modal-footer">
+        <button type="button"
+            id="modalContinueBtn"
+            cp-action="ctrl.confirm()"
+            button-class="btn btn-primary btn-sm">[% locale.maketext('Continue') %]</button>
+        <button type="button"
+            id="modalCancelBtn"
+            class="btn btn-link btn-sm"
+            ng-click="ctrl.cancel()">[% locale.maketext('Cancel') %]</button>
+    </div>
+</script>
+<script type="text/ng-template" id="confirm_reset_zone.html">
+    <div class="modal-header">
+        <h4>[% locale.maketext('Reset Zone') %]</h4>
+    </div>
+    <div class="modal-body">
+        <p>[% locale.maketext('Resetting your zone file will erase any modifications you have made to your zone records. The system will attempt to preserve [asis,TXT] records. However, we recommend that you take note of any records you want to save.') %]</p>
+        <p class="last-paragraph">[% locale.maketext('Are you sure you want to erase all entries and revert to the default state?') %]</p>
+    </div>
+    <div class="modal-footer">
+        <button type="button"
+            id="modalContinueBtn"
+            cp-action="ctrl.confirm()"
+            button-class="btn btn-primary btn-sm">[% locale.maketext('Continue') %]</button>
+        <button type="button"
+            id="modalCancelBtn"
+            class="btn btn-link btn-sm"
+            ng-click="ctrl.cancel()">[% locale.maketext('Cancel') %]</button>
+    </div>
+</script>

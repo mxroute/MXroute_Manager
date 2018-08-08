@@ -1,0 +1,21 @@
+[%
+    SET PAGE_BASE = '/frontend/paper_lantern/authentication/manage';
+    SET PAGE_PATH = (CPANEL.ENV.HTTPS == 'on' ? 'https://' : 'http://') _ CPANEL.ENV.HTTP_HOST _ ':' _ CPANEL.ENV.SERVER_PORT _ cp_security_token _ PAGE_BASE;
+    SET CPANEL.CPVAR.dprefix = "../../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    use_master_bootstrap = 0
+    page_stylesheets = ['css2-min/mail/authentication/manage.css']
+    base =  PAGE_PATH,
+-%]
+
+    <div class="body-content"
+        ng-controller="BaseController as base"
+        class="ng-cloak">
+        <div ng-view></div>
+    </div>
+
+    [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+[% END #wrapper %]

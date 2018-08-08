@@ -1,0 +1,60 @@
+[%
+#   version - string - version of addons
+#   settings - hash
+#       cpaddons_notify_users - enum - always, never, 0, 1
+#   notifications - hash
+#       enabled - boolean
+#   environment - hash
+#       script_name - string -
+#   has_categories - boolean (0|1)
+%]
+[%-
+IF has_categories;
+    IF    settings.cpaddons_notify_users != 'always'
+       && settings.cpaddons_notify_users != 'never';
+        IF notifications.enabled;
+            SET disable_url = environment.script_name _ '?action=notify&on=0' -%]
+<p id="user-level-notifications-on">
+    [% locale.maketext('Your account is configured to receive notifications when updates for your installs are available.') %]
+    [% locale.maketext('Click [output,url,_1,here] to turn it off.', disable_url.url()) %]
+</p>
+[%-      ELSE;
+            SET enable_url = environment.script_name _ '?action=notify&on=1' -%]
+<p id="user-level-notifications-off">
+    [% locale.maketext('Your account is [output,strong,not] configured to receive notifications when updates for your installs are available.') %]
+    [% locale.maketext('Click [output,url,_1,here] to turn it on.', enable_url.url()) %]
+</p>
+[%-     END;
+    ELSE;
+        IF settings.cpaddons_notify_users == 'always' -%]
+<p id="global-notifications-on">
+    [% locale.maketext('Your administrator or hosting provider has globally enabled update notifications.') %]
+</p>
+    [%-  ELSE -%]
+<p id="global-notifications-off">
+    [% locale.maketext('Your server administrator or hosting provider has globally disabled update notifications for all accounts.') %]
+</p>
+[%-
+        END;
+    END;
+END
+-%]
+
+[% IF error %]
+    [% error.message | html_para %]
+[% END %]
+
+[% PROCESS 'addoncgi/views/notices.tt' notices %]
+
+[% IF !has_categories %]
+<p id="no-cpaddons-available">
+    [% locale.maketext('Contact your host to install the Site Software packages.') %]
+</p>
+[% END %]
+
+[%
+
+# The content above is the page header.
+# For the actual list of addons, see addon_list.tt
+
+%]

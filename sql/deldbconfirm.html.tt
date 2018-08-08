@@ -1,0 +1,19 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <p id="descConfirm">
+        [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the database “[_1]”?",FORM.db)  %]
+    </p>
+    <p>
+        <a id="lnkDelete" class="btn btn-primary" href="deldb.html?db=[% RAW_FORM.db.uri() %]">[% locale.maketext("Delete Database") %]</a>
+        <a id="lnkCancel" class="btn btn-link" href="index.html">[% locale.maketext("Cancel") %]</a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

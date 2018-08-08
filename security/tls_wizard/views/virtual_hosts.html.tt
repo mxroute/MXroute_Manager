@@ -1,0 +1,348 @@
+<div class="list-container" >
+    <div ng-if="show_introduction_block()">
+        [% PROCESS "security/tls_wizard/views/introduction.ptt" %]
+    </div>
+
+    <h3>[% locale.maketext("Purchase new certificates") %]</h3>
+
+    <div class="row global-actions-row">
+        <div class="col-md-12">
+            <button
+                class="btn btn-default btn-primary"
+                id="create_advanced_btn"
+                ng-click="go_to_simple()"
+                title="[% locale.maketext('Create Simple Certificate. This interface supports wildcard certificates.') %]">
+                <span class='glyphicon glyphicon-plus'></span>
+                [% locale.maketext('Create Simple (Wildcard Support)') %]
+            </button>
+
+            <button
+                class="btn btn-default btn-primary"
+                id="pending_certificates_btn"
+                ng-if="pending_certificates.length"
+                ng-click="go_to_pending()"
+                title="[% locale.maketext('View Pending [numerate,_1,Certificate,Certificates].',pending_certificates.length) %]">
+                <span class='fas fa-eye fa-lg'></span>
+                [% locale.maketext('View Pending [numerate,_1,Certificate,Certificates]',pending_certificates.length) %]
+            </button>
+            <button id="btnToggleSettings" type="button" class="btn btn-default pull-right" ng-click="showAdvancedSettings = !showAdvancedSettings" title="[% locale.maketext('Adjust Products Shown') %]">
+                <span class="fas fa-cogs"></span>
+                [% locale.maketext('Adjust Products Shown') %]
+            </button>
+        </div>
+    </div>
+    <div class="row form-group">
+        <div
+            id="advancedProductSearchSettings"
+            search-settings-panel
+            ng-model="searchFilterOptions"
+            ng-change="filter_products()"
+            class="col-xs-12 ng-cloak"
+            display-settings-panel="showAdvancedSettings"
+            display-set-values="!showAdvancedSettings"
+            ng-cloak>
+        </div>
+    </div>
+    <div class="row search-page-container">
+        <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+            <div class="input-group">
+                <input  id="searchFilter"
+                    name="searchFilter"
+                    class="form-control"
+                    placeholder="my.domain.com"
+                    title="[% locale.maketext('Type in your search filter.') %]"
+                    ng-model="filterValue"
+                    ng-model-options="{ debounce: 350 }"
+                    ng-keyup="triggerClearSearch($event)"
+                    autocomplete="off"
+                    auto-focus>
+                <span class="input-group-btn">
+                    <button id="btnSearch"
+                        type="button"
+                        class="btn btn-default hidden-xs"
+                        ng-click="clearSearch()">
+                        <span class="glyphicon" ng-class="{ 'glyphicon-search': !meta.filterValue, 'glyphicon-remove': meta.filterValue }"></span>
+                    </button>
+                </span>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6 text-right">
+            <span>
+                <span class="cart-quant" ng-if="get_cart_items().length" ng-bind="get_cart_certs_title()"></span>
+                <span class="cart-price" ng-bind="get_currency_string(get_cart_price(), 'USD')"></span>
+            </span>
+            <button
+                id="checkoutBtn"
+                class="btn btn-default btn-primary"
+                ng-click="purchase()"
+                ng-hide="get_cart_items().length == 0"
+                title="[% locale.maketext('Proceed to the checkout process to complete your order.') %]">
+                <span class='fas fa-shopping-cart fa-lg'></span>
+                [% locale.maketext('Check Out') %]
+            </button>
+        </div>
+    </div>
+    <div class="row global-actions-row">
+        <div class="col-md-12">
+            <div class="page-stats" ng-bind-html="get_vhost_showing_text()"></div>
+        </div>
+    </div>
+
+    <div class="row virtual-hosts">
+        <div
+            class="col-md-6 col-sm-12 col-xs-12 virtual-host-block"
+            ng-class="get_virtual_host_classes(virtual_host)"
+            ng-repeat="virtual_host in get_virtual_hosts()" >
+            <div id="vhost_{{virtual_host.display_name}}" class="panel virtual-host-panel" ng-class="get_certpanel_class(virtual_host)">
+                <div class="panel-heading">
+                    <h3 class="panel-title domain-container virtual-host-panel-title">
+                        <span
+                            ng-if="virtual_host.is_ssl"
+                            title="[% locale.maketext('An [asis,SSL] certificate already exists on this website.') %]"
+                            class="fa-stack">
+                            <i class="fas fa-lock fa-stack-2x"></i>
+                            <i class="fas fa-times fa-stack-1x text-danger" style="margin-top: 4px; font-size: 16px;" ng-if="get_virtual_host_certificate(virtual_host).certificate.is_self_signed"></i>
+                        </span>
+                        [% locale.maketext("Website: [_1]", "{{ virtual_host.display_name }}") %]
+                    </h3>
+                    <div class="text-left" ng-if="virtual_host.is_ssl">
+                        <a ng-href="{{ build_csr_url(virtual_host) }}" target="_blank"
+                            class="label "
+                            ng-class="{'label-warning':get_virtual_host_certificate(virtual_host).certificate.is_self_signed,'label-success':!get_virtual_host_certificate(virtual_host).certificate.is_self_signed}">
+                            <span class='fas fa-eye fa-sm'></span>
+                            <span ng-bind-html="get_existing_certificate_name(virtual_host)"></span>
+                        </a>
+                    </div>
+                    <div class="text-right" ng-if="!pending_certificate(virtual_host)">
+                        <span class="label label-default" ng-if="virtual_host.get_price()" ng-bind="get_currency_string(virtual_host.get_price(), 'USD')"></span>
+                        <span ng-click="remove_from_cart(virtual_host)" class="label label-success" ng-if="virtual_host.added_to_cart">
+                            [% locale.maketext("Added To Cart") %]
+                        </span>
+                    </div>
+                </div>
+                <div ng-if="!pending_certificate(virtual_host)" class="panel-body no-padding">
+                    <form name="vhost_form" ng-submit="vhost_form.$valid && add_to_cart(virtual_host)">
+                        <div class="content-wrapper">
+                            <div class="panel-group" id="{{virtual_host.display_name | qaSafeID}}_accordion">
+                                <div class="row">
+                                    <div ng-class="get_step_panel_classes(virtual_host, get_step(virtual_host) == 'domains')">
+                                        <div class="panel panel-default cert-step-panel">
+                                            <div class="panel-heading" ng-click="go_step(virtual_host, 'domains')">
+                                                <div class="row">
+                                                    <div class="panel-title col-xs-8 text-left">
+                                                        <span class="virtual-host-panel-step-title">
+                                                            1. [% locale.maketext("Select the certificate’s domains:") %]
+                                                            <span ng-if="get_step(virtual_host) != 'domains' && virtual_host.has_selected_domains()" class='fas fa-sm fa-check'></span>
+                                                        </span>
+                                                    </div>
+                                                    <div class="col-xs-4 text-right">
+                                                        <span class="label label-success" ng-if="get_step(virtual_host) != 'domains' && virtual_host.has_selected_domains()">
+                                                            <span class='glyphicon glyphicon-pencil'></span>
+                                                            [% locale.maketext("[_1] selected", "{{ virtual_host.get_selected_domains().length }}") %]
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="collapseOne" class="panel-collapse collapse" ng-class="{'in':get_step(virtual_host) == 'domains'}">
+                                                <div class="panel-body">
+                                                    <div class="row" ng-if="virtual_host.get_domain_count() > virtual_host.display_meta.items_per_page">
+                                                        <div class="col-md-12 text-left">
+                                                            <div class="page-stats virtual-host-page-stats"
+                                                                ng-bind-html="get_domains_showing_text(virtual_host)">
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <table class="table table-stripped domainsTbl" style="max-width:100%;">
+                                                        <thead>
+                                                            <th class="checkColumn">
+                                                                <span class="tri-state-box">
+                                                                    <tri-state-checkbox checkboxes="virtual_host.get_filtered_domains()" ng-change="check_selected_domains(virtual_host)"></tri-state-checkbox>
+                                                                </span>
+                                                            </th>
+                                                            <th>[% locale.maketext('Domain') %]</th>
+                                                            <th class="text-center">
+                                                                <span class="help-hover" title="[% locale.maketext('The Domain Control Validation verifies you own the domain by accessing a file hosted on your domain.') %]">[% locale.maketext('[output,abbr,DCV,Domain Control Validation] OK') %]</span>
+                                                                <a href="https://go.cpanel.net/ssltlswizard" target="_blank" class="btn btn-link no-padding"><span class="glyphicon glyphicon-info-sign"></span></a>
+                                                            </th>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr ng-repeat-start="domain in virtual_host.get_displayed_domains()" class="virtual-host-domain-row" ng-class="{'success':domain.resolved == 1, 'danger':domain.resolved == 0}" ng-click="domain.selected = !domain.selected; check_selected_domains(virtual_host)">
+                                                                <td class="checkColumn domain-step-check-column">
+                                                                    <input ng-if="!domain.certificate" type="checkbox" id="{{get_domain_id(domain)}}"
+                                                                        title="[% locale.maketext('Include this domain.') %]"
+                                                                        ng-model="domain.selected" ng-click="domain.selected = !domain.selected; check_selected_domains(virtual_host)">
+                                                                </td>
+                                                                <td class="domain-contaner">
+                                                                    <div class="cutoff_with_ellipses">
+                                                                        <span
+                                                                                title="[% locale.maketext('This website’s current [asis,SSL] certificate includes this domain.') %]"
+                                                                            ng-if="get_domain_certificate(domain.domain)"
+                                                                            class="fa-stack fa-lg"
+                                                                            style="width: 1em; height: 1em; line-height: 1em;">
+                                                                            <i class="fas fa-lock fa-stack-1x" ng-class="get_domain_lock_classes(virtual_host, domain)"></i>
+                                                                            <i ng-if="get_virtual_host_certificate(virtual_host).certificate.is_self_signed" class="fas fa-times fa-stack-1x text-danger" style="margin-top: 2px; font-size: 7px;"></i>
+                                                                        </span>
+                                                                        {{ domain.domain }}
+                                                                    </div>
+                                                                </td>
+                                                                <td class="text-center domain-step-resolving">
+                                                                    <span ng-if="domain.resolving">
+                                                                        <span spinner id="{{get_spinner_id(domain.domain)}}" glyph-class="fas fa-spinner fa-md" class="domain-resolve-spinner" title="[% locale.maketext('Checking DCV …') %]"></span>
+                                                                    </span>
+                                                                    <span ng-if="domain.resolved != -1" >
+                                                                        <span ng-if="domain.resolved == 1" class='fas fa-sm fa-check' class="help-hover" title="[% locale.maketext('“[_1]” resolves exclusively to this server. You may include this domain in this website’s [asis,SSL] certificate request.', '{{ domain.domain }}') %]"></span>
+                                                                        <a ng-if="domain.resolved == 0" href="javascript:void(0);" class='fas fa-exclamation-triangle fa-sm' title="{{ domain.resolution_failure_reason }}">&nbsp;</a>
+                                                                    </span>
+                                                                </td>
+                                                            </tr>
+                                                            <tr ng-repeat-end  class="virtual-host-domain-row" ng-class="{'success':domain.resolved == 1, 'danger':domain.resolved == 0}" ng-if="domain.resolved == 0"  ng-click="domain.selected = !domain.selected; check_selected_domains(virtual_host)">
+                                                                <td colspan="3" style="max-width:0;">
+                                                                    <div class="domain-container" style="overflow-x:hidden">
+                                                                        <span class="info-block" ng-bind="domain.resolution_failure_reason"></span>
+                                                                    </div>
+                                                                </td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                    <div class="row" ng-if="virtual_host.get_domain_count() > virtual_host.display_meta.items_per_page">
+                                                        <div class="col-md-12 text-center">
+                                                            <uib-pagination id="paginateItems"
+                                                                class="pagination-sm virtual-host-pagination"
+                                                                total-items="virtual_host.get_domain_count()"
+                                                                ng-model="virtual_host.display_meta.current_page"
+                                                                max-size="3"
+                                                                boundary-links="false"
+                                                                rotate="false"
+                                                                previous-text="<"
+                                                                next-text=">"
+                                                                items-per-page="virtual_host.display_meta.items_per_page">
+                                                            </uib-pagination>
+                                                        </div>
+                                                    </div>
+                                                    <div class="callout callout-warning"  ng-if="virtual_host.has_selected_domains() && virtual_host.get_selected_domains().length != virtual_host.get_domain_count()">
+                                                        <p>[% locale.maketext("Not all domains on this website have been selected. Domains that are not selected will not be included in the certificate. We recommend that you include all domains on the certificate."); %]</p>
+                                                    </div>
+                                                    <div class="callout callout-danger" ng-if="(virtual_host.get_selected_domains() | filter:{resolved:0}).length">
+                                                        <p>[% locale.maketext('You cannot include unresolved domains in a certificate. In order to continue with this certificate, you must first deselect domains that did not resolve.'); %]</p>
+                                                        <a class="btn btn-link no-padding" ng-click="deselect_domains((virtual_host.get_selected_domains() | filter:{resolved:0}))">
+                                                            <span class='glyphicon glyphicon-trash'></span>
+                                                            {{ deselect_unresolved_msg(virtual_host); }}
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div ng-class="get_step_panel_classes(virtual_host, get_step(virtual_host) == 'providers')">
+                                        <div class="panel panel-default cert-step-panel">
+                                            <div class="panel-heading" ng-click="go_step(virtual_host, 'providers')" ng-disabled="!can_step(virtual_host, 'providers')" title="{{ !can_step(virtual_host, 'providers') ? LOCALE.maketext('Before you can select a product, you must first select at least one domain.') : ''; }}">
+                                                <div class="row">
+                                                    <h4 class="panel-title col-md-6 text-left">
+                                                        <span class="virtual-host-panel-step-title">
+                                                            2. [% locale.maketext("Select the product:") %]
+                                                            <span ng-if="get_step(virtual_host) != 'providers' && virtual_host.get_product()" class='fas fa-sm fa-check'></span>
+                                                        </span>
+                                                    </h4>
+                                                    <div class="col-md-6 text-right">
+                                                        <span class="label label-success" ng-if="get_step(virtual_host) != 'providers' && virtual_host.get_product()">
+                                                            <span class='glyphicon glyphicon-pencil'></span>&nbsp;
+                                                            {{ get_product_by_id(virtual_host.get_product().provider, virtual_host.get_product().id).display_name }}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div id="collapseTwo" class="panel-collapse collapse" ng-class="{'in':get_step(virtual_host) == 'providers'}">
+                                                <div class="panel-body products-list">
+                                                    <div class="callout callout-warning" ng-if="get_products(virtual_host).length > 10">
+                                                        [% locale.maketext("Too many products to choose from?") %]
+                                                        <a class="btn btn-link" ng-click="go_to_product_filters()">[% locale.maketext("Adjust which products appear.") %]</a>
+                                                    </div>
+                                                    <div
+                                                        class="row product-row"
+                                                        ng-repeat="product in get_products(virtual_host)"
+                                                        ng-class="{'selected':check_product_match(product, virtual_host.get_product())}"
+                                                        ng-click="set_product(virtual_host,product);">
+                                                            <div class="col-xs-1 text-center product-radio-button-container">
+                                                                <input type="radio" name="" class="product-radio-button" ng-checked="check_product_match(product, virtual_host.get_product())">
+                                                            </div>
+                                                            <div class="col-xs-1 no-padding text-center">
+                                                                <img ng-if="product.icon" ng-src="data:{{ product.icon_mime_type }};base64,{{ product.icon }}" width="40" height="40">
+                                                                <span ng-if="!product.icon"  class='fas fa-lock fa-3x' width="40" height="40"></span>
+                                                            </div>
+                                                            <div class="col-xs-9 col-sm-9 col-md-9 col-lg-9">
+                                                                <span ng-bind="product.display_name"></span>
+                                                                <div class="product-details">
+                                                                    [% locale.maketext('[_1] per domain', "{{ get_currency_string(product.price, product.price_unit) }}") %]
+                                                                </div>
+                                                                <div class="product-details">
+                                                                    ([% locale.maketext('[_1] total', "{{ get_currency_string(product.price * virtual_host.get_selected_domains().length, product.price_unit) }}") %])
+                                                                </div>
+                                                                <div class="product-details" ng-if="product.recommended">
+                                                                    <span class="badge badge-success"><span class='fas fa-star fa-sm'></span> [% locale.maketext("Recommended") %]</span>
+                                                                </div>
+                                                                <div ng-if="check_product_match(product, virtual_host.get_product())">
+
+                                                                    <div class="info-block">
+                                                                        <p ng-if="product.description" ng-bind="product.description"></p>
+                                                                        <p ng-if="!product.description">
+                                                                            <em>([% locale.maketext('No product description is available.') %])</em>
+                                                                        </p>
+
+                                                                        <div ng-switch="product.x_payment_trigger">
+                                                                            <span ng-switch-when="issuance">[% locale.maketext('“[_1]” will not complete the charge to your credit card until the certificate is available.', '{{product.provider_display_name}}') %]</span>
+                                                                            <span ng-switch-when="checkout">[% locale.maketext('“[_1]” will charge your credit card immediately upon checkout.', '{{product.provider_display_name}}') %]</span>
+                                                                        </div>
+                                                                    </div>
+
+                                                                    <identity-verification ng-if="product.x_identity_verification" items="product.x_identity_verification" models="identity_verification[virtual_host.display_name]" countries="COUNTRIES" vhost-name="virtual_host.display_name"></identity-verification>
+                                                                </div>
+                                                            </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div ng-if="virtual_host.is_ssl">
+                                <div class="callout callout-warning">
+                                    [% locale.maketext('This website already has an [output,abbr,SSL,Secure Sockets Layer] certificate.'); %]
+                                    [% locale.maketext('If you purchase a new certificate, it will overwrite the existing certificate.'); %]
+                                </div>
+                            </div>
+                            <div class="virtual-host-actions">
+                                <a
+                                    ng-disabled="!can_next_step(virtual_host)"
+                                    ng-hide="can_add_to_cart(virtual_host)"
+                                    ng-click="next_step(virtual_host)"
+                                    class="btn pull-left"
+                                    ng-class="{'btn-primary':can_next_step(virtual_host),'btn-default':!can_next_step(virtual_host)}"
+                                    title="[% locale.maketext('Continue') %]">[% locale.maketext('Continue') %]</a>
+                                <button type="submit"
+                                    ng-if="can_add_to_cart(virtual_host) && !virtual_host.added_to_cart"
+                                    ng-disabled="!vhost_form.$valid || !all_domains_resolved(virtual_host)"
+                                    class="btn btn-default pull-right"
+                                    title="{{ all_domains_resolved(virtual_host) ? LOCALE.maketext('Add To Cart') : LOCALE.maketext('You cannot add this certificate to the cart with unresolved subdomains.') }}"><span class='glyphicon glyphicon-plus'></span> [% locale.maketext('Add To Cart') %]</button>
+                                <a
+                                    ng-if="virtual_host.added_to_cart"
+                                    ng-click="remove_from_cart(virtual_host)"
+                                    class="btn btn-link pull-right"
+                                    title="[% locale.maketext('Remove From Cart') %]"><span class='glyphicon glyphicon-trash'></span> [% locale.maketext('Remove From Cart') %]</a>
+                                <a
+                                    class="btn-link"
+                                    ng-if="vhost_form.$valid && can_add_to_cart(virtual_host) && !virtual_host.added_to_cart && !all_domains_resolved(virtual_host)"
+                                    ng-click="go_step(virtual_host, 'domains')"
+                                    ng-bind="LOCALE.maketext('You cannot add this certificate to the cart with unresolved subdomains.')"></a>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div ng-if="pending_certificate(virtual_host)" class="panel-body">
+                    <h5 class="virtual-host-cert-pending-header" ng-bind="LOCALE.maketext('Certificate Pending')"></h5>
+                    <p>[% locale.maketext("You cannot request a new certificate for this website while you wait for another certificate to arrive for the same website.") %]</p>
+                    <p>[% locale.maketext("To view the status of the pending certificate, [output,url,_1,click here].", "#/pending-certificates/{{ pending_certificate(virtual_host) }}") %]</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

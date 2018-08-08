@@ -1,0 +1,159 @@
+
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    IF (ExpVar.expand('$appname') == "webmail") && !FORM.item('account');
+        SET FORM.item('account') = CPANEL.authuser;
+    END;
+
+    IF CPANEL.CPDATA.item('DEMO');
+        SET show_emails = locale.maketext("This feature is disabled in demo mode.");
+    ELSE;
+        Api1.pre_exec("BoxTrapper", "showemails");
+        SET show_emails = Api1.exec("BoxTrapper", "showemails", [RAW_FORM.item("account")]);
+        Api1.post_exec("BoxTrapper", "showemails");
+
+        Api1.pre_exec("BoxTrapper", "showfromname");
+        SET show_from_name = Api1.exec("BoxTrapper", "showfromname", [RAW_FORM.item("account")]);
+        Api1.post_exec("BoxTrapper", "showfromname");
+
+        Api1.pre_exec("BoxTrapper", "showqueuetime");
+        SET show_queue_time = Api1.exec("BoxTrapper", "showqueuetime", [RAW_FORM.item("account")]);
+        Api1.post_exec("BoxTrapper", "showqueuetime");
+
+        Api1.pre_exec("BoxTrapper", "showmin_spam_score_deliver");
+        SET showmin_spam = Api1.exec("BoxTrapper", "showmin_spam_score_deliver", [RAW_FORM.item("account")]);
+        Api1.post_exec("BoxTrapper", "showmin_spam_score_deliver");
+    END;
+    # Case 94793:
+    # We don't want to use any if the raw output of the following two functions.
+    # Error messages leak from the back end, causing XSS.
+
+    Api1.pre_exec("BoxTrapper", "showautowhitelist");
+    CALL Api1.exec("BoxTrapper", "showautowhitelist", [RAW_FORM.item("account")]);
+    Api1.post_exec("BoxTrapper", "showautowhitelist");
+
+    IF (CPANEL.CPVAR.showautowhitelist_checked);
+        SET auto_whitelisting = 'checked="checked"';
+    ELSE;
+        SET auto_whitelisting = '';
+    END;
+
+    Api1.pre_exec("BoxTrapper", "showwhitelist_by_assoc");
+    CALL Api1.exec("BoxTrapper", "showwhitelist_by_assoc", [RAW_FORM.item("account")]);
+    Api1.post_exec("BoxTrapper", "showwhitelist_by_assoc");
+
+    IF (CPANEL.CPVAR.showwhitelist_by_assoc_checked);
+        SET whitelisting = 'checked="checked"';
+    ELSE;
+        SET whitelisting = '';
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+    embed_scripts = [ 'mail/boxtrapper/conf.js']
+    page_stylesheets = ['mail/boxtrapper.css']
+%]
+
+<div class="body-content">
+
+    [% IF (ExpVar.expand('$appname') == "webmail" && !( FORM.item('account') == CPANEL.authuser)) %]
+    <div id="changeSettingsErrorMsg" class="alert alert-danger">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        <div class="alert-message">
+        [% locale.maketext("You are not allowed to change settings for the user “[output,class,_1,status]”.", FORM.item('account')) %]
+        </div>
+    </div>
+    [% ELSE %]
+
+    <div class="section">
+        <h2 id="descConfigureBoxtrapper">
+            [% locale.maketext("Configure BoxTrapper for: [output,strong,_1]", FORM.item('account')) %]
+        </h2>
+
+    <form id="frmChangeConf" action="saveconf.html" method="post">
+        <div class="form-group">
+            <label id="lblEmailAddressAccount" for="txtShowEmail">
+                [% locale.maketext("Email addresses for this account:") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <textarea id="txtShowEmail" name="froms" class="form-control" cols="30" rows="6">[% show_emails %]</textarea>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblYourName" for="txtFromName">
+                [% locale.maketext("Your Name:") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input id="txtYourName" type="text" class="form-control" name="fromname" value="[% show_from_name %]">
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblNumberofDays" for="boxtrapper_daystokeep">
+                [% locale.maketext("The number of days that you wish to keep logs and messages in the queue.") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input id="boxtrapper_daystokeep" type="text" class="form-control" name="queue"  value="[% show_queue_time %]">
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div id="boxtrapper_daystokeep_error"></div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblMimimumSpam" for="boxtrapper_minspamscore">
+                [% locale.maketext('Minimum [asis,Apache] [asis,SpamAssassin] Spam Score required to bypass [asis,BoxTrapper]:') %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input id="boxtrapper_minspamscore" type="text" class="form-control" name="min_spam_score_deliver"  value="[% showmin_spam %]">
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div id="boxtrapper_minspamscore_error"></div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div class="checkbox">
+                        <label id="lblEnableAutomaticWhiteList">
+                            <input id="chkAutowhitelist" type="checkbox" name="autowhitelist" value="1"  [% auto_whitelisting %]>
+                            [% locale.maketext("Enable Automatic Whitelisting") %]
+                        </label>
+                    </div>
+                    <div id="autoWhitelistToFrom" class="checkbox">
+                        <label id="chkWhiteListByAssoc">
+                            <input id="chkAutoWhitelistToandFrom" type="checkbox" name="whitelist_by_assoc" value="1" [% whitelisting %] >
+                            [% locale.maketext('Automatically whitelist the [output,em,To] and [output,em,From] lines from whitelisted senders (whitelist by association):') %]
+                        </label>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                </div>
+            </div>
+        </div>
+
+        <div id="descBoxtrapperHelpText" class="help-block">
+            [% locale.maketext("[output,strong,NOTE:] It is important to understand that even if BoxTrapper is enabled and automatic white-listing is disabled, ANY e-mail address you send mail to will automatically be added to the white-list without your interaction. Since you are in effect interacting with the e-mail address, BoxTrapper assumes you welcome interaction with them and automatically white-lists the e-mail in question.") %]
+        </div>
+
+        <input id="hidAccountName" type="hidden" name="account" value="[% FORM.item('account') %]">
+        <div class="form-group">
+            <input id="submit_boxtrapper_conf" type="submit"  value="[% locale.maketext("Save") %]" class="btn btn-primary" />
+        </div>
+    </form>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='manage.html?account=' _ RAW_FORM.account.uri _ '' return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END %]

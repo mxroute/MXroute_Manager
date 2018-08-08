@@ -1,0 +1,90 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    page_styles = css_code
+    app_key = 'metrics_editor'
+-%]
+<div class="body-content">
+    <p id="descMetricsEditor" class="description">
+        [% locale.maketext("This function allows you to choose what stats programs you will use when viewing site statistics, if you are allowed to do so.") %]
+    </p>
+    <div class="alert alert-info" id="lockedInfo">
+        <span class="glyphicon glyphicon-lock" id="lockedInfoImg"></span>
+        <span class="alert-message" id="lockedInfoMsg">
+            [% locale.maketext("This icon indicates that the stats program is locked by the administrator.") %]
+        </span>
+    </div>
+    <div class="section">
+        <form action="updateLogConf.html" id="the_form">
+            <table class="stats-table">
+                <tr>
+                    <td>
+                        [%
+                            Api1.pre_exec("StatManager", "doForm") ;
+                            Api1.exec("StatManager", "doForm", [undef]) ;
+                            Api1.post_exec("StatManager", "doForm")
+                        %]
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script>
+    if (window.LOGGER_ORDER) {
+        var dummy = document.createElement("div");
+        for (var p = LOGGER_ORDER.length - 1; p >= 0; p--) {
+            var prog = LOGGER_ORDER[p];
+            if (!DISABLED_LOGGERS[prog.toUpperCase()]) {
+                var cell = DOM.get(prog + "-header");
+                var checked = LOGGER_ALL_CHECKED[prog.toUpperCase()] ? 'checked' : '';
+                dummy.innerHTML = "<div class='checkbox'><label><input id='" + prog + "-checkall' type='checkbox' " + checked + " title='[% locale.maketext("Select/unselect all")  %]'/></label></div>";
+                //Put all of the cell contents into the <label>.
+                while (dummy.firstChild.appendChild(cell.firstChild) && cell.firstChild) {}
+
+                cell.appendChild(dummy.firstChild)
+            }
+        }
+    }
+
+    EVENT.on("statsmgr", "click", function(e) {
+        var orig = EVENT.getTarget(e);
+        var table = e.currentTarget;
+        if (orig.type && (orig.type === "checkbox")) {
+            var cell = DOM.getAncestorByTagName(orig, "th");
+            if (cell && DOM.isAncestor(table, cell)) {
+                var index = cell.cellIndex;
+                var logger = LOGGER_ORDER[index - 1].toUpperCase();
+
+                var form = DOM.get("the_form");
+                var checked = orig.checked;
+                for (var d = DOMAINS.length - 1; d >= 0; d--) {
+                    form[logger + "-" + DOMAINS[d]].checked = checked;
+                }
+            } else if (!orig.checked) {
+                var cell = DOM.getAncestorByTagName(orig, "td");
+                if (cell && DOM.isAncestor(table, cell)) {
+                    var cell_index = cell.cellIndex;
+                    var header = table.rows[0].cells[cell_index];
+                    header.getElementsByTagName("input")[0].checked = false;
+                }
+            }
+        }
+    });
+</script>
+[% END #js_block %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+
+
+</style>
+[% END #css_block %]
+
+

@@ -1,0 +1,40 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+
+    SET filepath = FORM.dir _ '/' _ FORM.file;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Converter")
+-%]
+
+<div class="body-content">
+    <p id="descFileToConvert">
+        [% locale.maketext("We will be converting “[_1]”.",filepath) %]
+    </p>
+    <form action="doconvert.html">
+        <input id="hiddenFile" type="hidden" name="target" value="[% filepath %]">
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <select id="ddlChooseImageType" class="form-control" name="newtype">
+                        <option id="optPng" value=png>[% locale.maketext("Portable Network Graphic (png)[comment,menu-item-choice]") %]</option>
+                        <option id="optJpeg" value=jpg>[% locale.maketext("JPEG (jpg)[comment,menu-item-choice]") %]</option>
+                        <option id="optGif" value=gif>[% locale.maketext("GIF (gif)[comment,menu-item-choice]") %]</option>
+                        <option id="optBmp" value=bmp>[% locale.maketext("Bitmap (bmp)[comment,menu-item-choice]") %]</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <input id="btnConvert" type="submit" class="btn btn-primary" value="[% locale.maketext("Convert") %]" />
+        </div>
+
+    </form>
+    [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper -%]
+
+

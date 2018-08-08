@@ -1,0 +1,44 @@
+[%# TODO: Investigate if this file should be deleted. It does not appear to be used at all. %]
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+<div class="body-content">
+
+    <h2 id="hdrCreateMysqlUser">[% locale.maketext("Create a [asis,MySQL] User") %]</h2>
+
+    <div class="section">
+        <form action="adduser.html">
+            <div class="form-group">
+                <label id="lblUser" for="user">
+                    [% locale.maketext("Username") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="user" id="user" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblPass" for="pass">
+                    [% locale.maketext("Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="pass" id="pass" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" value="[% locale.maketext("Create User") %]" id="submit" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper -%]

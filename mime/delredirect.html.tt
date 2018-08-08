@@ -1,0 +1,29 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'redirects'
+ -%]
+<div class="body-content">
+    [% delete_redirect = execute('Mime', 'delete_redirect', { domain=RAW_FORM('domain'), src=RAW_FORM('path'), docroot=RAW_FORM('docroot') }) %]
+
+    [% IF delete_redirect.errors.size %]
+    <div id="deleteError" class="alert alert-danger">
+        <span id="deleteErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <span id="deleteErrorTxt">[% locale.maketext("There was an error removing the redirect:") %]</span>
+        [% FOREACH q = delete_redirect.errors %]
+        <p>[% q FILTER html %]</p>
+        [% END %]
+    </div>
+    [% ELSE %]
+        [% redirect_info = execute('Mime', 'redirect_info', { url=RAW_FORM('path'), domain=RAW_FORM('domain') }) %]
+        <div id="deleteSuccess" class="alert alert-success">
+            <span id="deleteSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <span id="deleteSuccessTxt">[% locale.maketext("The redirect “[_1]” on “[_2]” has been removed.", redirect_info.data.url.html, redirect_info.data.domain.html) %]</span>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='redirect.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]
+

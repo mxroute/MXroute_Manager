@@ -1,0 +1,28 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% delete_hotlink = execute('Mime', 'delete_hotlink') %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'hotlink_protection'
+-%]
+<div class="body-content">
+    [% IF !delete_hotlink.errors.size %]
+        <div class="alert alert-success" id="deleteHotlinkSuccess">
+            <span class="glyphicon glyphicon-ok-sign" id="deleteHotlinkSuccessImg"></span>
+            <div class="alert-message" id="deleteHotlinkSuccessMsg">
+               [% locale.maketext("Hotlink Protection Disabled!") %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-danger" id="deleteHotlinkError">
+            <span class="glyphicon glyphicon-remove-sign" id="deleteHotlinkErrorImg"></span>
+            <div class="alert-message" id="deleteHotlinkErrorMsg">
+                [% locale.maketext('There was an error while [boolean,_1,enabling,disabling] hotlink protection.',1) %]
+                [% FOREACH q = delete_hotlink.errors %]<p>[% q %]</p>[% END %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='hotlink.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

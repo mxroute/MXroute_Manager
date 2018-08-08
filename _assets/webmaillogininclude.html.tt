@@ -1,0 +1,35 @@
+[%
+    SET webmail_host = "https://" _ CPANEL.CPDATA.DNS.html _ ":2096";
+%]
+
+<p id="descPageDescription" class="description">
+    [% locale.maketext("Webmail allows you to access your email from any computer with an Internet connection and a web browser. Please make sure to log out when checking your email on public computers so that other people cannot read your email.") %]
+</p>
+
+<p id="descLinkToWebmail">
+    [% locale.maketext("You can check the webmail for any account by logging into [output,url,_1,id,_2] with the full username (user@domain.com) and password for the email account or by clicking on the icon below.",webmail_host,'lnkWebmailURL') %]
+</p>
+
+<div align="center" class="section">
+    [% IF CPANEL.ENV.SERVER_PORT == "2082" %]
+        <a id="lnkUnsecureWebmailLogin" href="[% CPANEL.ENV.cp_security_token.html %]/xferwebmail/" target="_blank">
+            <span id="imgWebmailIcon" class="fa-stack fa-lg">
+              <i class="fas fa-envelope fa-stack-2x"></i>
+            </span>
+            <br />[% locale.maketext("Go to Webmail Login") %]
+        </a>
+        <br />
+    [% ELSE %]
+        <a id="lnkSecureWebmailLogin" href="[% CPANEL.ENV.item("cp_security_token").html %]/xferwebmail/" target="_blank">
+            <span id="imgWebmailIcon" class="fa-stack fa-lg">
+              <i class="fas fa-envelope fa-stack-2x"></i>
+            </span>
+            <br />[% locale.maketext("Go to Secure Webmail Login") %]
+        </a>
+        <br />
+    [% END %]
+</div>
+
+<p id="descHowToConfigureMail">
+    [% locale.maketext("To check your mail through a desktop application, you will need to configure the application. Your mail server is most likely “mail.[_1]” (e.g. mail.example.com). You will need to use the full username (user@domain.com) and password when configuring your account from an email client. It is a good idea to check “My Server Requires Authentication” as most mail servers require this option.", CPANEL.CPDATA.DNS.html) %]
+</p>

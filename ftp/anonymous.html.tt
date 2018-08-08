@@ -1,0 +1,60 @@
+[%
+    SET welcome_message =  execute('Ftp', 'get_welcome_message').data;
+    SET CPANEL.CPVAR.dprefix="../";
+    SET ftpPath = 'ftp://ftp.' _ CPANEL.CPDATA.DNS;
+    SET ftpIncoming = ftpPath _ '/incoming';
+%]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'anonymous_ftp'
+-%]
+
+[% anon = execute('Ftp', 'allows_anonymous_ftp').data.allows ? 'checked="checked"' : '' %]
+[% anon_in = execute('Ftp', 'allows_anonymous_ftp_incoming').data.allows ? 'checked="checked"' : '' %]
+
+<div class="body-content">
+    <p class="description" id="descAnonFtp">
+        [% locale.maketext("Allow visitors to connect to your anonymous FTP directory without a password. This is useful if you want to make some content publicly available to download. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/AnonymousFtp", "_blank", "lnkAnonymousFtpDocumentation") %]
+    </p>
+    <div class="section">
+        <form action="ftpset.html" method="post">
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
+                        <input [% anon %] name="allowanonftp" type="checkbox" value="1" id="chkAnonFtp">
+                        [% locale.maketext("Allow anonymous access to “[_1]”.",ftpPath) %]
+                    </label>
+                </div>
+                <div class="checkbox">
+                    <label>
+                        <input [% anon_in %] name="allowanonftpin" type="checkbox" value="1" id="chkAnonFtpUpload">
+                        [% locale.maketext("Allow anonymous uploads to “[_1]”.", ftpIncoming) %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" value="[% locale.maketext("Save") %]" id="btnSaveAnonFtp">
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>
+            [% locale.maketext("Anonymous FTP Welcome Message") %]
+        </h2>
+        <p class="description" id="descMotd">
+            [% locale.maketext("Enter the message your visitors will see when they connect to your anonymous FTP server.") %]
+        </p>
+        <form action="dochmsg.html" method="post">
+            <div class="form-group">
+                <textarea cols="40" name="ftpwelcome" rows="7" class="form-control" id="txtMotd">[% welcome_message FILTER html %]</textarea>
+            </div>
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" value="[% locale.maketext("Save") %]" id="btnSaveMotd"/>
+            </div>
+        </form>
+    </div>
+</div>
+
+[% END #wrapper -%]

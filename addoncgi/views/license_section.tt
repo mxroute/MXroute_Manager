@@ -1,0 +1,9 @@
+    <h4>[% locale.maketext('License Terms') %]</h4>
+    <div class="row">
+        <div class="col-xs-12 col-sm-6">
+            <div id="license" class="well">[% module.meta.license_text | html %]</div>
+            <div class="callout callout-info">
+                [% locale.maketext('[output,strong,Note:] When you install this application, you agree to the License Terms.') %]
+            </div>
+        </div>
+    </div>

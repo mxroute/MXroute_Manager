@@ -1,0 +1,106 @@
+[%
+# Arguments
+# data   - hash -
+#    sorted_instances - array - of instances
+#    dophpsuexecwarn - hash
+#    dosuexecwarn - hash
+# module - hash -
+#    name - string
+#    version - string
+#    meta - hash
+%]
+[% IF has_instances %]
+<div class="row">
+    <div class="col-xs-12 col-sm-12 col-md-6 col-lg-6">
+        <table class="table table-striped table-condensed" id="instances">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext('URL') %]</th>
+                    [% IF module.meta.display.versions %]
+                    <th>[% locale.maketext('Version') %]</th>
+                    [% END %]
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                [% FOR instances IN data.sorted_instances %]
+                <tr>
+                    <td>
+                        <b>
+                            <a href="[% instances.url_to_install | url %]"
+                               target="_blank"
+                               id="manage_[% slugify(instances.install_filename, '_') %]">
+                                [% instances.url_to_install | html %]
+                            </a>
+                        </b>
+                    </td>
+                    [% IF module.meta.display.versions %]
+                    <td>
+                          v[% instances.version | html %]
+                    </td>
+                    [% END %]
+                    <td>
+                        [% IF dophpsuexecwarn.$module %]
+                        <div class="alert alert-warning">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                            <div class="alert-message" id="phpsuexec_missmatch_warning">
+                                <strong>[% locale.maketext('Warning:') %]</strong>
+                                [% locale.maketext('PHPSuExec Mismatch') %]
+                            </div>
+                        </div>
+                        [% ELSIF dosuexecwarn.$module %]
+                        <div class="alert alert-warning">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                            <div class="alert-message" id="suexec_missmatch_warning">
+                                <strong>[% locale.maketext('Warning:') %]</strong>
+                                [% locale.maketext('SuExec Mismatch') %]
+                            </div>
+                        </div>
+                        [% ELSE %]
+                        &nbsp;
+                        [% END %]
+                    </td>
+                </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </div>
+</div>
+
+[% # NOTE: There use to be a copy and remove copy. Not currently implemented %]
+
+[% FOR instance IN data.sorted_instances;
+    IF instance.url_to_install_admin %]
+<p>
+    [% locale.maketext('Admin:') %]
+    <a target="_blank"
+       href="[% instance.url_to_install_admin | url %]"
+       id="manage_admin_[% slugify(instance.install_filename, '_') %]">
+    [% instance.url_to_install_admin | html %]
+    </a>
+</p>
+    [% END;
+    END;
+
+    IF module.meta.miscurls;
+        FOR instance IN data.sorted_instances;
+            SET base = instance.url_to_install;
+            base = base _ '/' IF !base.match('/$');
+            FOR relmiscurl IN meta.miscurls.keys;
+                SET misc_url = base _ meta.miscurls.$relmiscurl %]
+<p>
+    [% relmiscurl | html %]:
+    <a target="_blank"
+       href="[% misc_url | url %]"
+       id="manage_misc_[% slugify(instance.install_filename, '_') _ slugify(instance.relmiscurl, '_') %]">
+        [% misc_url | html %]
+    </a>
+</p>
+        [%  END;
+        END;
+    END %]
+[% ELSE %]
+<span>
+    [% locale.maketext('There are no installed instances of this [asis,cPAddon].') %]
+</span>
+[% END %]

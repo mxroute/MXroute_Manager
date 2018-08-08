@@ -1,0 +1,20 @@
+[% USE JSON; %]
+
+<div>
+    <button id="[% "see_" _ id.html() %]" href="#" class="btn btn-link">
+        [% show | html %]
+    </button>
+</div>
+<div id="[% id.html() %]" style="display:none">
+    <pre>[% content | html %]</pre>
+</div>
+
+<script type="text/javascript" >
+    var $linkEl = $("#see_[% id.html() %]");
+    var $dispEl = $("#[% id.html() %]");
+
+    $linkEl.click( function() {
+        toggleDisplay($dispEl, $linkEl, [% hide.json() %], [% show.json() %]);
+        return false;
+    });
+</script>

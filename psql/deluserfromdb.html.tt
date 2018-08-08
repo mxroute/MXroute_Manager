@@ -1,0 +1,26 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    [%
+        SET result = execute_or_die(
+            'Postgresql',
+            'revoke_all_privileges',
+            {
+                user => RAW_FORM.user,
+                database => RAW_FORM.db,
+            },
+        );
+    -%]
+
+    <p>
+        [% locale.maketext("Deleted the user “[_1]” from the database “[_2]”.", FORM.user, FORM.db) %]
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

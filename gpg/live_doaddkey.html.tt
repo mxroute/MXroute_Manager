@@ -1,0 +1,42 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+%]
+<div class="body-content">
+    <span id="descKeyGenerated">
+        [% locale.maketext("Key is being generated. This may take a few minutes.") %]
+    </span>
+
+    <div id="module-output">
+        <pre>[%
+            # TODO: This should be moved to an ajax call because it causes the page to load slowly
+            Api1.pre_exec("Gpg", "genkey");
+            SET gen_key = Api1.live_exec("Gpg", "genkey", [RAW_FORM.name, RAW_FORM.comment, RAW_FORM.email, RAW_FORM.expire, RAW_FORM.keysize, RAW_FORM.password]);
+            Api1.post_exec("Gpg", "genkey");
+        %]</pre>
+    </div>
+
+    [% IF ! CPANEL.CPERROR.gpg %]
+        <div id="keySuccess" class="alert alert-success">
+            <span id="keySuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="keySuccessMsg" class="alert-message">
+                [% locale.maketext("The Key has been successfully created.") %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="keyGenerationError" class="alert alert-danger">
+            <span id="keyGenerationErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="keyGenerationMsg" class="alert-message">
+            [% locale.maketext("There was a problem creating the [asis,GnuPG] key:") %].
+                <p>
+                    [% CPANEL.CPERROR.gpg.html %]
+                </p>
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div><!-- body-content -->
+[% END %]

@@ -1,0 +1,30 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("ClamScanner", "printScans");
+    SET print_scan = Api1.exec("ClamScanner", "printScans", [undef]);
+    Api1.post_exec("ClamScanner", "printScans");
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'virus_scanner'
+    page_js = js_code
+-%]
+<div class="body-content">
+    [% IF CPANEL.feature("clamavconnector_scan") %]
+        <div class="section">
+            <h2 id="hdrNewScan">[% locale.maketext("Start a New Scan") %]</h2>
+            <p>[% locale.maketext("Scans will automatically stop if they run for more than one day.") %]</p>
+            [% print_scan %]
+        </div>
+    [% END %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    if (parent.frames.actfr && parent.frames.actfr.document) {
+        parent.frames.actfr.document.location.href = 'live_go.html';
+    }
+</script>
+[% END %]

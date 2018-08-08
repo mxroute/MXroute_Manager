@@ -1,0 +1,185 @@
+[%
+    USE Api2;
+    USE CacheBuster;
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET locale_attributes = execute( "Locale", "get_attributes", {} ).data;
+
+    SET file_upload_remaining_size = 0;
+    SET getdiskinfo = Api2.exec("Fileman" , "getdiskinfo" , {});
+    IF getdiskinfo.size;
+        SET file_upload_remaining_size = getdiskinfo.0.file_upload_remain_humansize;
+    END;
+
+    SET random_data = "";
+    SET getranddata = Api2.exec("Rand" , "getranddata" , {});
+    IF getranddata.size;
+        SET random_data = getranddata.0.random;
+    END;
+
+    SET brand_information = execute( "Brand", "read", {} ).data;
+
+    SET return_link = "./index.html?dir=" _ FORM.item('dir').uri();
+%]
+<!doctype html>
+<html lang="[% locale_attributes.locale %]" dir="[% locale_attributes.direction %]">
+    <head>
+        <title>[% locale.maketext("[asis,cPanel] File Manager v3 - File Upload") %]</title>
+        <meta charset="[% locale_attributes.encoding %]" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+
+        <link type="text/css" rel="stylesheet" href="[% theme_magic_url("/yui/container/assets/container.css") %]" />
+
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap/optimized/css/bootstrap.min.css') %]" />
+        [% IF locale_attributes.direction == 'rtl' %]
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap-rtl/optimized/dist/css/bootstrap-rtl.min.css') %]" />
+        [% END %]
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/ui-fonts/open_sans/optimized/open_sans.min.css') %]" />
+        <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/fontawesome/web-fonts-with-css/css/fontawesome-all.min.css') %]" />
+
+        <link type="text/css" rel="stylesheet" href="[% theme_magic_url("filemanager/css/tree_styles2_optimized.css") %]" />
+        <link type="text/css" rel="stylesheet" href="[% theme_magic_url("filemanager/css/upload_optimized.css") %]" />
+    </head>
+    <body class="yui-skin-sam" id="leftmain">
+        <div id="topbar" class="clear navbar navbar-inverse navbar-cpanel">
+            <span id="branding" class="navbar-brand">
+                <a id="lnkHeaderHome" href="[% CPANEL.CPVAR.dprefix %]index.html">
+                    <img id="imgLogo"
+                        src="/brand/[% brand_information.cpanel_logo_small %]?[% CacheBuster.id %]"
+                        alt="[% brand_information.company_name.html() %]"
+                        class="navbar-brand-logo" />
+                </a>
+                <span class="brand-name">
+                [% locale.maketext("File Upload") %]
+                </span>
+            </span>
+        </div>
+
+        <div class="container">
+            <div class="row">
+                <div class="col-xs-12">
+                    <h3>[% locale.maketext("Select the file you want to upload to “[_1]”.", FORM.dir) %]</h3>
+                    <div class="callout callout-info">
+                        <div>
+                        [% locale.maketext("Maximum file size allowed for upload:") %]
+                        <span class="status" id="file_upload_remain">[% file_upload_remaining_size %]</span>
+                        </div>
+                    </div>
+
+                    <div class="doc_container">
+                        <div id="customSettingsContainer">
+                            <div class="checkbox">
+                                <label>
+                                    <input id="overwrite_checkbox" type="checkbox" name="overwrite" value="1" />
+                                    [% locale.maketext("Overwrite existing files") %]
+                                </label>
+                            </div>
+                        </div>
+                        <div id="upload_drop_zone" class="file-drop-zone">
+                            <div id="uploader_text_area">
+                                <p>[% locale.maketext('Drop files here to start uploading') %]</p>
+                                <p>[% locale.maketext('or') %]</p>
+                            </div>
+                            <div id="uploader_button_area">
+                                <button type="button" id="uploader_button" class="btn btn-primary" onclick="uploadService.triggerFileSelection()">
+                                [% locale.maketext('Select File') %]
+                                </button>
+                                <input type="file" id="uploader_file_input" name="uploader_file_input" onchange="uploadService.uploadfile(this)" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="uploaderContainer" id="uploaders"></div>
+
+                    <div id="promptContainer"></div>
+
+                    <div class="return-link">
+                        [% IF locale_attributes.direction == "rtl" %]
+                            <a id="lnkReturn" href="[% return_link %]" target="file_manager;" onclick="return uploadService.goBackHandler()">
+                                <span class="glyphicon glyphicon-circle-arrow-right"></span>
+                                [% locale.maketext("Go Back to “[_1]”", FORM.dir) %]
+                            </a>
+                        [% ELSE %]
+                            <a id="lnkReturn" href="[% return_link %]" target="file_manager;" onclick="return uploadService.goBackHandler()">
+                                <span class="glyphicon glyphicon-circle-arrow-left"></span>
+                                [% locale.maketext("Go Back to “[_1]”", FORM.dir) %]
+                            </a>
+                        [% END %]
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <script type="text/plain" id="uploaderhtml_template">
+        <div class="uploadtable">
+            <div id="uploadform{thisid_html}" class="upload-hidden-form">
+                <iframe id="ut{thisid_html}" name="ut{thisid_html}" src="javascript:void(0)" style="width:0px;height:0px;border:0"></iframe>
+                <form name="uform{thisid_html}" id="frm{thisid_html}" class="upload-form" action="[% CPANEL.ENV.cp_security_token.html %]/json-api/cpanel" onsubmit="return false;" method="post" enctype="multipart/form-data" target="ut{thisid_html}">
+                    <input type="hidden" name="cpanel_jsonapi_module" value="Fileman" />
+                    <input type="hidden" name="cpanel_jsonapi_func" value="uploadfiles" />
+                    <input type="hidden" name="cpanel_jsonapi_apiversion" value="2" />
+                    <input type="hidden" name="getdiskinfo" value="1" />
+                    <input type="hidden" name="permissions" value="0644" />
+                    <input type="hidden" name="cpanel-trackupload" value="" />
+                    <input type="hidden" name="dir" value="[% FORM.dir %]" />
+                    <input type="hidden" name="overwrite" value="0" />
+                </form>
+            </div>
+            <div id="uploaderprogress{thisid_html}"></div>
+        </div>
+        </script>
+        <script type="text/plain" id="dnd_uploaderhtml_template">
+        <div class="uploadtable">
+            <div id="uploadform{thisid_html}" class="upload-hidden-form">
+                <form name="uform{thisid_html}" id="frm{thisid_html}" class="upload-form" enctype="multipart/form-data" target="ut{thisid_html}">
+                    <input type="hidden" name="get_disk_info" value="1" />
+                    <input type="hidden" name="dir" value="[% FORM.dir %]" />
+                </form>
+            </div>
+            <div id="uploaderprogress{thisid_html}"></div>
+        </div>
+        </script>
+        <script type="text/plain" id="upload_progress_template">
+            <label for="uploaderstatus{thisid_html}">{fileName}</label>
+            <div id="uploaderstatus{thisid_html}" class="progress">
+                <div id="progress{thisid_html}"
+                    class="progress-bar"
+                    role="progressbar"
+                    aria-valuenow="0"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    style="min-width: 2em;">0%</div>
+                </div>
+            </div>
+            <div class="help-block upload-stats" id="uploaderstats{thisid_html}"></div>
+        </script>
+
+        <script type="text/plain" id="already_exists_template">
+            <p>
+            [%
+                locale.maketext("The following files already exist on the server in the directory “[_1]”:", "{dir_html}");
+            %]
+            </p>
+            <div class="file-list" id="filelist">{filelist_html}</div>
+            <p>[% locale.maketext("Do you want to continue your upload and overwrite these files?") %]</p>
+        </script>
+
+        <script type="text/javascript" src="[% theme_magic_url('libraries/jquery/3.2.0/jquery-3.2.0.min.js') %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('/yui-gen/utilities_container/utilities_container.js') %]"></script>
+        <script type="text/javascript" src="[% CPANEL.get_cjt_url() %]"></script>
+
+        <script type="text/javascript">
+            var PAGE = {
+                uploadkey: '[% random_data.html() %]',
+                dir: [% RAW_FORM.dir.json() || "null" %]
+            };
+
+            // must be here to give control back to the new version of jquery we are including.
+            // cpanel-all-min.js uses an old version of jquery.
+            jQuery.noConflict();
+        </script>
+
+        <script type="text/javascript" src="[% theme_magic_url('js/filemanager_upload_optimized.js') %]"></script>
+
+    </body>
+</html>

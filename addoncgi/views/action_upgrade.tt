@@ -1,0 +1,121 @@
+[% USE JSON %]
+[% IF !data.notices.has() %]
+    <p>
+        [% locale.maketext('The system successfully upgraded the [asis,cPAddon].') %]
+    </p>
+[% ELSE %]
+    [% PROCESS 'addoncgi/views/notices.tt' notices => data.notices %]
+[% END %]
+
+[% IF data.show_converted %]
+
+    <p>
+        [% locale.maketext('The system could not upgrade the [asis,cPAddon]. The upgrade patch failed because the current installation uses the legacy [asis,cPAddon] system.') %]
+    </p>
+    <p>
+        [% locale.maketext('Choose one of the following options:') %]
+        <ul>
+            <li>[% locale.maketext('Install a new one and manually import the current installation’s data into it.') %]</li>
+            <li>[% locale.maketext('Do not change.') %]</li>
+        </ul>
+    </p>
+
+[% ELSE %]
+
+    [% IF data.has_patch && data.patch_failed && !data.forced %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext('Error:') %]</strong>
+            [% locale.maketext('You modified this [asis,cPAddon] or the upgrade test failed. You cannot update this [asis,cPAddon] via this interface.') %]
+        </div>
+    </div>
+    <p>
+        [% locale.maketext('To force the upgrade, type the following in to the form below:') %]
+    </p>
+    [% IF data.has_patch && data.patch_failed && !form.force;
+        # NOTE: Not localized intentionally.
+        SET force_string = String.new(force_text);
+    %]
+        <p>
+            [% force_text | html %]
+        </p>
+        [% IF !environment.called_from_root %]
+            [% IF data.patch_test_output && data.verbose %]
+                [%    PROCESS addoncgi/views/collapse.tt,
+                        id = 'patch_test_output_b',
+                        show = locale.maketext('Display the patch test output.'),
+                        hide = locale.maketext('Hide patch test output.'),
+                        content = data.patch_test_output;
+                %]
+            [% END %]
+
+    <div class="row">
+        <div id="upgrade-force-confirmation" class="col-xs-12 col-lg-7 callout callout-danger upgrade-force-confirm">
+            <div class="upgrade-confirm-message">
+                <i class="upgrade-force-dialog-icon fas fa-question-circle"></i>
+
+                <form id="cpaddonsupform" method="post" action="[% environment.script_name | url %]" class="layout-medium">
+                    <input type="hidden" name="verified" value="1" />
+                    <input type="hidden" name="addon" value="[% data.addon | html %]" />
+                    <input type="hidden" name="workinginstall" value="[% data.workinginstall | html %]" />
+                    <input type="hidden" name="action" value="upgrade" />
+                    <div class="form-group">
+                        <p>
+                            <strong>[% locale.maketext('To force the upgrade, type the following in to the form below:') %]</strong>
+                        </p>
+                        <p id="sourcetext">
+                            [% data.force_text | html %]
+                        </p>
+                        <textarea type="text" name="force" class="form-control" maxlength="[% data.force_text_length %]" id="txtForce" rows="3" cols="80"></textarea>
+                    </div>
+                    <div class="form-group action-group">
+                        <button type="submit" class="btn btn-primary" id="btnForce" disabled>
+                            <i id="spinner-install" style="display: none" class="fas fa-sync fa-spin"></i>
+                            [% locale.maketext('I understand that if I proceed, this process could possibly delete all customizations and break my installation.') %]
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript">
+        window.force_text = [% data.force_text.json() %]
+    </script>
+        [% ELSE %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext('Error:') %]</strong>
+            [% locale.maketext('You modified this [asis,cPAddon] or the upgrade test failed. You cannot update this [asis,cPaddon] via this interface.') %]
+        </div>
+    </div>
+    <p>
+        [% locale.maketext('For technical reasons, you can only attempt a forced upgrade via [asis,cPanel] when logged in as the user with the user’s password.') %]
+    </p>
+        [% END %]
+    [% END %]
+    [% END %]
+[% END %]
+[% IF !environment.called_from_root;
+    IF data.notices.has('critical_error', 'error');
+        IF form.oneclick == '1';
+            SET fix_url = to_uri(environment, 'addon=' _ module.name _ '&oneclick=1');
+        ELSE;
+            SET fix_url = to_uri(environment, actionlessuri);
+        END;
+%]
+        <p align="center" id="fix">
+            [<a href="[% fix_url | url %]">[% locale.maketext('Back') %]</a>]
+        </p>
+    [% ELSE %]
+        <p align="center" id="back">
+            [% SET back_url = to_uri(environment, 'addon=' _ module.name _ '&oneclick=' _ form.oneclick) %]
+            [<a href="[% back_url | url %]">[% locale.maketext('Back') %]</a>]
+        </p>
+    [% END %]
+    <p align="center" id="home">
+        [% SET home_url = to_uri(environment) %]
+        [<a href="[% home_url | url %]">[% locale.maketext('Home') %]</a>]
+    </p>
+[% END %]

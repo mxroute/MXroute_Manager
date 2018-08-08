@@ -1,0 +1,17 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'cpu_and_concurrent_connection_usage'
+-%]
+
+
+
+<div class="body-content">
+    <p>
+        [% Api1.pre_exec("LVEInfo", "print_usage_overview") ;
+            Api1.exec("LVEInfo", "print_usage_overview", [undef]) ;
+            Api1.post_exec("LVEInfo", "print_usage_overview")
+         %]
+    </p>
+    <a href='resourceusagedetails.html'>[Details]</a>
+</div>
+[% END #wrapper -%]

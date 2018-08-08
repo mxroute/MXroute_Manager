@@ -1,0 +1,66 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'php'
+ -%]
+[%
+USE EasyApache;
+SET ea_version = EasyApache.get_ea_version();
+-%]
+<div class="body-content">
+    [% IF ea_version < 4 -%]
+    [% Api2.pre_exec("PHPINI", "getoptions");
+        SET php_options =  Api2.exec("PHPINI", "getoptions", {"dirlist"=>"session.save_path|safe_mode|file_uploads|zend_optimizer.version|asp_tags|max_execution_time|max_input_time|memory_limit|include_path|upload_max_filesize|register_globals|dl_enable"} );
+        Api2.post_exec("PHPINI", "getoptions");
+    %]
+    <p id="descSettings" class="description">
+        [% locale.maketext("These PHP configuration settings are customizable by the server administrator. They are listed for reference only.") %]
+    </p>
+    <div class="section">
+        <table id="phptbl" class="sortable table table-striped">
+            <thead>
+             <tr class="row-%">
+                <th>
+                    [% locale.maketext("Sub Section") %]
+                </th>
+                <th>
+                    [% locale.maketext("Directive") %]
+                </th>
+                 <th>
+                    [% locale.maketext("Info") %]
+                </th>
+                <th>
+                    [% locale.maketext("Value") %]
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+            [% IF php_options.size(); %]
+                [% FOREACH options IN php_options; %]
+                <tr>
+                    <td>[%  options.subsection.html() %]</td>
+                    <td>[%  options.directive.html() %]</td>
+                    <td>[%  options.info.html() %]</td>
+                    <td>[%  options.dirvalue.html() %]</td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td colspan=4 class=errors>
+                        [% locale.maketext("No Directives Found") %]
+                    </td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+    </div>
+    [% ELSE -%]
+    <div class="alert alert-info">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext("Information:") %]</strong> [% locale.maketext('Use the [output,url,_2,_1] to view and edit [asis,PHP] directives.', locale.maketext("[asis,MultiPHP INI] Editor"), '../multiphp_ini_editor/index.html') %]
+        </div>
+    </div>
+    [% END -%]
+    [% INCLUDE _assets/return_link.html.tt return_location='../index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

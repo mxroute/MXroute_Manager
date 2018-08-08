@@ -1,0 +1,56 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../../";
+SET return_url = 'dohtaccess.html?dir=' _ FORM.dir.uri();
+
+Api1.pre_exec("LeechProtect", "enable");
+SET results = Api1.exec("LeechProtect", "enable", [
+        RAW_FORM.dir,
+        RAW_FORM.numhits,
+        RAW_FORM.rurl,
+        RAW_FORM.email,
+        RAW_FORM.disableacct
+    ]);
+Api1.post_exec("LeechProtect", "enable");
+SET error = CPANEL.CPERROR.leechprotect;
+
+IF !error;
+    Api1.pre_exec("LeechProtect", "setup");
+    SET hits  = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"numhits","html"]);
+    SET url   = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"url","html"]);
+    SET email = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"email","html"]);
+    Api1.post_exec("LeechProtect", "setup");
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'leech_protection'
+-%]
+<div class="body-content">
+    [% IF !error %]
+        <div id="leechEnabledSuccess" class="alert alert-success">
+            <span id="leechEnabledImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="leechEnabledMsg" class="alert-message">
+               [% locale.maketext('[asis,Leech Protection] enabled.') %]
+            </div>
+        </div>
+        <pre id="outDirectory">[% locale.maketext("Directory: [_1]", FORM.dir) %]
+[% locale.maketext("Number of logins per user name allowed: [_1]", hits) %]
+[%- IF url %]
+[% locale.maketext("Leech Redirect URL: [_1]", url) %]
+[% END -%]
+[%- IF email %]
+[% locale.maketext("Leech Notification Email: [_1]", email) %]
+[% END -%]</pre>
+    [% ELSE%]
+        <div id="leechEnableError" class="alert alert-danger">
+            <span id="leechEnableImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="leechEnableMsg" class="alert-message">
+                [% locale.maketext('[asis,Leech Protection] not enabled.') %]
+                [% CPANEL.CPERROR.leechprotect.html() %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_url return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,45 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+
+    # Add a check here to see if the ftp account actually exists
+    SET does_ftp_account_exist = execute("Ftp", "ftp_exists", { "user" => RAW_FORM.user, "domain" => RAW_FORM.domain });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'addon_domains'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+-%]
+<div class="body-content">
+    <div class="section">
+        <p>
+            [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the domain “[_1]”?", FORM.domain) %]
+        </p>
+        <form action="dodeldomain.html" method="POST">
+            <input id="hidDomain" type="hidden" name="domain" value="[% RAW_FORM.domain.html() %]">
+            <input id="hidSubdomain" type="hidden" name="subdomain" value="[% RAW_FORM.subdomain.html() %]">
+            <input id="hidFulldomain" type="hidden" name="fullsubdomain" value="[% RAW_FORM.fullsubdomain.html() %]">
+
+            [% IF does_ftp_account_exist.status %]
+            <div class="form-group">
+                <div class="checkbox">
+                    <label id="lblUser">
+                        <input id="remove_ftp_check" checked="checked" type="checkbox" name="user" value="[% FORM.user %]">
+                        [% locale.maketext("Delete the associated [output,acronym,FTP,File Transfer Protocol] account “[_1]”.", FORM.user) %]
+                    </label>
+                </div>
+            </div>
+            [% END %]
+            <div class="form-group">
+                <input id="btnRemove" type="submit" value="[% locale.maketext("Remove") %]" class="btn btn-primary">
+                <a id="lnkCancel" href="index.html" class="btn btn-link">[% locale.maketext("Cancel") %]</a>
+            </div>
+
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html"  return_link_text=locale.maketext("Go Back" ) %]
+
+</div><!-- end body-content -->
+[% END #wrapper %]

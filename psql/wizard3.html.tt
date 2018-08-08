@@ -1,0 +1,56 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+    SET return_link = 'wizard2.html?db=' _ RAW_FORM.db.uri() _ '&nocreate=1';
+    SET psqluser = dbownerprefix _ RAW_FORM.user;
+
+    Api1.pre_exec("Postgres", "adduser");
+    SET adduser_result = Api1.exec("Postgres", "adduser", [RAW_FORM.item('user'),RAW_FORM.item('pass')]);
+    Api1.post_exec("Postgres", "adduser")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_database_wizard'
+-%]
+<div class="body-content">
+
+[% IF !CPANEL.CPERROR.item('postgres') %]
+    <div class="alert alert-success">
+        <span class="glyphicon glyphicon-ok-sign"></span>
+        [% locale.maketext("You have successfully created a [asis,PostgreSQL] user named “[output,class,_1,status]”.", psqluser.html()) %]
+    </div>
+
+    <h2>
+        [% locale.maketext("Step 3: Add user to the database.") %]
+    </h2>
+
+    <p>
+        [% locale.maketext("User") %]: <b>[% dbownerprefix _ RAW_FORM.user FILTER html %]</b><br />
+        [% locale.maketext("Database") %]: <b>[% FORM.db %]</b>
+    </p>
+
+    <form method="post" action="wizard4.html">
+        <input type="hidden" name="db" value="[% FORM.db %]" id="db" />
+        <input type="hidden" name="user" value="[% dbownerprefix _ RAW_FORM.user | html %]" id="user" />
+        <div class="form-group">
+            <input type="submit" class="btn btn-primary" value="[% locale.maketext("Submit") %]" id="submit" />
+        </div>
+    </form>
+[% ELSE %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        [% CPANEL.CPERROR.item('postgres').html %]
+    </div>
+[% END %]
+
+    <ul class="list-inline text-center">
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkStep2', return_location=return_link return_link_text=locale.maketext('Go Back') %]
+        </li>
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkHome', return_location='index.html' return_link_text=locale.maketext('Return to PostgreSQL Databases Main') %]
+        </li>
+    </ul>
+
+</div><!-- end body-content -->
+[% END #wrapper %]

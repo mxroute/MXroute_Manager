@@ -1,0 +1,59 @@
+[%
+    SET forever_text = locale.maketext('Forever');
+    SET custom_text = locale.maketext('Custom');
+
+    # Setup drop box items mapping
+    SET day_options = {
+        '32'   => locale.maketext('[quant,_1,Month,Months]', 1),
+        '93'   => locale.maketext('[quant,_1,Month,Months]', 3),
+        '181'  => locale.maketext('[quant,_1,Month,Months]', 6),
+        '366'  => locale.maketext('[quant,_1,Year,Years]', 1),
+        '731'  => locale.maketext('[quant,_1,Year,Years]', 2),
+        '1826' => locale.maketext('[quant,_1,Year,Years]', 5),
+        '3651' => locale.maketext('[quant,_1,Year,Years]', 10),
+    };
+
+    SET display_custom = 0;
+    IF retention_control_value && day_options.$retention_control_value == "";
+        display_custom = 1;
+    END;
+
+    '<div id="' _ retention_control_key.html() _ '_container"';
+    IF !retention_control_enabled;
+        ' style="display:none;"';
+    END;
+    ' class="retention_control_container">';
+        '<span id="' _ retention_control_key.html() _ '_select_container">';
+            '<select id="' _ retention_control_key.html() _ '" name="' _ retention_control_key.html() _ '" class="form-control">';
+            FOREACH key IN day_options.keys.nsort;
+                '<option ';
+                IF key == retention_control_value;
+                    ' selected="selected" ';
+                END;
+                ' value="' _ key _ '">' _ day_options.$key _ '</option>';
+            END;
+            IF !retention_control_value;
+                '<option selected="selected" value="0">' _ forever_text _ "</option>";
+            ELSE;
+                '<option value="0">' _ forever_text _ "</option>";
+            END;
+            IF display_custom;
+                '<option selected="selected" value="">' _ custom_text _ '</option>';
+            ELSE;
+                '<option value="">' _ custom_text _ '</option>';
+            END;
+            '</select>';
+        '</span>';
+        '<span id="' _ retention_control_key.html() _ '_custom_container"';
+        IF display_custom;
+            '>';
+        ELSE;
+            ' style="display:none;" >';
+        END;
+            '<div class="input-group">';
+                '<input type="text" class="form-control retention_control" id="custom_' _ retention_control_key.html() _ '" name="custom_' _ retention_control_key.html() _ '" size="3" value="' _ retention_control_value.html()  _ '">';
+                '<span class="input-group-addon">' _ locale.maketext('Day(s)') _ '</span>';
+            '</div>';
+        '</span>';
+    '</div>';
+-%]

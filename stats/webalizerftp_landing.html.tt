@@ -1,0 +1,24 @@
+[% SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("Stats", "webalizerftp") ;
+    SET url = Api1.exec("Stats", "webalizerftp", [CPANEL.CPDATA.DNS]) ;
+    Api1.post_exec("Stats", "webalizerftp")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'webalizer_ftp'
+-%]
+
+<div class="body-content">
+    <p id="descWebalizerFTP" class="description">
+        [% locale.maketext("Webalizer FTP is a complex stats program that produces a variety of charts and graphs about who has visited your site using FTP protocol.") %]
+    </p>
+
+    <p>
+        <a id="lnkViewWebalizerFTP" href="[% url %]" target="_blank">
+            <span id="imgWebalizerFTP" class="glyphicon glyphicon-search"></span>&nbsp;
+            [% locale.maketext("Click here to view Webalizer FTP stats for “[_1]”.", CPANEL.CPDATA.DNS) %]
+        </a>
+    </p>
+
+</div>
+[% END #wrapper -%]

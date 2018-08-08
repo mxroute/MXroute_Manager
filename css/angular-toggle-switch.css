@@ -1,0 +1,119 @@
+/*
+The MIT License
+
+Copyright (c) 2012 Christopher Garvis, LLC. https://github.com/cgarvis/angular-toggle-switch
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+*/
+.toggle-switch {
+  cursor: pointer;
+  display: inline-block;
+  text-align: left;
+  overflow: hidden;
+  line-height: 8px;
+  min-width: 80px;
+}
+
+.toggle-switch.disabled > div > span.knob {
+  background: #AAA;
+}
+
+.toggle-switch span {
+  cursor: pointer;
+  display: inline-block;
+  float: left;
+  height: 100%;
+  line-height: 20px;
+  padding: 4px;
+  text-align: center;
+  width: 33%;
+  white-space: nowrap;
+  box-sizing: border-box;
+  -o-box-sizing: border-box;
+  -moz-box-sizing: border-box;
+  -webkit-box-sizing: border-box;
+}
+
+html[dir=rtl] .toggle-switch span {
+  float: right;
+}
+
+.toggle-switch > div {
+  position: relative;
+  width: 150%;
+}
+
+.toggle-switch .knob {
+  background: red;
+  /*border-left: 1px solid #ccc;*/
+  border-right: 1px solid #ccc;
+  background-color: #f5f5f5;
+  width: 34%;
+  z-index: 100;
+}
+
+html[dir=rtl] .toggle-switch .knob {
+  border-left: 1px solid #ccc;
+}
+
+.toggle-switch .switch-on {
+  left: 0%;
+}
+
+html[dir=rtl] .toggle-switch .switch-on {
+  right: 0%;
+  left: auto;
+}
+
+.toggle-switch .switch-off {
+  left: -50%;
+}
+
+html[dir=rtl] .toggle-switch .switch-off {
+  right: -50%;
+}
+
+.toggle-switch .switch-left,
+.toggle-switch .switch-right {
+  z-index: 1;
+}
+
+.toggle-switch .switch-left {
+  color: #fff;
+  background: #3989cf;  /* Used cPanel Primary Button color. */
+}
+
+.toggle-switch .switch-right {
+  color: #333;
+  background: #f0f0f0;
+}
+
+.toggle-switch-animate {
+  transition: left 0.5s;
+  -o-transition: left 0.5s;
+  -moz-transition: left 0.5s;
+  -webkit-transition: left 0.5s;
+}
+
+html[dir=rtl] .toggle-switch-animate {
+  transition: right 0.5s;
+  -o-transition: right 0.5s;
+  -moz-transition: right 0.5s;
+  -webkit-transition: right 0.5s;
+}

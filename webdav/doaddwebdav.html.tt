@@ -1,0 +1,170 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    SET addwebdisk =  Api2.exec("WebDisk", "addwebdisk", {"enabledigest"=>FORM.enabledigest, "domain"=>FORM.domain, "password"=>FORM.password, "user"=>FORM.user, "perms"=>FORM.perms, "homedir"=>FORM.homedir} );
+
+    IF addwebdisk.size;
+        SET add_disk_res = addwebdisk.0.login ;
+    END;
+
+    SET is_valid = (CPANEL.CPERROR.webdisk == '' && add_disk_res != '');
+%]
+
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    page_styles = css_code
+-%]
+<div class="body-content">
+    <div id="message"></div>
+
+    [% IF !CPANEL.CPERROR.webdisk %]
+        <script type="text/plain" id="success_message">
+            [% locale.maketext("You successfully created the “[_1]” Web Disk account.", FORM.user _ "@" _ FORM.domain) %]
+            <div>
+                <ul>
+                    {list}
+                </ul>
+            </div>
+        </script>
+        <script type="text/plain" id="success_message_readonly">
+            <li>
+                [% locale.maketext("Read-Only access to: [_1]",FORM.homedir) %]
+            </li>
+        </script>
+        <script type="text/plain" id="success_message_readwrite">
+            <li>
+                [% locale.maketext("Read-Write access to: [_1]",FORM.homedir) %]
+            </li>
+        </script>
+        <script type="text/plain" id="success_message_digeston">
+            <li>
+                [% locale.maketext("Digest Authentication is enabled.") %]
+            </li>
+        </script>
+        <script type="text/plain" id="success_message_digestoff">
+            <li>
+                [% locale.maketext("Digest Authentication is disabled.") %]
+            </li>
+        </script>
+    [% END %]
+
+    <div id='webdav_security_notices'></div>
+
+    <div id="access_web_disk" style="display: none;">
+        <div>
+            <p>
+                [% locale.maketext("To view configuration details for your Web Disk Account, click [output,strong,“_1”] below.", locale.maketext('Configure Client Access')) %]
+            </p>
+            [% IF CPANEL.ENV.HTTP_PROXIED %]
+                [%
+                    Api1.pre_exec("ProxyUtils", "proxyaddress");
+                    Api1.exec("ProxyUtils", "proxyaddress", ["webdisk"]);
+                    Api1.post_exec("ProxyUtils", "proxyaddress");
+                %]
+                <a title="[% locale.maketext("Click to view configuration details for your operating system or device.") %]" href="webdavaccessdownload.html?domain=[% CPANEL.CPVAR.new_proxy_domain.html() %]&amp;sslport=[% ExpVar.expand('$sslhttpdport') %]&amp;mainport=[% ExpVar.expand('$mainhttpdport') %]&amp;hasdigest=[% FORM.enabledigest %]&amp;user=[% FORM.user _ "@" _ FORM.domain %]" class="btn btn-primary" id="accessWebDisk">[% locale.maketext("Configure Client Access") %]</a>
+            [% ELSE %]
+                <a title="[% locale.maketext("Click to view configuration details for your operating system or device.") %]" href="webdavaccessdownload.html?domain=[% FORM.domain %]&amp;sslport=2078&amp;mainport=2077&amp;hasdigest=[% FORM.enabledigest %]&amp;user=[% FORM.user _ "@" _ FORM.domain %]" class="btn btn-primary" id="btnAccessWebDisk">[% locale.maketext("Configure Client Access") %]</a>
+            [% END %]
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='accounts_webdav.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+<script type="text/plain" id="failed_message">
+    [% locale.maketext("There was a problem creating your Web Disk.") %]
+    [% IF CPANEL.CPERROR.webdisk %]
+        [% CPANEL.CPERROR.webdisk.html() %]
+    [% END %]
+</script>
+
+<script type="text/html" id="security_notice">
+    <p id="descSecurityNotice1">[% locale.maketext("When creating a Web Disk inside of the [output,strong,public_html] directory or any other public directory, the files uploaded to that directory are publicly accessible. If you want to keep your files private, you should use a directory that is not contained within any public directory or password protect the directory.") %]</p>
+    <p id="descSecurityNotice2">[% locale.maketext("[output,strong,Note]: To password protect directories that are inside public_html, go to the [output,url,_1,Directory Privacy] area.","../htaccess/dohtaccess.html?dir=" _ CPANEL.homedir _ "/" _ FORM.homedir) %]</p>
+</script>
+[% END %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+    #access_web_disk, #webdav_security_notices {
+        margin-top:15px;
+    }
+</style>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+/**
+* Initializes the fpage
+* @method initializePage */
+function initializePage() {
+    var hasError = [% (is_valid) ? 'false' : 'true' %];
+    var text = "";
+    var perms = [% RAW_FORM.perms.json() || 'null' %];
+    var hasDigest = [% (RAW_FORM.enabledigest == "") ? 'false' : 'true' %];
+
+    if(hasError) {
+        text = DOM.get("failed_message").text;
+    }
+    else {
+        text = DOM.get("success_message").text;
+        var list = "";
+        if(perms !== null && perms == 'rw') {
+            list += DOM.get("success_message_readwrite").text;
+        }
+        else {
+            list += DOM.get("success_message_readonly").text;
+        }
+        if(hasDigest) {
+            list += DOM.get("success_message_digeston").text;
+        }
+        else {
+            list += DOM.get("success_message_digestoff").text;
+        }
+        text = text.replace('{list}', list);
+
+        // show the info notice if we do not have an error
+        YAHOO.util.Dom.setStyle('access_web_disk','display','');
+        var info = new CPANEL.widgets.Page_Notice( {
+            level: "info",
+            content: DOM.get("security_notice").text,
+            container: 'webdav_security_notices'
+        } );
+
+    }
+    var notice = new CPANEL.widgets.Page_Notice( {
+        level: hasError ? "error" : "success",
+        content: text,
+        container: 'message'
+    } );
+}
+
+/**
+ * Shows the current element.
+ * @method show
+ * @param {String|HTMLElement} el element to show
+ * @param {String} display_type optional, alternative display type if the default is not desired */
+var show = function(el, display_type) {
+    display_type = display_type || '';
+    DOM.setStyle(el, 'display', display_type);
+}
+
+/**
+* Hides the current element.
+* @method hide
+* @param {String|HTMLElement} el element to hide */
+var hide = function(el) {
+    DOM.setStyle(el, 'display', 'none');
+}
+
+// Initialize the page
+YAHOO.util.Event.onDOMReady(function(){ initializePage(); });
+</script>
+[% END %]

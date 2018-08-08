@@ -1,0 +1,190 @@
+[% USE ExpVar; %]
+[% get_filter = execute('Email', 'get_filter', { account=FORM.account, filtername=FORM.filtername }) %]
+[% account_name = execute('Email', 'account_name', { display=1, account=FORM.account }) %]
+
+[% MACRO filter_option(pval, val, text) BLOCK -%]
+<option value="[% val %]"[% val == pval and " selected" %]>[% text %]</option>
+[% END -%]
+
+[% MACRO filter_option_legacy(pval, val, lval, text) BLOCK -%]
+<option value="[% val %]"[% (val == pval || pval == lval) and " selected" %]>[% text %]</option>
+[% END -%]
+
+[% SET lexicon = {
+    'Browse' => locale.lextext('Browse')
+}
+%]
+
+<h2 id="header">
+[% IF ExpVar.expand('$appname') == 'webmail' %]
+    [% IF RAW_FORM('filtername') %]
+        [% locale.maketext('Edit a Filter') %]
+    [% ELSE %]
+        [% locale.maketext('Create a New Filter') %]
+    [% END %]
+[% ELSE %]
+    [% IF RAW_FORM('filtername') && RAW_FORM('account') %]
+        [% locale.maketext('Edit a Filter for “[_1]”.', FORM.account) %]
+    [% ELSIF RAW_FORM('filtername') && !RAW_FORM('account') %]
+        [% locale.maketext('Edit a Filter for All Mail on Your Account.') %]
+    [% ELSIF !RAW_FORM('filtername') && RAW_FORM('account') %]
+        [% locale.maketext('Create a New Filter for “[_1]”.', FORM.account) %]
+    [% ELSIF !RAW_FORM('filtername') && !RAW_FORM('account') %]
+        [% locale.maketext('Create a New Filter for All Mail on Your Account.') %]
+    [% END %]
+[% END %]
+</h2>
+
+<p id="descEditCreate" class="description">
+[% IF RAW_FORM('filtername') %]
+    [% locale.maketext('Please edit the filter below.') %]
+[% ELSE %]
+    [% locale.maketext('Please create a filter below.') %]
+[% END %]
+[% locale.maketext('You can add multiple rules to match subjects, addresses, or other parts of the message. You can then add multiple actions to take on a message such as to deliver the message to a different address and then discard it.') %]
+</p>
+
+<div id="cjt_pagenotice_container"></div>
+
+<div class="section">
+<form name="filterform" id="filterform" action="javascript:void(0)" onsubmit="save(this)">
+<input id="hidAccount" name="account" type="hidden" value="[% FORM.account %]">
+<input id="hidOldFilterName" name="oldfiltername" type="hidden" value="[% get_filter.data.filtername.html %]">
+[%# note: former site of a serious conflict; still working? %]
+
+<div class="form-group">
+    <label id="lblFilterName" for="filtername">
+        [% locale.maketext("Filter Name") %]
+    </label>
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            [% IF !RAW_FORM('filtername') %]
+            <input id="filtername" type="text" class="form-control" name="filtername">
+            [% ELSE %]
+            <input id="filtername" type="text" class="form-control" name="filtername" value="[% get_filter.data.filtername.html %]">
+            [% END %]
+            <span class="help-block">[% locale.maketext("The filter name must be unique. If you give the filter the same name as another filter, the previous filter will be overwritten.") %]</span>
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="filtername_error"></div>
+    </div>
+</div>
+
+<strong id="hdrRules">[% locale.maketext("Rules") %]</strong>
+<table cellspacing="0" id="ruletbl" border="0" width="100%" >
+<tbody>
+
+[% FOR q = get_filter.data.rules %]
+<tr id="rule[% loop.index+1 %]" class="filter-row">
+<td valign="middle" class="acltd filter-col" width="20"><img onclick="moveup(this); this.src='icon_arrow_up_disabled.gif';" id="[% loop.index+1 %]-moveup" src="icon_arrow_up_disabled.gif" onmouseover="this.src='icon_arrow_up.gif';" onmouseout="this.src='icon_arrow_up_disabled.gif';" class="moveact"><br /><img onclick="movedown(this); this.src='icon_arrow_down_disabled.gif';" id="[% loop.index+1 %]-movedown" src="icon_arrow_down_disabled.gif"  onmouseover="this.src='icon_arrow_down.gif';" onmouseout="this.src='icon_arrow_down_disabled.gif';" class="moveact"></td>
+<td class="filter-col">
+<div style="float: left; display:inline; width: 510px;">
+<select name="part[% loop.index+1 %]" onchange="handlepart(this)" style="width:250px;" autocomplete="off" autofill="off">
+[% filter_option(q.part, '$header_from:', locale.maketext('From')) %]
+[% filter_option(q.part, '$header_subject:', locale.maketext('Subject')) %]
+[% filter_option(q.part, '$header_to:', locale.maketext('To')) %]
+[% filter_option(q.part, '$reply_address:', locale.maketext('Reply')) %]
+[% filter_option(q.part, '$message_body', locale.maketext('Body')) %]
+[% filter_option(q.part, '$message_headers', locale.maketext('Any Header')) %]
+[% filter_option_legacy(q.part, 'foranyaddress $h_to:,$h_cc:', 'foranyaddress $h_to:,$h_cc:,$h_bcc:', locale.maketext('Any Recipient')) %]
+[% filter_option(q.part, 'not delivered', locale.maketext('Has Not Been Previously Delivered')) %]
+[% filter_option(q.part, 'error_message', locale.maketext('Is an Error Message')) %]
+[% filter_option(q.part, '$h_List-Id:', locale.maketext('List ID')) %]
+[% filter_option(q.part, '$h_X-Spam-Status:', locale.maketext('Spam Status')) %]
+[% filter_option(q.part, '$h_X-Spam-Bar:', locale.maketext('Spam Bar')) %]
+[% filter_option(q.part, '$h_X-Spam-Score:', locale.maketext('Spam Score')) %]
+</select>
+<select name="match[% loop.index+1 %]" style="width:250px;" autocomplete="off" autofill="off">
+[% filter_option(q.match, 'contains', locale.maketext('[comment]contains[comment,comparison option]')) %]
+[% filter_option(q.match, 'matches', locale.maketext('[comment]matches [output,abbr,regex,regular expression][comment,comparison option]')) %]
+[% filter_option(q.match, 'does not contain', locale.maketext('[comment]does not contain[comment,comparison option]')) %]
+[% filter_option(q.match, 'is', locale.maketext('[comment]equals[comment,comparison option]')) %]
+[% filter_option(q.match, 'begins', locale.maketext('[comment]begins with[comment,comparison option]')) %]
+[% filter_option(q.match, 'ends', locale.maketext('[comment]ends with[comment,comparison option]')) %]
+[% filter_option(q.match, 'does not begin', locale.maketext('[comment]does not begin[comment,comparison option]')) %]
+[% filter_option(q.match, 'does not end', locale.maketext('[comment]does not end with[comment,comparison option]')) %]
+[% filter_option(q.match, 'does not match', locale.maketext('[comment]does not match[comment,comparison option]')) %]
+[% filter_option(q.match, 'is above', locale.maketext('[comment]is above (numbers only)[comment,comparison option]')) %]
+[% filter_option(q.match, 'is not above', locale.maketext('[comment]is not above (numbers only)[comment,comparison option]')) %]
+[% filter_option(q.match, 'is below', locale.maketext('[comment]is below (numbers only)[comment,comparison option]')) %]
+[% filter_option(q.match, 'is not below', locale.maketext('[comment]is not below (numbers only)[comment,comparison option]')) %]
+</select>
+<input type="text" class="form-control" name="val[% loop.index+1 %]" size="60" style="width:498px" value="[% q.val FILTER html %]">
+</div>
+<div style="float: right; display:inline; padding-top: 11px; ">
+<input type="button" value="-" name="ruleremove[% loop.index+1 %]" class="btn btn-default" disabled="disabled" onclick="removerule(this);">
+<input type="button" value="+" name="ruleadd[% loop.index+1 %]" class="btn btn-default" onclick="addrule(this);">
+</div>
+
+<div style="float: right; display:inline; padding-top: 11px; padding-left: 3px; padding-right: 10px;">
+<select name="opt[% loop.index+1 %]" style="display:none;" class="form-control" autocomplete="off" autofill="off">
+[% filter_option(q.opt, "or", locale.maketext('[comment]or[comment,boolean option]')) %]
+[% filter_option(q.opt, "and", locale.maketext('[comment]and[comment,boolean option]')) %]
+</select>
+</div>
+</td>
+</tr>
+
+[% END %]
+
+
+</tbody>
+</table>
+<script type="text/javascript">
+    window.onload = function() { checkaddrembuttons('rule'); };
+</script>
+<br />
+
+<b id="hdrActions">[% locale.maketext("Actions") %]</b>
+
+<table cellspacing="0" id="actiontbl" border="0" width="100%" >
+<tbody>
+
+[% FOR q = get_filter.data.actions %]
+<tr id="action[% loop.index+1 %]" class="filter-row">
+<td class="filter-col">
+    <div class="pull-left">
+        <div class="form-group">
+            <select name="action[% loop.index+1 %]" id="action_menu[% loop.index+1 %]" class="action-menu" onchange="handleaction(this);" style="width:220px;" autocomplete="off" autofill="off">
+            [% filter_option(q.action, "save &quot;/dev/null&quot;", locale.maketext('Discard Message')) %]
+            [% filter_option(q.action, "deliver", locale.maketext('Redirect to Email')) %]
+            [% filter_option(q.action, "fail", locale.maketext('Fail With Message')) %]
+            [% filter_option(q.action, "finish", locale.maketext('Stop Processing Rules')) %]
+            [% filter_option(q.action, "save", locale.maketext('Deliver to Folder')) %]
+            [% filter_option(q.action, "pipe", locale.maketext('Pipe to a Program')) %]
+            </select>
+        </div>
+        <div class="form-group form-inline">
+            <input id="dest[% loop.index+1 %]" type="text" class="form-control" name="dest[% loop.index+1 %]" size="38" value="[% q.dest FILTER html %]" style="display: none;" style="width:309px;">
+            <input id="changedest[% loop.index+1 %]" type="button" onclick="handlebrowser(this);" name="changedest[% loop.index+1 %]" class="btn btn-default" style="display: none;" value="[% locale.maketext('Browse') %]">
+            <div id="treeviewCont[% loop.index+1%]" style='display:none;' class="tree-view-container">
+                <div id="treeview[% loop.index+1%]" class="tree-view"></div>
+            </div>
+        </div>
+    </div>
+    <div class="pull-right">
+        <input type="button" value="-" name="actionremove[% loop.index+1 %]" class="btn btn-default" disabled="disabled" onclick="removeaction(this);">
+        <input type="button" value="+" name="actionadd[% loop.index+1 %]" class="btn btn-default" onclick="addaction(this);">
+    </div>
+</td>
+</tr>
+[% END %]
+
+</tbody>
+</table>
+
+
+<div class="form-group">
+
+[% IF RAW_FORM('filtername') %]
+    <input type="submit" id="activate-button" class="btn btn-primary" value="[% locale.maketext('Save') %]" />
+[% ELSE %]
+    <input type="submit" id="activate-button" class="btn btn-primary" value="[% locale.maketext('Create') %]" />
+[% END %]
+
+</div>
+</form>
+<script>
+YAHOO.lang.augmentObject( CPANEL.Locale.prototype.LEXICON, [% lexicon.json() %] );
+</script>
+</div>
+

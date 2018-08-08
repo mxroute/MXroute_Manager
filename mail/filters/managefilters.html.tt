@@ -1,0 +1,72 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../../";
+
+    IF FORM.itemsperpage;
+        SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+    ELSIF (!(CPANEL.CPVAR.itemsperpage));
+        SET CPANEL.CPVAR.itemsperpage = "10";
+    END;
+
+    Api2.pre_exec("Email", "listpops");
+    SET api2_result_Email_listpops =  Api2.exec("Email", "listpops", {"api2_paginate_size"=>CPANEL.CPVAR.itemsperpage.html, "api2_paginate"=>"1", "regex"=>RAW_FORM.searchregex, "api2_paginate_start"=>FORM.item('api2_paginate_start')} );
+    Api2.post_exec("Email", "listpops");
+%]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'email_filters'
+%]
+
+
+<div class="body-content">
+    <p id="descIntro" class="description">
+        [% locale.maketext("Create and manage email filters for an email address that you specify. This can be useful if you want to avoid spam, redirect mail, or pipe messages to a program. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/UserFilters", "_blank", "lnkUserFiltersDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrByUsers">[% locale.maketext("Filters by Users") %]</h2>
+
+        <div id="search-panel_managerfilters">
+            <form method="get" action="" class="form-inline">
+                <div class="form-group">
+                    <input id="txtSearchRegex" type="text" class="form-control" name="searchregex" value="[% FORM.searchregex %]">
+                </div>
+                <div class="form-group">
+                    <input id="btnSearchRegex" type="submit" class="btn btn-primary" value="[% locale.maketext("Go") %]" />
+                    <input id="hidItemsPerPage" type="hidden" name="itemsperpage" value="[% CPANEL.CPVAR.itemsperpage.html %]" />
+                </div>
+            </form>
+        </div>
+
+        <table id="actiontbl" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Account") %]</th>
+                    <th>[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF api2_result_Email_listpops.size %]
+                [% FOREACH hashref IN api2_result_Email_listpops %]
+                    <tr>
+                        <td>[% hashref.email.html() %]</td>
+                        <td><div>
+                            <a class="btn btn-link" href="userfilters.html?account=[% hashref.email.html() %]">
+                            <span class="fas fa-wrench"></span>
+                            [% locale.maketext("Manage Filters") %]</a>
+                        </div></td>
+                    </tr>
+                [% END %]
+            [% END %]
+            </tbody>
+        </table>
+
+        [% INCLUDE _assets/paginate.html.tt %]
+
+    </div>
+
+[% INCLUDE _assets/return_link.html.tt return_location='../../index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div><!-- end body-content -->
+
+[% END %]

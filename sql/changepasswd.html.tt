@@ -1,0 +1,33 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+# Fetch the required strength
+Api2.pre_exec("PasswdStrength", "get_required_strength");
+SET required_strength_resp = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"mysql"} );
+Api2.post_exec("PasswdStrength", "get_required_strength");
+IF required_strength_resp.size();
+    SET required_strength = required_strength_resp.0.strength;
+END;
+
+PROCESS '_assets/_ajaxapp_header.html.tt';
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+    page_js = js_code
+-%]
+<div class="body-content">
+    <h2>[% locale.maketext('Set MySQL User Password') %]</h2>
+    <div id="cjt_pagenotice_container"></div>
+    [% PROCESS '_assets/sql/sql_password.html.tt'
+        dbuser = RAW_FORM('user'),
+        db_engine = 'mysql',
+        success_url = 'index.html',
+    -%]
+</div>
+
+[% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Back to Manage Databases') %]
+
+[% PROCESS '_assets/_ajaxapp_footer.html.tt' -%]
+
+[% END #wrapper %]

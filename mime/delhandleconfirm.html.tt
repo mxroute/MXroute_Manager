@@ -1,0 +1,23 @@
+
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'apache_handlers'
+-%]
+
+<div class="body-content">
+    <p>[% locale.maketext("Are you sure you wish to remove the handler “[output,strong,_1]”?", FORM.userhandle) %]</p>
+    <p>
+        <a class="btn btn-primary" href="delhandle.html?userhandle=[% FORM.userhandle FILTER uri %]">[% locale.maketext('Delete Handler') %]</a>
+        <a class="btn btn-link"
+            href="handle.html">
+            [% locale.maketext('Cancel') %]
+        </a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='handle.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END %]
+
+

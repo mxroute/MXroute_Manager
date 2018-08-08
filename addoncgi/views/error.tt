@@ -1,0 +1,26 @@
+[%
+# module - hash
+#   name - string - name of the module being processed
+# environment - hash
+#   server_name - string - server name from the environment.
+# actionlessuri - string - form contents so the form can be reloaded.
+# is_root - boolean - 1 effective user is root, 0 effective user is not root.
+# errors - string - one or more linefeed delimited errors.
+ %]
+[% IF errors %]
+    [% errors | html_para %]
+[% END %]
+
+[% IF !is_root;
+    SET back_url   = environment.server_name _ '?addon=' _ module.name _ actionlessuri;
+    SET module_url = environment.server_name _ '?addon=' _ module.name;
+ %]
+<p align="center">
+    [<a href="[% back_url %]">
+        [% locale.maketext('Back') %]
+    </a>]
+</p>
+<p align="center">
+    [<a href="[% module_url %]">$mod</a>]
+</p>
+[% END %]

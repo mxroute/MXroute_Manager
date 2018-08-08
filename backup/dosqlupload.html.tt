@@ -1,0 +1,15 @@
+[% SET CPANEL.CPVAR.dprefix="../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup'
+-%]
+
+<img src="../filemanager/images/up.gif" border=0>&nbsp;&nbsp;&nbsp;&nbsp;<b>[% locale.maketext("Restoring Database") %]</b>
+<br />
+<pre>
+[% Api1.pre_exec("Fileman", "restoredb") -%]
+[% Api1.exec("Fileman", "restoredb", [undef]) | html -%]
+[% Api1.post_exec("Fileman", "restoredb") -%]
+</pre>
+
+[% END #wrapper -%]

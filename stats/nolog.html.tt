@@ -1,0 +1,9 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'webalizer'
+-%]
+
+<div class="body-content">
+    [% locale.maketext("Cannot find an acceptable log file for your domain.") %]
+</div>
+[% END #wrapper -%]

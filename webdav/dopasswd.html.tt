@@ -1,0 +1,67 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    SET passwd_webdisk =  Api2.exec("WebDisk", "passwdwebdisk", {"enabledigest"=>FORM.enabledigest, "password"=>FORM.password, "login"=>FORM.login} );
+    IF passwd_webdisk.size;
+        SET password_login = passwd_webdisk.0.login;
+    END;
+
+    SET is_valid = (CPANEL.CPERROR.webdisk == '' && password_login != '');
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+-%]
+
+<div class="body-content">
+    <div id="message"></div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='accounts_webdav.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+<script type="text/plain" id="success_message">
+    [% locale.maketext("The password for the Web Disk account “[_1]” has been successfully changed.",FORM.login) %]
+</script>
+
+<script type="text/plain" id="failed_message">
+    [% locale.maketext("Changing the password for the Web Disk account “[_1]” failed with the following error:",FORM.login) %]<br/>
+    <ul>
+    [% IF CPANEL.CPERROR.webdisk %]
+        <li>[% CPANEL.CPERROR.webdisk.html() %]</li>
+    [% ELSE %]
+        <li>[% locale.maketext("Unknown Reason") %]</li>
+    [% END %]
+    </ul>
+</script>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+/**
+* Initializes the fpage
+* @method initializePage */
+function initializePage() {
+    var hasError = [% (is_valid) ? 'false' : 'true' %];
+    var text = "";
+    if(hasError) {
+        text = DOM.get("failed_message").text;
+    }
+    else {
+        text = DOM.get("success_message").text;
+    }
+    new CPANEL.widgets.Page_Notice( {
+        level: hasError ? "error" : "success",
+        content: text,
+        container: 'message'
+    } );
+}
+
+// Initialize the page
+YAHOO.util.Event.onDOMReady(function(){ initializePage(); });
+</script>
+[% END %]

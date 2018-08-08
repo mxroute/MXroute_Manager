@@ -1,0 +1,36 @@
+[% IF initialization_failed %]
+<div class="alert alert-danger">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" id="init-failed-error">
+        <strong>[% locale.maketext('Error:') %]</strong>
+        [% locale.maketext('Contact your hosting provider to enable Site Software.') %]
+    </div>
+</div>
+[% END %]
+[% IF feature_disabled %]
+<div class="alert alert-danger">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" id="feature-disbled-error">
+        <strong>[% locale.maketext('Error:') %]</strong>
+        [% locale.maketext('This feature is disabled.') %]
+    </div>
+</div>
+[% END %]
+[% IF is_demo_mode %]
+<div class="alert alert-danger">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" id="demo-mode-error">
+        <strong>[% locale.maketext('Error:') %]</strong>
+        [% locale.maketext('This feature is disabled in demo mode.') %]
+    </div>
+</div>
+[% END %]
+[% IF is_dnsonly_mode %]
+<div class="alert alert-danger">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" id="dnsonly-error">
+        <strong>[% locale.maketext('Error:') %]</strong>
+        [% locale.maketext('This feature is disabled for [asis,DNSONLY] servers.') %]
+    </div>
+</div>
+[% END %]

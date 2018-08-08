@@ -1,0 +1,192 @@
+<div class="alert alert-danger" ng-show="!hasFeature">
+    <span class="glyphicon glyphicon-exclamation-sign"></span>
+    <div class="alert-message" id="noFeature">
+        <strong>[% locale.maketext('Error:') %]</strong> [% locale.maketext('[asis,Greylisting] is not enabled for your account.') %]
+    </div>
+</div>
+<div class="alert alert-info" ng-show="hasFeature && !isEnabled">
+    <span class="glyphicon glyphicon-info-sign"></span>
+    <div class="alert-message" id="disabledInfo">
+        <strong>[% locale.maketext('Info:') %]</strong> [% locale.maketext('[asis,Greylisting] is not enabled on your server.') %]
+    </div>
+</div>
+<div ng-show="isEnabled && hasFeature">
+    <p class="description">[% locale.maketext('Enable [asis,Greylisting] on your domains. Use this feature to reduce incoming spam. For more information, read the [output,url,_1,documentation,target,_2,id,_3].', '//go.cpanel.net/greylisting', '_blank', 'lnkGreylisting') %]</p>
+    <div class="row search-page-container">
+        <div class="col-xs-12 col-sm-12 col-md-6">
+            <div class="row">
+                <div class="col-xs-10">
+                    <div class="input-group filter-controls">
+                        <input  id="domainListFilter"
+                                class="form-control"
+                                placeholder="[% locale.maketext('Search') %]"
+                                title="[% locale.maketext('Type in your search filter.') %]"
+                                ng-model="meta.filterValue"
+                                ng-keyup="triggerToggleSearch($event)"
+                                autocomplete="off"
+                                auto-focus>
+                        <span class="input-group-btn">
+                            <button id="btnSearch"
+                                    type="button"
+                                    class="btn btn-default"
+                                    ng-click="toggleSearch(true)">
+                                <span class="glyphicon" ng-class="{ 'glyphicon-search': !activeSearch, 'glyphicon-remove': activeSearch }"></span>
+                            </button>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-xs-2">
+                    <span spinner id="loadingSpinner" class="headerSpinner" title="[% locale.maketext('Loading …') %]"></span>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-7 col-md-6">
+            <div class="pagination-container hidden-xs hidden-sm">
+                <page-size id="ddlPageSizeTop"
+                    allowed-sizes="meta.pageSizes"
+                    total-items="totalItems"
+                    ng-model="meta.pageSize"
+                    show-all="true"
+                    ng-change="selectPageSize()">
+                </page-size>
+                <div id="topPager"
+                    uib-pagination
+                    ng-change="selectPage()"
+                    ng-model="meta.pageNumber"
+                    items-per-page="meta.pageSize"
+                    total-items="totalItems"
+                    max-size="0"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">"
+                    class="pagination-small">
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row hidden-xs hidden-sm">
+        <div class="col-xs-12 col-md-offset-7 col-md-5">
+            <p class="text-right">[% locale.maketext("Displaying [_1] to [_2] out of [_3] records", "{{ meta.start }}", "{{ meta.limit }}", "{{ totalItems }}") %]</p>
+        </div>
+    </div>
+    <table class="table table-striped table-condensed">
+        <thead>
+            <tr>
+                <th class="domain">
+                    <toggle-sort id="sortDomain"
+                                 onsort="sortList"
+                                 sort-meta="meta"
+                                 sort-field="domain">
+                        [% locale.maketext('Domains') %]
+                    </toggle-sort>
+                </th>
+                <th class="domain-status">
+                    <toggle-sort id="sortEnabled"
+                                 onsort="sortList"
+                                 sort-meta="meta"
+                                 sort-field="enabled">
+                        [% locale.maketext('Status') %]
+                    </toggle-sort>
+                </th>
+                <th class="gear-column">
+                    <span id="gearMenuContainer" class="dropdown" uib-dropdown>
+                        <a id="gearMenu" href class="dropdown-toggle" uib-dropdown-toggle ng-class="{disabled: hasNoDomains()}">
+                          <span class="fas fa-cog fa-lg"></span>
+                        </a>
+                        <ul id="gearMenuItems" class="dropdown-menu[%- IF locale.get_html_dir_attr() != 'rtl' -%] dropdown-menu-right[% END %] gear-menu" uib-dropdown-menu>
+                            <li ng-class="{disabled: allDomainsAreEnabled()}">
+                                <a href class="dropdown-toggle" data-toggle="dropdown" ng-click="enableAllDomains()">[% locale.maketext('Enable All') %]</a>
+                            </li>
+                            <li ng-class="{disabled: allDomainsAreDisabled()}">
+                                <a href class="dropdown-toggle" data-toggle="dropdown" ng-click="disableAllDomains()">[% locale.maketext('Disable All') %]</a>
+                            </li>
+                        </ul>
+                    </span>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat-start="domain in domainList">
+                <td class="domain" id="domainData{{$index}}">
+                    <span ng-bind-html="domain.domain | wrap: '[-._]'"></span>
+                    <a  id="lnkShowRelatedDomains{{$index}}"
+                        href="#"
+                        title="[% locale.maketext('Show Related Domains') %]"
+                        ng-show="domain.dependencies.length > 0"
+                        ng-click="toggleRow($event, $index)">
+                        <span class="badge">{{domain.dependencies.length}}</span>
+                    </a>
+                </td>
+                <td class="domain-status" id="enabledData{{$index}}">
+                    <div class="btn-group btn-group-nowrap">
+                        <label  id="btnDomainEnable{{$index}}"
+                                class="btn"
+                                ng-model="domain.enabled"
+                                uib-btn-radio="1"
+                                ng-class="{ 'btn-primary': domain.enabled, 'btn-default btn-none': !domain.enabled }"
+                                ng-change="setDomain(domain)">
+                                [% locale.maketext('On') %]</label>
+                        <label  id="btnDomainDisable{{$index}}"
+                                class="btn btn-default"
+                                ng-model="domain.enabled"
+                                uib-btn-radio="0"
+                                ng-class="{ 'btn-none': domain.enabled }"
+                                ng-change="setDomain(domain)">[% locale.maketext('Off') %]</label>
+                    </div>
+                </td>
+                <td class="gear-column">&nbsp;</td>
+            </tr>
+            <tr ng-repeat-end class="active" ng-if="$index === selectedRow">
+                <td colspan="3" class="domain-dependency" id="domainDependencies{{$index}}">
+                    <span class="label label-primary">[% locale.maketext('Related Domains') %]</span>
+                    <span id="domainDependencies{{$index}}" ng-repeat="dependency in domain.dependencies">
+                        <span  ng-bind-html="dependency | wrap:'[.?=]':20"></span>
+                    </span>
+                </td>
+            </tr>
+            <tr class="info emptyrow" ng-hide="domainList.length">
+                <td colspan="3" id="noRecords">
+                    [% locale.maketext('[output,strong,0] domains have been found.') %]
+                </td>
+            </tr>
+        </tbody>
+    </table>
+    <div class="row hidden-md hidden-lg">
+        <div class="col-xs-12">
+            <p class="text-right">[% locale.maketext("Displaying [_1] to [_2] out of [_3] records", "{{ meta.start }}", "{{ meta.limit }}", "{{ totalItems }}") %]</p>
+        </div>
+    </div>
+    <div class="row search-page-container visible-xs-block visible-sm-block hidden-md hidden-lg">
+        <div class="col-xs-12 col-sm-12">
+            <div class="pagination-container">
+                <page-size id="ddlPageSizeBottom"
+                    allowed-sizes="meta.pageSizes"
+                    total-items="totalItems"
+                    ng-model="meta.pageSize"
+                    show-all="true"
+                    ng-change="selectPageSize()">
+                </page-size>
+                <div id="bottomPager"
+                    uib-pagination
+                    ng-change="selectPage()"
+                    ng-model="meta.pageNumber"
+                    items-per-page="meta.pageSize"
+                    total-items="totalItems"
+                    max-size="0"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">"
+                    class="pagination-small">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

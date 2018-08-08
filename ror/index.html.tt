@@ -1,0 +1,355 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET CPANEL.CPVAR.autodirsonly = "1" %]
+[% SET CPANEL.CPVAR.autoinput = "path" %]
+[% SET CPANEL.CPVAR.autofunc = "pathDirComplete" %]
+
+[%
+    Api2.pre_exec("RoR", "needsimport");
+    api2_result_RoR_needsimport =  Api2.exec("RoR", "needsimport", {} );
+    Api2.post_exec("RoR", "needsimport");
+%]
+
+[% IF (CPANEL.CPVAR.ror_needsimport) %]
+    [%
+        Api2.pre_exec("RoR", "importrails");
+        api2_result_RoR_importrails =  Api2.exec("RoR", "importrails", {} );
+        Api2.post_exec("RoR", "importrails");
+    %]
+[% END %]
+
+[% SET list_apps =  Api2.exec("RoR", "listapps", {} ); %]
+[% SET listrewrites =  Api2.exec("RoR", "listrewrites", {} ); %]
+
+
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_styles = css_code
+    page_js = js_code
+-%]
+<div class="body-content">
+    <p class="description">
+        [% locale.maketext("Ruby on Rails Applications are based on the Rails framework. Rails applications must be run like any other application. After creating an application, you will need to populate it with your code. Then, you can choose to start or stop the application and even to load the application every time the server reboots.") %]
+    </p>
+    <div class="alert alert-warning" id="ror-deprecation-notice">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        <div class="alert-message">
+            [% locale.maketext('[output,strong,Warning:] This interface is deprecated and will be removed in a future release.') %]
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Create Ruby on Rails Application") %]</h2>
+
+        <form action="addror.html" method="post" onsubmit="return checkform();" name="addrorform">
+            <div class="form-group">
+                <label for="appname">
+                    [% locale.maketext("App Name") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" id="appname" name="appname" maxlength="15" onchange="setpath(this);" />
+                        <span class="help-block">[% locale.maketext("*15 character limit") %]</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="path">
+                    [% locale.maketext("Application Path") %]
+                    <span class="fas fa-home"></span>/
+                </label>
+                <div class="row">
+                    <div class="col-xs-12">
+                        [% PROCESS 'autodir/dirbox.html.tt' %]
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="env">
+                    [% locale.maketext("Environment") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="env" id="env" class="form-control">
+                            <option value="0">[% locale.maketext("production[comment,type of environment]") %]</option>
+                            <option value="1">[% locale.maketext("development[comment,type of environment]") %]</option>
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" id="loadonboot" name="loadonboot" value="1" />
+                        [% locale.maketext("Load on Boot?") %]
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" value="[% locale.maketext("Create") %]" />
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Available Ruby on Rails Applications") %]</h2>
+        <div id="status_bar" class="cjt_status_bar"></div>
+
+        <table class="sortable table table-striped" id="manage-ror">
+            <tr>
+                <th>[% locale.maketext("App Name") %]</th>
+                <th>[% locale.maketext("Path") %]</th>
+                <th>[% locale.maketext("Rails Server") %]</th>
+                <th>[% locale.maketext("App Status") %]</th>
+                <th>[% locale.maketext("Actions") %]</th>
+                <th>[% locale.maketext("Load on Boot?") %]</th>
+                <th>[% locale.maketext("Production") %]</th>
+                <th>[% locale.maketext("Actions") %]</th>
+            </tr>
+
+            [% IF list_apps.size; %]
+                [% FOREACH app IN list_apps; %]
+                <tr>
+                    <td>[% app.name.html() %]</td>
+                    <td>
+                        <span class="fas fa-home"></span>
+                        [% app.path.html() %]
+                    </td>
+                    <td>
+                        <a href="http://[% CPANEL.CPDATA.DNS | url %]:[%  app.port | url %]/"
+                            title="http://[% CPANEL.CPDATA.DNS | url %]:[%  app.port | url %]/">URL</a>
+                    </td>
+                    <td class="app-status">
+                        [% "1" == app.running ? "running" : "not running" %]
+                    </td>
+                    <td>
+                        <a id="start-button-[%  app.name.html() %]" class="btn btn-link" href="startapp.html?appname=[% app.name.html() %]">
+                            <span class="glyphicon glyphicon-play"></span>
+                            [% locale.maketext("Run") %]
+                        </a>
+                        <a id="stop-button-[% app.name.html() %]" class="btn btn-link" href="stopapp.html?appname=[% app.name | url %]">
+                            <span class="glyphicon glyphicon-stop"></span>
+                            [% locale.maketext("Stop") %]
+                        </a>
+                    </td>
+                    <td>
+                        <form action="changeboot.html">
+                            <input type="hidden" name="appname" value="[% app.name.html() %]">
+                            <input value="1" onclick="change_boot('[% app.name.html() %]',this);" name="loadonboot" [%(app.loadonboot) ? 'checked="checked"' : '' %] type="checkbox" />
+                            <input id="submit_boot_[% app.name.html() %]" type="submit" value="[% locale.maketext("Change") %]" class="btn btn-primary">
+                        </form>
+                    </td>
+                    <td>
+                        <form action="changeproduction.html">
+                            <input type="hidden" name="appname" value="[% app.name.html() %]">
+                            <input value="1" onclick="change_production('[% app.name.html() %]',this);" name="production" [%  (app.production) ? 'checked="checked"' : '' %] type="checkbox" />
+                            <input id="submit_production_[%  app.name.html() %]" type="submit" value="[% locale.maketext("Change") %]" class="btn btn-primary">
+                        </form>
+                    </td>
+                    <td>
+                        <a class="btn btn-link" href="deleteappconfirm.html?appname=[%  app.name.uri() %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext('Delete') %]
+                        </a>
+                    </td>
+                </tr>
+            [% END %]
+        [% ELSE %]
+        <tr>
+            <td colspan="8">
+                [% locale.maketext("No applications present.") %]
+            </td>
+        </tr>
+        [% END %]
+        </table>
+        <div id="divgen_expand"></div>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Manage Rewrites") %]</h2>
+        <p class="description">
+            [% locale.maketext("Since applications are running on a different port than the other URLs on your server, you’ll need to redirect incoming traffic to that port. To do this, you can create a URL rewrite to send users to your Ruby on Rails application.")  %]
+        </p>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Create A Rewrite") %]</h2>
+        <table class="sortable table table-striped">
+            <tr>
+                <th align="center">[% locale.maketext("App Name") %]</th>
+                <th>[% locale.maketext("Action") %]</th>
+            </tr>
+            [% IF list_apps.size(); %]
+                [% FOREACH app IN list_apps; %]
+                <tr>
+                    <td class="appname-cell">[% app.name.html() %]</td>
+                    <td class="rewrite-cell">
+                        <a class="btn btn-link" href="createrewrite.html?appname=[% app.name.html() %]&port=[% app.port.html() %]">
+                            <span class="glyphicon glyphicon-plus"></span>
+                            [% locale.maketext("Create Rewrite") %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+            <tr>
+                <td colspan="2">
+                    [% locale.maketext("No applications present.") %]
+                </td>
+            </tr>
+            [% END%]
+        </table>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Current Rewrites") %]</h2>
+        <table class="sortable table table-striped" id="manage-ror-rewrites">
+            <tr>
+                <th>[% locale.maketext("App Name") %]</th>
+                <th nonsortable="true">[% locale.maketext("Rewrite URL") %]</th>
+            </tr>
+            [% IF listrewrites.size() %]
+                [% FOREACH rewrite IN listrewrites %]
+                <tr>
+                    <form action="saverewrite.html" method="post" class="form-horizontal">
+                        <input type="hidden" name="appname" maxlength="15" value="[% rewrite.appname.html() %]" />
+                        <input type="hidden" name="domain" value="[% rewrite.domain.html() %]" />
+                        <input type="hidden" name="port" value="[% rewrite.port.html() %]" />
+                        <input type="hidden" name="oldurl" value="[% rewrite.url.html() %]" />
+                        <td>[% rewrite.appname.html() %]</td>
+                        <td>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-xs-8">
+                                        <div class="input-group">
+                                            <span class="input-group-addon">http://[% rewrite.domain | url %]/</span>
+                                            <input type="text" name="url" value="[% rewrite.url.html() %]" class="form-control" />
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-4">
+                                        <label class="control-label">[% locale.maketext("to[comment,this is meant to be a horizontal separator of 2 side by side things]") %]</label>
+                                        http://[% CPANEL.CPDATA.DNS.html() %]:[% rewrite.port.html() %]/
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <input class="btn btn-primary" type="submit" value="[% locale.maketext("Save") %]" />
+                                <a class="btn btn-link"
+                                    href="deleterewriteconfirm.html?appname=[%  rewrite.appname | url %]&rewritedomain=[%  rewrite.domain | url %]&rewriteurl=[%  rewrite.url | url %]">
+                                    <span class="glyphicon glyphicon-trash"></span>
+                                    [% locale.maketext("Delete") %]
+                                </a>
+                            </div>
+                        </td>
+                    </form>
+                </tr>
+                [% END %]
+            [% ELSE %]
+            <tr>
+                <td colspan="3">
+                    [% locale.maketext("No applications have rewrites.") %]
+                </td>
+            </tr>
+            [% END %]
+        </table>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='../index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+    .nobrd-right {
+        width: 300px;
+    }
+</style>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var chpanel;
+
+    // TODO: Just a quick fix. Should be re-worked in the future.
+    function nullop() {
+    }
+    // TODO: Just a quick fix. Should be re-worked in the future.
+    function showchanged(bodytxt) {
+        CPANEL.widgets.status_bar("status_bar", "success", "[% locale.maketext("Change Completed") %]", bodytxt);
+    }
+
+    function change_production(appname,checkobj) {
+        var newval = checkobj.checked ? 0 : 1;
+        production_string = "<p>[% locale.maketext('Your app, [_1], has been changed to production mode. You will need to restart the app for changes to take effect.', appname) %]</p>";
+        development_string = "<p>[% locale.maketext('Your app, [_1], has been changed to development mode. You will need to restart the app for changes to take effect.', appname) %]</p>";
+        if (newval === 0) {
+            showchanged(production_string);
+        }
+        else {
+            showchanged(development_string);
+        }
+        cpanel_jsonapi2(nullop,'RoR','changeapp','appname',appname,'env',newval);
+    };
+
+    function change_boot(appname,checkobj) {
+        var newval = checkobj.checked ? 1 : 0;
+        showchanged("<p>" + appname + (checkobj.checked ? '[% locale.maketext("Load on boot is enabled.") %]' : '[% locale.maketext("Load on boot is disabled.") %]</p>'));
+        cpanel_jsonapi2(nullop,'RoR','changeapp','appname',appname,'newloadonboot',newval);
+    };
+
+    function remove_object(thisobj) {
+        var objEl = document.getElementById(thisobj);
+        var objParent = objEl.parentNode;
+        objParent.removeChild(objEl);
+    }
+
+    function setpath(inputobj) {
+        var pathValue = document.getElementById('appname').value;
+        pathValue = pathValue.replace(/\s/g,"");
+        if (document.getElementById('path').value == '') {
+            document.getElementById('path').value = 'rails_apps/' + pathValue;
+        }
+    }
+    function pathDirComplete(inputObj) {
+
+    }
+
+    function checkform () {
+        var appname = document.addrorform.appname.value;
+        if (appname == '') {
+            alert("[% locale.maketext("You must put a Application Name.")  %]");
+            document.addrorform.appname.select();
+            document.addrorform.appname.focus();
+            return false;
+            }
+        if (appname.length > 15) {
+            alert("[% locale.maketext("Your application name cannot be longer than 15 characters.")  %]")
+            document.addrorform.appname.select();
+            document.addrorform.appname.focus();
+            return false;
+            }
+        var path = document.addrorform.path.value;
+        if (path == '') {
+            alert("[% locale.maketext("You must put a Path for your Application.")  %]");
+            document.addrorform.path.select();
+            document.addrorform.path.focus();
+            return false;
+            }
+        return true;
+    }
+
+    [% FOREACH app IN list_apps; %]
+        remove_object('submit_production_[% app.name.html() %]');
+        remove_object('submit_boot_[% app.name.html() %]');
+    [% END %]
+</script>
+[% END %]

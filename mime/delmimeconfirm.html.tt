@@ -1,0 +1,22 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mime_types'
+-%]
+<div class="body-content">
+    <h2 id="hdrRemoveMime">[% locale.maketext("Remove MIME Type") %]</h2>
+
+    <p id="descRemoveMimeConfirm">[% locale.maketext("Are you certain that you wish to remove [output,acronym,MIME,Multipurpose Internet Mail Extensions] type “[output,strong,_1]”?", FORM.usermime) %]</p>
+    <p>
+        <a id="btnDeleteMime" class="btn btn-primary" href="delmime.html?usermime=[% FORM.usermime FILTER uri %]">[% locale.maketext('Delete MIME Type') %]</a>
+        <a id="btnDeleteMimeCancel"
+            class="btn btn-link"
+            href="mime.html">
+            [% locale.maketext('Cancel') %]
+        </a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='mime.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]
+

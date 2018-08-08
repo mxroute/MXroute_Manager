@@ -1,0 +1,115 @@
+<style type="text/css">
+.helpText{
+    text-align: justify;
+    padding-left: 10px;
+}
+
+.warningDiv {
+    border: 1px solid #FF4D4D;
+    margin: 3px;
+    padding: 5px;
+    background-color: #FFEAEA;
+    color: #FF0000;
+    border-color: #FF4D4D
+}
+
+.noticeDiv {
+    border: 1px solid black;
+    margin: 3px;
+    padding: 5px;
+    background-color: #FFF6CF;
+    color: #7A6A38;
+    border-color: #E6E08C
+}
+
+.section {
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+</style>
+<div style="display:none;" id="htmledit">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>
+            [% locale.maketext("HTML Editor") %]
+        </span>
+        <div class="rt"> </div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="htmledit-filecontent">
+            <form method="post" action="dohtmledit.html">
+                <h4>[% locale.maketext("HTML Editor") %]</h4>
+                <div class="section">
+                    <label for="htmledit-file">
+                        <strong>[% locale.maketext("You will be editing:") %]</strong>
+                        <div id="htmledit-filelist"></div>
+                    </label>
+                </div>
+                <div class="section">
+                    <select style="display:none;" name="basedir" id="htmledit-basedir"></select>
+                    <strong>[% locale.maketext("Please select the URL where this file will be served from:") %] </strong><br/>
+                    <select name="url" id="htmledit-urls" onchange="document.getElementById('htmledit-basedir').selectedIndex =this.selectedIndex;"></select>
+                    <a href="#" onclick="document.getElementById('htmlUrlDesc').style.display = (document.getElementById('htmlUrlDesc').style.display === 'block') ? 'none' : 'block';return false;">
+                        [% locale.maketext("Help") %]
+                    </a>
+                    <br />
+                    <div style="display:none" id="htmlUrlDesc" class="helpText">
+                        [% locale.maketext("This URL will be used to ensure links for the HTML page you will be editing go to the proper place.") %]
+                    </div>
+                    <br />
+                    <div id="htmledit-encodings">
+                        <div class="warningDiv">
+                            [% locale.maketext("External assets may fail to load in browsers that block mixed (HTTP and HTTPS) content.") %]
+                        </div><br />
+                        <div class="noticeDiv">
+                            [% locale.maketext("Back up the original file before converting character sets, since this action can produce unexpected results.") %]
+                        </div><br/>
+                        <strong>[% locale.maketext("Please select the character encoding to open this file with:") %]</strong><br/>
+                        <select id="htmledit-charset" name="charset"></select>
+                        <a href="#" onclick="document.getElementById('htmlencodeDesc').style.display = (document.getElementById('htmlencodeDesc').style.display === 'block') ? 'none' : 'block';return false;">
+                            [% locale.maketext("Help") %]
+                        </a>
+                        <br />
+                        <div style="display:none" id="htmlencodeDesc" class="helpText" >
+                            <br />
+                            [% locale.maketext("From the drop-down menu, select the encoding with which you created the file.") %]
+                            [% locale.maketext("[output,strong,Important]: Selecting the wrong initial encoding may corrupt the file.") %]<br/>
+                            <br />
+                            [% locale.maketext("If you’re not sure of the correct encoding, here are some tips:") %]
+                            <ul>
+                                <li>
+                                    [% locale.maketext("If you are using a Western European language like English, Spanish, or French without any special characters, select “ISO-8859-1”.") %]
+                                </li>
+                                <li>
+                                    [% locale.maketext("If you are using a non-Western language, or you have special characters that are not HTML-encoded in your file, select “utf-8”.") %]
+                                </li>
+                                <li>
+                                    [% locale.maketext("You may have selected the wrong encoding if your file appears with text like this:") %]
+                                    <img src="../images/encoding_lang_broken.png" align="absmiddle">
+                                    <strong>[% locale.maketext("If this happens, immediately abort the edit and select the correct encoding.") %]
+                                    </strong> [% locale.maketext("Do not save the file; this may corrupt the text permanently.") %]
+                                </li>
+                            <ul>
+                        </div>
+                        <br /><br />
+                        <strong>
+                            [% locale.maketext("If encodings are not important to you because you will only be working with English or other Western languages, you can disable this dialog by clicking here:") %]
+                        </strong>
+                        <span class="button-group">
+                            <button style="margin-top: 15px" type="button" onclick="disableEncodings('htmledit');">
+                                [% locale.maketext("Disable Encoding Check") %]
+                            </button>
+                        </span>
+                        <br />
+                        <br />
+                    </div>
+                    <input type="hidden" name="dir" id="htmledit-dir" />
+                    <input type="hidden" name="file" id="htmledit-file" />
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft">
+    </div>
+</div>
+

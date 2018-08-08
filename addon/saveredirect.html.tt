@@ -1,0 +1,36 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+
+    Api1.pre_exec("SubDomain", "setsuburl");
+    SET subdomain_url = Api1.exec("SubDomain", "setsuburl", [
+                RAW_FORM.domain,
+                RAW_FORM.url
+            ]);
+    Api1.post_exec("SubDomain", "setsuburl")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'addon_domains'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+-%]
+
+<div class="body-content">
+    <div class="section">
+        <h2 id="hdrRedirection">[% locale.maketext("Addon Domain Redirection") %]</h2>
+
+        <div class="alert alert-success" id="redirect_success">
+            <span id="redirectSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="redirectSuccessMsg" class="alert-message">
+                [% locale.maketext("“[_1]” is now being redirected to “[_2]”.", FORM.domain.split(",").item(0),subdomain_url) %]
+            </div>
+        </div>
+
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html"  return_link_text=locale.maketext("Go Back" ) %]
+
+</div><!-- end body-content -->
+[% END #wrapper %]
+

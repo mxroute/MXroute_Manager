@@ -1,0 +1,184 @@
+[%
+USE JSON;
+
+SET CPANEL.CPVAR.dprefix = "../../";
+
+Api1.pre_exec("LeechProtect", "setup");
+SET email = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"email","html"]);
+
+SET email_checkbox_state = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"email","checkbox"]);
+SET num_hits = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"numhits","html"]);
+SET url = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"url","html"]);
+SET disabled_compromised_acct_status = Api1.exec("LeechProtect", "setup", [RAW_FORM.dir,"kill","checkbox"]);
+Api1.post_exec("LeechProtect", "setup");
+
+Api1.pre_exec("LeechProtect", "status");
+SET protection_status = Api1.exec("LeechProtect", "status", [RAW_FORM.dir]);
+Api1.post_exec("LeechProtect", "status");
+SET protection_disabled = protection_status == 'disabled';
+
+Api1.pre_exec("LeechProtect", "showpasswdfile");
+SET show_passwd_file = Api1.exec("LeechProtect", "showpasswdfile", [RAW_FORM.dir]);
+Api1.post_exec("LeechProtect", "showpasswdfile");
+
+SET directory = FORM.dir;
+
+# TODO: Missing form validation.
+
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'leech_protection'
+    page_js = js_code
+-%]
+<div class="body-content">
+    <p id="descLeechProtect" class="description">
+        [% locale.maketext("Leech Protect allows you to prevent your users from giving out or publicly posting their passwords to a restricted area of your site. This feature will redirect accounts which have been compromised to a URL of your choice (and suspend them, if you choose).") %]
+    </p>
+
+    [% IF (CPANEL.feature('cpanelpro_leechprotect')) %]
+    <p id="leechProtectDisabled">
+        <strong>
+        [% locale.maketext("Leech protection is currently [boolean,_1,disabled,enabled] on “[_2]”.", protection_disabled, directory) %]
+        </strong>
+    </p>
+
+    <div class="section">
+        <h2 id="hdrSetupLeech">
+            [% locale.maketext("Set up Leech Protection") %]
+        </h2>
+        <form action="doleech.html" name="leechform" method="post">
+            <input type="hidden" name="dir" value="[% directory %]">
+            <div class="form-group">
+                <label id="lblNumHits" for="numhits">
+                    [% locale.maketext("Number of Logins Per Username Allowed in a 2-Hour Period") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="numhits" type="text" class="form-control" name="numhits" value="[% num_hits %]" size="2">
+                        <span id="lblNumHitsHelper" class="help-block">
+                            [% locale.maketext("Four is recommended, as setting the number lower than four can cause suspension of legitimate users who have disconnected from, then reconnected to, their ISPs. If users are reconnecting from the same network subnet, their accounts will not be disabled.") %]
+                        </span>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"> </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblUrlToRedirect" for="rurl">
+                    [% locale.maketext("URL to Redirect Leech Users to") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="rurl" type="text" class="form-control" name="rurl" size="40" value="[% url %]">
+                        <span id="lblRurlHelp" class="help-block">
+                            [% locale.maketext("You must choose a URL outside of the leech-protected area, or the leech users will get an internal server error message.") %]
+                        </span>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"> </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="checkbox">
+                            <label id="lblChkEmail">
+                                 <input id="emailcheck" type="checkbox"  name="emailcheck" value="1" [% email_checkbox_state %] >
+                                 [% locale.maketext("Send Email Alert To") %]
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"> </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="email" type="text" class="form-control"  name="email" size="30" value="[% email %]">
+                        <span id="lblEmailHelp" class="help-block">
+                            [% locale.maketext("The system will send an email to this address when leech protection redirects users from the site.") %] <em id="lblEmailHelpNote">[% locale.maketext("[output,em,NOTE]: If you do not disable leech accounts, you may receive a large number of these emails.") %]</em>
+                        </span>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"> </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="checkbox">
+                            <label>
+                                <input id="chkDisableCompAccount" type="checkbox" name="disableacct" value="1" [% disabled_compromised_acct_status %]>
+                                [% locale.maketext("Disable Compromised Accounts") %]
+                            </label>
+                            <span id="lblDisableLeech" class="help-block">
+                                [% locale.maketext("[asis,cPanel] will disable the passwords of users who trigger leech protection, suspending them. To reactivate their accounts, reset their passwords.") %]
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"> </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="btnEnable" type="submit" class="btn btn-primary" value="[% locale.maketext("Enable") %]">
+            </div>
+        </form>
+    </div>
+    <div class="section">
+        <h2 id="hdrDisableProtection">
+            [% locale.maketext("Disable Protection") %]
+        </h2>
+        <form action="delleech.html">
+            <div class="form-group">
+                <input id="hidDirectory" type="hidden" name="dir" value="[% directory %]">
+                <input id="btnDisable" type=submit class="btn btn-primary" value="[% locale.maketext("Disable") %]">
+            </div>
+        </form>
+    </div>
+    <div class="section">
+        <h2 id="hdrManageUsers">
+            [% locale.maketext("Manage Users") %]
+        </h2>
+        <p id="descThirdParty">
+            [% locale.maketext("If you are using third-party software to add or remove users, you should have it use the password file:") %]
+            <b>[% show_passwd_file %]</b>
+        </p>
+        <form action="../dohtaccess.html">
+            <div class="form-group">
+               <input id="hidDirectoryManageUser" type="hidden" name="dir" value="[% directory %]">
+               <input id="btnManageUser" type=submit class="btn btn-primary" value="[% locale.maketext("Manage Users") %]">
+            </div>
+        </form>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='leechprotect.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+YAHOO.util.Event.onDOMReady(function() {
+    var defv = [% JSON.stringify(email) %];
+
+    function checkemail() {
+        if (document.leechform.email.value == "") {
+            document.leechform.emailcheck.checked = false;
+        } else {
+            document.leechform.emailcheck.checked = true;
+        }
+    }
+
+    function killemail() {
+        if (document.leechform.emailcheck.checked == false) {
+            document.leechform.email.value = "";
+        } else {
+            document.leechform.email.value = defv;
+        }
+
+    }
+
+    EVENT.addListener("emailcheck", "change", killemail);
+    EVENT.addListener("email", "change", checkemail);
+});
+</script>
+[% END %]
+

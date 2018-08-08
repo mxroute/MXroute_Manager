@@ -1,0 +1,40 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+Api1.pre_exec("Email", "editquota");
+SET result = Api1.exec("Email", "editquota", [RAW_FORM.email,RAW_FORM.domain,RAW_FORM.quota]);
+Api1.post_exec("Email", "editquota");
+
+SET email = (FORM.email) _ "@" _ (FORM.domain);
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'email_accounts'
+-%]
+<div class="body-content">
+
+    [% IF !CPANEL.CPERROR.email %]
+
+    <div class="alert alert-success" id="quotaSuccess">
+        <span class="glyphicon glyphicon-info-sign" id="quotaSuccessImg"></span>
+        <div class="alert-message" id="quotaSuccessMsg">
+            [% locale.maketext("The quota for the email account “[_1]” was successfully modified.", email) %]
+        </div>
+    </div>
+
+    [% ELSE %]
+
+    <div class="alert alert-danger" id="quotaError">
+        <span class="glyphicon glyphicon-exclamation-sign" id="quotaErrorImg"></span>
+        <div class="alert-message" id="quotaErrorMsg">
+            [% locale.maketext("There was a problem modifying the email quota: [_1]", CPANEL.CPERROR.email.html()) %]
+        </div>
+    </div>
+
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='../index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

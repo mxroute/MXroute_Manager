@@ -1,0 +1,31 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+-%]
+<div class="body-content">
+
+    <h2 id="hdrHosts">[% locale.maketext("Remote Database Access Hosts") %]</h2>
+
+    <p id="descConfirm">
+        [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the following access host?"); %]
+    </p>
+
+    <div>
+    <p><strong>[% locale.maketext('Host') %]</strong></p>
+    <p id="theHost">[% FORM.host %]</p>
+    [% IF FORM.comment.length > 0 %]
+    <p><strong>[% locale.maketext('Comment') %]</strong></p>
+    <p id="theHostNote" class="wrap-text-forcefully">[% FORM.comment %]</p>
+    [% END %]
+    </div>
+
+    <p>
+        <a id="lnkRemove" class="btn btn-primary" href="delhost.html?host=[% RAW_FORM.host.uri() %]">[% locale.maketext("Remove Access Host") %]</a>
+        <a id="lnkCancel" class="btn btn-link" href="managehost.html">[% locale.maketext("Cancel") %]</a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='managehost.html' return_link_text=locale.maketext('Go Back') %]
+
+</div><!-- end body-content -->
+[% END #wrapper %]

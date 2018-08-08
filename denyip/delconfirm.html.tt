@@ -1,0 +1,23 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    Api1.pre_exec("UI", "confirm");
+    SET confirm = Api1.exec("UI", "confirm", ["UI::confirm::version", "1.0"]);
+    Api1.post_exec("UI", "confirm")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ip_blocker'
+-%]
+<div class="body-content">
+    <h2>[% locale.maketext("Remove IP") %]</h2>
+    <p>
+        [% locale.maketext("Are you certain that you wish to delete the IP address “[output,inline,_1,class,status]”?", FORM.ip) %]
+    </p>
+
+    <a class="btn btn-primary" href="del.html?ip=[% FORM.ip.uri() %]">[% locale.maketext("Remove IP") %]</a>
+    <a class="btn btn-link" href="index.html">[% locale.maketext("Cancel") %]</a>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper %]

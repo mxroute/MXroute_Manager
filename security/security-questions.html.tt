@@ -1,0 +1,53 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'security_policy'
+    page_scripts = ['js/validate_optimized.js']
+%]
+<div class="body-content">
+    <p class="description">
+        [% locale.maketext("Please select from the following security questions and provide answers you can remember. You will be asked your chosen security questions in the event you need to recover your password or if you are logging in from a different IP.") %]
+    </p>
+
+    [% IF FORM.item('reset') %]
+    <div class="section">
+        [%
+            Api2.pre_exec("SourceIPCheck", "resetsecquestions");
+            SET api2_result_SourceIPCheck_resetsecquestions =  Api2.exec("SourceIPCheck", "resetsecquestions", {"account"=>FORM.item('account')} );
+            Api2.post_exec("SourceIPCheck", "resetsecquestions");
+            IF api2_result_SourceIPCheck_resetsecquestions.size;
+                FOREACH hashref IN api2_result_SourceIPCheck_resetsecquestions;
+                    hashref.status.html() ;
+               END;
+            END;
+        %]
+
+        [% IF CPANEL.CPERROR.item('sourceipcheck') %]
+            <div class="alert alert-danger">
+                <span class="glyphicon glyphicon-remove-sign"></span>
+                <div class="alert-message">
+                    [% locale.maketext("Unable to reset security questions.") %]
+                </div>
+            </div>
+        [% ELSE %]
+            <div class="alert alert-success">
+                <span class="glyphicon glyphicon-ok-sign"></span>
+                <div class="alert-message">
+                    [% locale.maketext("Security questions have been reset. You will be asked to re-enter new security questions at next login.") %]
+                </div>
+            </div>
+        [% END %]
+    </div>
+    [% END %]
+
+    <div class="section">
+        <a onclick="return confirm('[% locale.maketext("Are you sure you want to reset the security questions?")  %]')" href="?account=[% FORM.item('account') %]&reset=1" class="btn btn-primary">[% locale.maketext("Reset Questions and Answers")  %]</a>
+    </div>
+
+    <div class="section">
+        [% INCLUDE "security/security-questions_include.html.tt" %]
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

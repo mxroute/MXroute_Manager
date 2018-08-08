@@ -1,0 +1,30 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+[%
+    Api2.pre_exec("SSH", "listkeys");
+    SET list_keys =  Api2.exec("SSH", "listkeys", {"keys"=>FORM.key} );
+    Api2.post_exec("SSH", "listkeys");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+
+    <form action="doauthkey.html" method="post">
+        <input id="hidKey" type="hidden" name="key" value="[% FORM.key %]" />
+        [% IF list_keys.size %]
+            [% FOREACH key IN list_keys %]
+                <p>
+                   [% locale.maketext("The key with the name “[_1]” is currently “[output,strong,_2]” for use when connecting to this account.", key.name.html(), key.authstatus.html()) %]
+                </p>
+                <div class="form-group">
+                    <input type="submit" class="btn btn-primary" name="action" value="[%  key.authaction.html() %]">
+                </div>
+            [% END %]
+        [% END %]
+    </form>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

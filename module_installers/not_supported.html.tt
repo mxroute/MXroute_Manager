@@ -1,0 +1,11 @@
+[% WRAPPER '_assets/master.html.tt'; %]
+<div class="body-content">
+    <h2 id="hdrInstaller">[% locale.maketext("Module Installer") %]</h2>
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+        [% locale.maketext("[output,strong,Error:] The system does not support the “[_1]” language.", lang.html()) %]
+        </div>
+    </div>
+</div>
+[% END %]

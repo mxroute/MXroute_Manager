@@ -1,0 +1,24 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'redirects'
+ -%]
+
+<div class="body-content">
+    [% redirect_info = execute('Mime', 'redirect_info', { url=RAW_FORM('path'), domain=RAW_FORM('domain') }) %]
+    <p>
+        [% locale.maketext("Are you certain that you wish to [output,strong,permanently] remove the redirect “[output,inline,_1,class,status]” on “[output,inline,_2,class,status]”?", redirect_info.data.url.html, redirect_info.data.domain.html ) %]
+    </p>
+    <p>
+        <a id="btnRemoveConfirm" class="btn btn-primary" href="delredirect.html?docroot=[% RAW_FORM.docroot FILTER uri %]&domain=[% RAW_FORM.domain FILTER uri %]&path=[% RAW_FORM.path FILTER uri %]">[% locale.maketext('Remove Redirect') %]</a>
+        <a id="btnCancel"
+            class="btn btn-link"
+            href="redirect.html">
+            [% locale.maketext('Cancel') %]
+        </a>
+    <p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='redirect.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]
+

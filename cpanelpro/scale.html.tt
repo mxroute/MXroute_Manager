@@ -1,0 +1,168 @@
+[%
+
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    Api1.pre_exec("ImageManager", "hdimension");
+    SET hdim_result = Api1.exec("ImageManager", "hdimension", [RAW_FORM.dir, RAW_FORM.file]);
+    Api1.post_exec("ImageManager", "hdimension");
+
+    Api1.pre_exec("ImageManager", "wdimension");
+    SET wdim_result = Api1.exec("ImageManager", "wdimension", [RAW_FORM.dir, RAW_FORM.file]);
+    Api1.post_exec("ImageManager", "wdimension");
+
+    Api1.pre_exec("ImageManager", "dimensions");
+    SET dim_result = Api1.exec("ImageManager", "dimensions", [RAW_FORM.dir, RAW_FORM.file]);
+    Api1.post_exec("ImageManager", "dimensions");
+
+    SET full_filename = FORM.dir _ '/' _ FORM.file;
+
+    Api1.pre_exec("Fileman", "viewfile");
+    SET view_file = Api1.exec("Fileman", "viewfile", [RAW_FORM.dir, RAW_FORM.file, "1"]);
+    Api1.post_exec("Fileman", "viewfile")
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Scaler")
+ -%]
+
+<div class="body-content">
+    <div class="section">
+
+        <form name="sff" action="doscale.html">
+            <p id="descFileToScale">
+                [% locale.maketext("We will be scaling “[_1]”.", full_filename) %]
+            </p>
+            <p id="descCurrentFileDimensions">
+                [% locale.maketext("Current Dimensions: [_1]",dim_result) %]
+            </p>
+
+            <div class="form-group">
+                <label id="lblNewDimensionsWidth" for="width">
+                    [% locale.maketext("New Dimensions:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-2">
+                        <input id="width" type="text" class="form-control" name="width" value="[% wdim_result %]" size="3" onchange="checkhdim();" />
+                    </div>
+                    <div class="col-xs-1"><span>x</span></div>
+                    <div class="col-xs-2">
+                        <input id="height" type="text" class="form-control" name="height" value="[% hdim_result %]" size="3" onchange="checkwdim();" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblScalePercentage" for="widthpercent">
+                    [% locale.maketext("Percent") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-2">
+                        <div class="input-group">
+                            <input id="widthpercent" type="text" class="form-control" name="widthpercent" size="3" value="100" onchange="checkwpdim();" />
+                            <span class="input-group-addon">%</span>
+                        </div>
+                    </div>
+                    <div class="col-xs-1"><span>x</span></div>
+                    <div class="col-xs-2">
+                        <div class="input-group">
+                            <input id="heightpercent" type="text" class="form-control" name="heightpercent" size="3" value="100" onchange="checkhpdim();" />
+                            <span class="input-group-addon">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <div class="checkbox">
+                    <label id="lblKeepAspectRatio">
+                        <input id="ckbKeepAspectRatio" type="checkbox" name="aspect" value="1" checked  />
+                        [% locale.maketext("Keep Aspect Ratio") %]
+                    </label>
+                </div>
+            </div>
+            <div id="apiOutputViewFile">
+            [% view_file %]
+            </div>
+            <div class="form-group">
+                <div class="checkbox">
+                    <label id="lblRetainCopy">
+                        <input id="ckbRetainCopy" type="checkbox" name="retain" value="1" checked  />
+                        [% locale.maketext("Retain a copy of the old image as:") %]
+                    </label>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="txtOldImage" type="text" size="70" class="form-control" name="oldimage" value="[% FORM.dir %]/old-[% FORM.file %]"  />
+                    </div>
+                </div>
+            </div>
+
+            <input id="hidDirectory" type="hidden" name="dir" value="[% FORM.dir %]" />
+            <input id="hidFileName" type="hidden" name="file" value="[% FORM.file %]" />
+
+            <div class="form-group">
+                <input id="btnScale" class="btn btn-primary" type="submit" value="[% locale.maketext("Scale Image") %]"  />
+                <input id="btnReset" class="btn btn-default" type="button" value="[% locale.maketext("Reset Dimensions") %]" onclick="document.sff.reset();imagescale(document.sff.width.value,document.sff.height.value);"  />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+imagescale(document.sff.width.value,document.sff.height.value);
+
+function imagescale(w,h) {
+    document.images.fmfile.width = w;
+    document.images.fmfile.height = h;
+}
+
+parseInt('[% sendcontact_success %]', 10);
+
+var hdim = parseInt([% hdim_result %]);
+
+var wdim = parseInt([% wdim_result %]);
+
+function checkhpdim() {
+    if (document.sff.aspect.checked == true) {
+        document.sff.widthpercent.value = document.sff.heightpercent.value;
+    }
+    document.sff.width.value = (wdim * (document.sff.widthpercent.value/100));
+    document.sff.height.value = (hdim * (document.sff.heightpercent.value/100));
+    imagescale(document.sff.width.value,document.sff.height.value);
+}
+function checkwpdim() {
+    if (document.sff.aspect.checked == true) {
+        document.sff.heightpercent.value = document.sff.widthpercent.value;
+    }
+    document.sff.width.value = (wdim * (document.sff.widthpercent.value/100));
+    document.sff.height.value = (hdim * (document.sff.heightpercent.value/100));
+    imagescale(document.sff.width.value,document.sff.height.value);
+}
+
+function checkhdim() {
+    if (document.sff.aspect.checked == true) {
+        document.sff.height.value = (document.sff.width.value * (hdim/wdim));
+    }
+    document.sff.widthpercent.value = ((document.sff.width.value/wdim)*100);
+    document.sff.heightpercent.value = ((document.sff.height.value/hdim)*100);
+    imagescale(document.sff.width.value,document.sff.height.value);
+}
+function checkwdim() {
+    if (document.sff.aspect.checked == true) {
+        document.sff.width.value = (document.sff.height.value * (wdim/hdim));
+    }
+    document.sff.heightpercent.value = ((document.sff.height.value/hdim)*100);
+    document.sff.widthpercent.value = ((document.sff.width.value/wdim)*100);
+    imagescale(document.sff.width.value,document.sff.height.value);
+}
+</script>
+[% END %]
+
+[% END #wrapper -%]

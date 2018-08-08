@@ -1,0 +1,63 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("Htaccess", "getindex");
+    SET get_index = Api1.exec("Htaccess", "getindex", [RAW_FORM.dir, "-1"]);
+    Api1.post_exec("Htaccess", "getindex");
+
+    Api1.pre_exec("Htaccess", "getindex");
+    SET index_0 = Api1.exec("Htaccess", "getindex", [RAW_FORM.dir, "0"]);
+    Api1.post_exec("Htaccess", "getindex");
+
+    Api1.pre_exec("Htaccess", "getindex");
+    SET index_1 = Api1.exec("Htaccess", "getindex", [RAW_FORM.dir, "1"]);
+    Api1.post_exec("Htaccess", "getindex");
+
+    Api1.pre_exec("Htaccess", "getindex");
+    SET index_2 = Api1.exec("Htaccess", "getindex", [RAW_FORM.dir, "2"]);
+    Api1.post_exec("Htaccess", "getindex");
+ %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'indexes'
+ -%]
+<div class="body-content">
+    <p id="descIndexManager" class="description">
+        [% locale.maketext("The Index Manager allows you to customize the way a directory will be viewed on the web. You can select between a default style, no indexes, or two types of indexing. If you do not wish for people to be able to see the files in your directory, choose “[_1]”.", locale.maketext('No Indexing')) %]
+    </p>
+    <div class="section">
+        <h3 id="hdrSetIndexing">[% locale.maketext("Set Indexing for “[output,strong,_1]”", FORM.dir) %] </h3>
+        <form action="changepro.html">
+            <input type="hidden" name="dir" id="dir" value="[% FORM.dir %]">
+            <div class="radio">
+                <label id="lblDefault">
+                    <input type="radio" name="indexes" id="rdoDefault" value=-1 [% get_index %]>
+                    [% locale.maketext("Default System Setting") %]
+                </label>
+            </div>
+            <div class="radio">
+                <label id="lblNoIndex">
+                    <input type="radio" name="indexes" id="rdoNoIndex" value=0 [% index_0 %]>
+                    [% locale.maketext("No Indexing") %]
+                </label>
+            </div>
+            <div class="radio">
+                <label id="lblStdIndex">
+                    <input type="radio" name="indexes" id="rdoStdIndex" value=1 [% index_1 %]>
+                    [% locale.maketext("Standard Indexing (filename only)") %]
+                </label>
+            </div>
+            <div class="radio">
+                <label id="lblFancyIndex">
+                    <input type="radio" name="indexes" id="rdoFancyIndex" value=2 [% index_2 %]>
+                    [% locale.maketext("Fancy Indexing (filename and description)") %]
+                </label>
+            </div>
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" id="btnSave" value="[% locale.maketext("Save") %]">
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html?dir=' _ FORM.item('dir') _ '' return_link_text=locale.maketext("Go Back") %]
+</div>
+[% END #wrapper -%]

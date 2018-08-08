@@ -1,0 +1,74 @@
+/*
+ * multiphp_ini_editor/index.css                            Copyright 2018 cPanel, Inc.
+ *                                                                 All rights Reserved.
+ * copyright@cpanel.net                                               http://cpanel.net
+ * This code is subject to the cPanel license. Unauthorized copying is prohibited
+ */
+
+.iniInfoBlock {
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.iniInfoTitle {
+    font-weight: 600;
+    padding-right: 5px;
+}
+
+.defaultBlock {
+    font-size: 12px;
+}
+
+.defaultValue {
+    font-weight: bold;
+    font-style: italic;
+}
+
+.processing {
+    opacity: 0.3;
+    transition: opacity 0.5s;
+    -webkit-transition: opacity 0.5s;
+    -moz-transition: opacity 0.5s;
+    -o-transition: opacity 0.5s;
+}
+
+/*
+    This css class reduces the dropdown by 10% to leave
+    space for the spinner.
+*/
+.phpSelect {
+    display: inline-block;
+    width: 90%;
+}
+
+.valueBox {
+    width: 90%;
+}
+
+.floatDirection {
+    float: right;
+}
+
+html[dir="rtl"] .floatDirection {
+    float: left;
+}
+
+.editorContainer {
+    position: relative;
+    height: 500px;
+}
+
+.iniEditor {
+    position: absolute !important;
+    top: 10px;
+    right: 0;
+    left: 0;
+    bottom: 20px;
+    border: 1px solid #cccccc;
+}
+
+@media (min-width: 768px) {
+    .infoSpace {
+        width: 60%;
+    }
+}

@@ -1,0 +1,26 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../";
+Api1.pre_exec("Net", "dnszone");
+SET dns_zone = Api1.exec("Net", "dnszone", [RAW_FORM.item('dns')]);
+Api1.post_exec("Net", "dnszone");
+
+Api1.pre_exec("Net", "dnslookup");
+SET dns_lookup = Api1.exec("Net", "dnslookup", [RAW_FORM.dns]);
+Api1.post_exec("Net", "dnslookup");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'track_dns'
+ -%]
+<div class="body-content">
+    <p>
+        [% dns_lookup %]
+    </p>
+    <h2>
+        [% locale.maketext("Zone Information") %]
+    </h2>
+    <textarea class="form-control" name="zoneinfo" cols="80" rows="15" readonly="readonly">[% dns_zone %]</textarea>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper -%]

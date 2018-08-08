@@ -1,0 +1,485 @@
+[% IF ExpVar.expand('$haspostgres') %]
+
+[%
+    SET CPANEL.CPVAR.headerimg = "../images/topmysql.gif";
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    Api1.pre_exec("Postgres", "initcache");
+    Api1.exec("Postgres", "initcache", [undef]);
+    Api1.post_exec("Postgres", "initcache");
+
+    IF FORM.item('itemsperpage');
+        SET CPANEL.CPVAR.itemsperpage = FORM.item('itemsperpage');
+    END;
+    IF (!( FORM.item('itemsperpage')) || !( CPANEL.CPVAR.item('itemsperpage')));
+        SET CPANEL.CPVAR.itemsperpage = "10";
+    END;
+    SET dbprefix = ExpVar.expand('$dbprefix');
+    SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+    SET database_max_length = 63 - dbownerprefix.length();
+    SET user_max_length = 63 - dbownerprefix.length();
+
+    Api2.pre_exec("Postgres", "listdbs");
+    SET databases =  Api2.exec("Postgres", "listdbs", {
+        "api2_paginate_size"  => CPANEL.CPVAR.item('itemsperpage'),
+        "api2_paginate"       => "1",
+        "regex"               => (RAW_FORM.item('searchregex')),
+        "api2_paginate_start" => (FORM.item('api2_paginate_start'))
+    });
+    Api2.post_exec("Postgres", "listdbs");
+
+    Api2.pre_exec("PasswdStrength", "get_required_strength");
+    required_strength_resp =  Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"postgres"} );
+    Api2.post_exec("PasswdStrength", "get_required_strength");
+    SET required_strength = required_strength_resp.0.strength;
+
+    Api2.pre_exec("Postgres", "listusers");
+    SET users = Api2.exec("Postgres", "listusers", {} );
+    Api2.post_exec("Postgres", "listusers");
+
+    PROCESS '_assets/resource_usage_macro.html.tt';
+
+    # NOTE: Man not be safe for inclusion above.
+    # Needed to get the CPVAR postgres_number_of_users
+    Api1.pre_exec("Postgres", "number_of_dbs");
+    SET number_of_dbs = Api1.exec("Postgres", "number_of_dbs", [undef]);
+    Api1.post_exec("Postgres", "number_of_dbs");
+
+    # Needed to get the CPVAR postgres_number_of_dbs
+    Api1.pre_exec("Postgres", "number_of_users");
+    SET number_of_users = Api1.exec("Postgres", "number_of_users", [undef]);
+    Api1.post_exec("Postgres", "number_of_users");
+%]
+
+[% IF ExpVar.expand('$pgrunning') %]
+[% js_code = PROCESS js_block %]
+[% ELSE %]
+[% js_code = '' %]
+[% END %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    page_stylesheets = ['css2-min/psql/index.css']
+    page_scripts = ['js2-min/psql/index.js']
+-%]
+
+[% INCLUDE _assets/_ajaxapp_header.html.tt %]
+
+<div class="body-content">
+    <p id="descIntro" class="description">
+        [% locale.maketext("PostgreSQL Databases allow you to store a large amount of information in an easy to access manner. The databases themselves are not easily read by humans. PostgreSQL databases are required by many web applications including some bulletin boards, content management systems, and others. To use a database, you’ll need to create it. Only PostgreSQL Users (different than mail or other users) that have privileges to access a database can read from or write to that database.")  %]
+    </p>
+    <a id="postgresDatabaseJumplocation"></a>
+    <p class="jump">
+        <img src="../images/arrow-down.gif" alt="jump-down" class="jump-down" />
+        <a id="lnkJumpToUsers" href="#postgresUserJumplocation">[% locale.maketext("Jump to PostgreSQL Users") %]</a>
+    </p>
+
+    <a name="psqldbs" id="psqldbs"></a>
+
+    [% IF !ExpVar.expand('$pgrunning') %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            [% locale.maketext("The PostgreSQL server is currently [boolean,_1,online,offline].",ExpVar.expand('$pgrunning')) %]
+        </div>
+    [% ELSE %]
+
+    [% IF CPANEL.CPERROR.item('postgres') %]
+        <div class="alert alert-danger">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            [% CPANEL.CPERROR.item('postgres').html() %]
+        </div>
+    [% END %]
+
+
+        <div class="section">
+            <h2 id="hdrCreateNew">[% locale.maketext("Create New Database") %]</h2>
+
+        [%
+            # Note: a MACRO was not used here because we need to be able
+            # to access resource_usage_limits after the block runs
+            SET resource_usage_key = 'postgresqldatabases';
+            SET resource_usage_percent_used_to_warn = 80;
+            PROCESS resource_usage_block;
+         IF !resource_usage_limits || !resource_usage_limits.is_maxed
+        %]
+
+
+            <form method="post" action="addbs.html" name="mainform" id="mainform">
+                <div class="form-group">
+                    <label for="dbname">
+                        [% locale.maketext("Database Name") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            [% IF dbownerprefix %]
+                            <div class="input-group">
+                                <span id="dbnameUserPrefix" class="input-group-addon">[% dbownerprefix %]</span>
+                                <input type="text" class="form-control" name="db" id="dbname" maxlength="[% database_max_length %]" />
+                            </div>
+                            [% ELSE %]
+                            <input type="text" class="form-control" name="db" id="dbname" maxlength="[% database_max_length %]" />
+                            [% END %]
+                        </div>
+                        <div id="dbname_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="submit" id="submit_dbname" value="[% locale.maketext("Create Database") %]" class="btn btn-primary" />
+                </div>
+            </form>
+
+          [% END %]
+        </div>
+
+    <div class="section">
+        <h2 id="hdrCurrentDbs">[% locale.maketext("Current Databases") %]</h2>
+        <div class="search-panel">
+            <form method="get">
+                <div class="form-group">
+                    <div class="row">
+                        <div class="col-xs-4">
+                            <input id="txtSearchRegex" type="text" class="form-control" size="15" name="searchregex" value="[% FORM.item('searchregex') %]" placeholder="[% locale.maketext("Search")  %]"/>
+                        </div>
+                        <div class="col-xs-3">
+                            <input type="submit" id="submit-search" class="btn btn-primary" value="[% locale.maketext("Go") %]" />
+                            <input type="hidden" name="itemsperpage" value="[% CPANEL.CPVAR.itemsperpage.html() %]" />
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <table id="sqltbl" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Database") %]</th>
+                    <th>[% locale.maketext("Size") %]</th>
+                    <th>[% locale.maketext("Privileged Users") %]</th>
+                    <th class="sorttable_nosort" scope="col" colspan="2">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF databases.size() %]
+                [% FOREACH database IN databases %]
+                    <tr>
+                        <td>[%  database.db.html() %]</td>
+                        <td>[%  database.sizemeg.html() %] MB</td>
+                        <td>
+                            <table class="sql">
+                            [% FOREACH allowed_users IN database.item('userlist') %]
+                                <tr>
+                                    <td class="nobrd">
+                                        <a href="deluserfromdbconfirm.html?user=[% allowed_users.user | uri | html %]&amp;db=[% allowed_users.db | uri | html %]">
+                                            [% allowed_users.user.html() %]
+                                            <span class="glyphicon glyphicon-trash"></span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            [% END %]
+                            </table>
+                        </td>
+                        <td class="actions">
+                            <a class="btn btn-link" title="[% locale.maketext('Rename this database.') %]" href="javascript:void(0)" onclick='SQLUI.show_rename_form("db",this,[% database.db.json().html() %])'>
+                                <span class="glyphicon glyphicon-pencil"></span> [% locale.maketext('Rename') %]
+                            </a>
+                            <a class="btn btn-link" title="[% locale.maketext('Delete this database.') %]" href="deldbconfirm.html?db=[% database.db.uri() %]">
+                                <span class="glyphicon glyphicon-trash"></span> [% locale.maketext('Delete') %]
+                            </a>
+                        </td>
+                    </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td colspan="4" class="errors">
+                    [% IF FORM.item('searchregex') %]
+                        [% locale.maketext("No databases found.") %]
+                    [% ELSE %]
+                        [% locale.maketext("There are no databases associated with your account.") %]
+                    [% END %]
+                    </td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+
+        [% INCLUDE '_assets/paginate.html.tt' %]
+    </div><!-- end section -->
+    <a id="postgresUserJumplocation"></a>
+    <p class="jump">
+        <img src="../images/arrow-up.gif" alt="jump-up" class="jump-up" />
+        <a href="#postgresDatabaseJumplocation">[% locale.maketext("Jump to PostgreSQL Databases") %]</a>
+    </p>
+    <h2 id="hdrUsers">[% locale.maketext("PostgreSQL Users") %]</h2>
+    <div class="section">
+        <h2 id="hdrUsersAdd">
+            [% locale.maketext("Add New User") %]
+        </h2>
+        <form method="post" action="addusers.html" name="userform" id="userform">
+            <!-- prevent password autofill -->
+            <input type="text" style="display:none">
+            <input type="password" autocomplete='off' style="display:none">
+            <input type="hidden" name="db" value="[% FORM.item('db') %]" />
+            <div class="form-group">
+                <label for="user">
+                    [% locale.maketext("Username") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% IF dbownerprefix %]
+                            <div id="userPrefix" class="input-group">
+                                <span class="input-group-addon">
+                                    [% ExpVar.expand('$dbownerprefix') %]
+                                </span>
+                                <input type="text" class="form-control" size="15" name="user" id="user" />
+                            </div>
+                        [% ELSE %]
+                            <input type="text" class="form-control" size="15" name="user" id="user" />
+                        [% END %]
+                    </div>
+                    <div id="user_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password">
+                    [% locale.maketext("Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input size="15" type="password" autocomplete='off' name="pass" id="password" class="form-control"/>
+                    </div>
+                    <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="password2">
+                    [% locale.maketext("Password (Again)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' size="15" name="pass2" id="password2" class="form-control"/>
+                    </div>
+                    <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>
+                    [% locale.maketext("Strength") %]
+                    <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                </label>
+                [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="password_strength" class="password_strength"></div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="button" id="create_strong_password"
+                                class="btn btn-default"
+                                value="[% locale.maketext("Password Generator") %]"
+                                tabindex="-1" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="[% locale.maketext("Create User") %]"
+                       class="btn btn-primary"
+                       id="submit_new_user" />
+            </div>
+        </form>
+    </div>
+
+    [% IF (!( (CPANEL.CPVAR.item('postgres_number_of_users')) == "0") && !( (CPANEL.CPVAR.item('postgres_number_of_dbs')) == "0")) %]
+        <div class="section">
+            <h2 id="hdrUsersAddToDb">[% locale.maketext("Add User To Database") %]</h2>
+            <form method="post" action="addusertodb.html">
+                <div class="form-group">
+                    <label for="list_users">
+                        [% locale.maketext("User") %]:
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <select name="user" class="form-control" id="list_users">
+                            [%
+                                Api1.pre_exec("Postgres", "listusersopt");
+                                Api1.exec("Postgres", "listusersopt", [undef]);
+                                Api1.post_exec("Postgres", "listusersopt");
+                            %]
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="list_dbs">
+                        [% locale.maketext("Database") %]:
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <select name="db" class="form-control" id="list_dbs">
+                            [%
+                                Api1.pre_exec("Postgres", "listdbsopt");
+                                Api1.exec("Postgres", "listdbsopt", [undef]);
+                                Api1.post_exec("Postgres", "listdbsopt");
+                            %]
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input type="submit" id="assign" class="btn btn-primary" value="[% locale.maketext("Submit") %]" />
+                </div>
+            </form>
+        </div>
+    [% END %]
+
+
+    <div class="section">
+        <div id="sync_grants_notices_id"></div>
+        <h2 id="current_users_id">[% locale.maketext("Current Users") %]</h2>
+
+        <div id="sync_grants_action">
+            <button class="btn btn-default" id="run-button">
+                <span id="spinner"><img src="[% theme_magic_url("/images/report-spinner.gif") %]" height="16" width="16" alt="[% locale.maketext('Loading …') %]" /></span>
+                <span id="spinner-text">[% locale.maketext("Synchronize Grants")  %]</span>
+            </button>
+            <span class="glyphicon glyphicon-info-sign" id="syncgrants-info"
+                onclick="CPANEL.ajax.toggleToolTip(this,LOCALE.maketext('Synchronize Grants'));"
+                title="[% locale.maketext("This version of PostgreSQL is ANSI SQL-92 compliant and does not support recursive grants, wild-card grants or future grants.")  %] [% locale.maketext("If you use phpPgAdmin, or manually create new tables, and you want multiple PostgreSQL Users to be able to access your PostgreSQL Tables you will need to synchronize the grants after adding tables to your PostgreSQL Database(s).")  %]"></span>
+        </div>
+    </div>
+
+    <table class="sortable table table-striped">
+        <thead>
+              <tr>
+                <th>[% locale.maketext("Users") %]</th>
+                <th class="sorttable_nosort">
+                    [% locale.maketext("Actions") %]
+                </th>
+              </tr>
+        </thead>
+        <tbody>
+        [%  IF users.size() %]
+            [% FOREACH user IN users %]
+            <tr class="row-[%  loop.index % 2 == 0 ? 'even' : 'odd' %]">
+                <td>[%  user.user.html() %]</td>
+                <td>
+                    <a class="btn btn-link" title="[% locale.maketext('Give this user a new password.') %]" href="changepasswd.html?user=[% user.user.uri() %]">
+                        <span class="fas fa-key"></span>[% locale.maketext('Change Password') %]
+                    </a>
+                    <a class="btn btn-link" title="[% locale.maketext('Rename this user.') %]" href="javascript:void(0)" onclick='SQLUI.show_rename_form("user",this,[%  user.user.json() %])'>
+                        <span class="glyphicon glyphicon-pencil"></span>[% locale.maketext('Rename') %]
+                    </a>
+                    <a class="btn btn-link" title="[% locale.maketext('Delete this user.') %]" href="deluserconfirm.html?user=[%  user.user.uri() %]">
+                        <span class="glyphicon glyphicon-trash"></span>[% locale.maketext('Delete') %]
+                    </a>
+                </td>
+            </tr>
+            [% END %]
+        [% END %]
+        </tbody>
+    </table>
+</div>
+
+[% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+
+[% PROCESS 'sqlui.tmpl'
+    db_engine => 'postgresql',
+    rename_url => 'changepasswd.html',
+-%]
+
+<style type="text/css">
+    .rename-dialog {
+        width: 500px;
+    }
+
+    .action-link {
+        white-space: normal;
+        display: inline-block;
+        margin: 0 5px;
+        text-align: center;
+    }
+
+    td.actions {
+        white-space: nowrap;
+    }
+</style>
+
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+    <script type="text/javascript">
+        var REQUIRED_PASSWORD_STRENGTH = [% required_strength.json() %] || 5;
+        var max_length = [% user_max_length.json() %];
+        var db_max_length = [% database_max_length.json() %];
+
+        [% IF !(CPANEL.CPVAR.item('statsbar_postgresqldatabases_maxed')) %]
+        /**
+         * Initialize the validation for the database form
+         */
+        var init_newdb_validation = function() {
+            var dbname_validator = new CPANEL.validate.validator("[% locale.maketext("New Database") %]");
+
+            dbname_validator.add_thrower( "dbname", function(el) {
+                return CPANEL.sql.verify_postgresql_database_name(el.value)
+            } );
+
+            dbname_validator.attach();
+
+            CPANEL.validate.attach_to_form("submit_dbname", dbname_validator);
+        };
+        [% END %]
+
+        /**
+         * Initialize the user validation.
+         */
+        var init_user_validation = function() {
+            var user_validator = new CPANEL.validate.validator("[% locale.maketext("Username") %]");
+            user_validator.add("user", "sql_alphanumeric", "[% locale.maketext("Username must be alphanumeric characters.")  %]");
+            user_validator.add("user", function () {
+                   var user = document.getElementById('user').value;
+                   return (!(/^\d/.test(user)));
+                }, "[% locale.maketext("Entry cannot begin with a number.")  %]");
+            user_validator.add("user", function () {
+                   var user = document.getElementById('user').value;
+                   return (!(/\_$/.test(user)));
+                }, "[% locale.maketext("Entry cannot end with a trailing underscore.")  %]");
+
+            user_validator.add("user", "max_length(%input%, " + max_length + ")", LOCALE.maketext('Username cannot be longer than [quant,_1,character,characters].', max_length) );
+            user_validator.attach();
+
+            var password_validators = CPANEL.password.setup("password", "password2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+            password_validators.push(user_validator);
+            CPANEL.validate.attach_to_form("submit_new_user", password_validators);
+        };
+
+        [% IF !(CPANEL.CPVAR.item('statsbar_postgresqldatabases_maxed')) %]
+        YAHOO.util.Event.onDOMReady(init_newdb_validation);
+        [% END %]
+        YAHOO.util.Event.onDOMReady(init_user_validation);
+    </script>
+[% END %]
+
+[% END %]
+
+[% ELSE %]
+[%
+    SET CPANEL.CPVAR.headerimg = "../images/topmysql.gif";
+    SET CPANEL.CPVAR.dprefix = "../";
+-%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+    include_cjt = 1
+    page_stylesheets = ['css2-min/psql/index.css']
+-%]
+
+<div class="body-content">
+[% locale.maketext("Postgres is not installed on this server.") -%]
+</div>
+
+[% END %]
+[% END %]
+
+

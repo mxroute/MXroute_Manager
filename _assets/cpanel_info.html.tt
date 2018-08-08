@@ -1,0 +1,38 @@
+[%
+    SET display_name_hash = {
+        "hostingpackage" => locale.maketext("Hosting Package"),
+        "shorthostname" => locale.maketext("Server Name"),
+        "cpanelversion" => locale.maketext("[asis,cPanel] Version"),
+        "apacheversion" => locale.maketext("Apache Version"),
+        "phpversion" => locale.maketext("PHP Version"),
+        "mysqlversion" => locale.maketext("MySQL Version"),
+        "machinetype" => locale.maketext("Architecture"),
+        "operatingsystem" => locale.maketext("Operating System"),
+        "sharedip" => locale.maketext("Shared IP Address"),
+        "dedicatedip" => locale.maketext("Dedicated IP Address"),
+        "localip" => locale.maketext("Local IP Address"),
+        "sendmailpath" => locale.maketext("Path to Sendmail"),
+        "perlpath" => locale.maketext("Path to Perl"),
+        "perlversion" => locale.maketext("Perl Version"),
+        "kernelversion" => locale.maketext("Kernel Version"),
+    };
+
+    SET stats = execute( 'StatsBar', 'get_stats', { 'display' => 'hostingpackage|shorthostname|cpanelversion|apacheversion|phpversion|mysqlversion|machinetype|operatingsystem|sharedip|dedicatedip|localip|sendmailpath|perlpath|perlversion|kernelversion' } );
+%]
+
+<table width="100%" id="cpanel_info_table" class="table table-striped">
+    <thead>
+        <tr id="cpanel_info_tableheader">
+           <th>[% locale.maketext("Item") %]</th>
+           <th>[% locale.maketext("Detail") %]</th>
+        </tr>
+    </thead>
+    <tbody>
+         [% FOREACH stats.data # We use the short format here because it is much faster with Template::Stash::XS, but only safe if there are no missing keypairs %]
+        <tr>
+            <td class="stats_left" id="stats_[% id %]_text">[% key = id; display_name_hash.$key %]</td>
+            <td class="stats_right" id="stats_[% id %]_value">[% value %]</td>
+        </tr>
+        [% END %]
+    </tbody>
+</table>

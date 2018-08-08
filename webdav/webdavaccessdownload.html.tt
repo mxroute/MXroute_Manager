@@ -1,0 +1,352 @@
+[%
+USE Ports;
+SET CPANEL.CPVAR.dprefix = "../";
+SET ports = Ports.get_ports('dav');
+SET SSL_get_cn_name =  execute("SSL", "get_cn_name", {"domain"=>FORM.domain, "service"=>"dav"} );
+SET SSL_data = SSL_get_cn_name.data;
+
+#
+# If they use proxy subdomains we need send them to default
+# web ports.
+#
+# **********************************************************************
+# case CPANEL-10895: Webdisk setup shows the wrong ports when accessed
+# via proxy subdomains when webdisk.DOMAIN is self signed
+#
+# As of version 64+, we ignore the FORM.port
+# and FORM.sslport as they were frequently wrong
+# when using proxy subdomains.
+# **********************************************************************
+#
+SET webdisk_domain=RAW_FORM.domain;
+
+# If they are using the webdisk proxy subdomain
+# we need to connect to the default webports
+IF SSL_data.ssldomain.index("webdisk.") == 0;
+ SET webdisk_ssldomain = SSL_data.ssldomain;
+ SET webdisk_mainport = CPANEL.CPCONF.apache_port.replace('.+:','') || 80;
+ SET webdisk_sslport = CPANEL.CPCONF.apache_ssl_port.replace('.+:','') || 443;
+ SET webdisk_ssl_self_signed =  SSL_data.is_self_signed ? 'true' : 'false';
+#
+# case CPANEL-10895: Webdisk setup shows the wrong ports when accessed
+# via proxy subdomains when webdisk.DOMAIN is self signed
+#
+# In this case we do not have a signed ssl cert
+# for the webdisk proxy subdomains we still
+# need to use the domain name so it connects to
+# webdisk but mark the cert as self signed so
+# they get the proper warnings
+ELSIF RAW_FORM.domain.index("webdisk.") == 0;
+ SET webdisk_ssldomain = FORM.domain;
+ SET webdisk_mainport = CPANEL.CPCONF.apache_port.replace('.+:','') || 80;
+ SET webdisk_sslport = CPANEL.CPCONF.apache_ssl_port.replace('.+:','') || 443;
+ SET webdisk_ssl_self_signed =  'true';
+# The usual case were we connect to 2077/2078
+ELSE;
+ SET webdisk_ssldomain = SSL_data.ssldomain;
+ SET webdisk_sslport = ports.WEB_DAV_SSL_PORT;
+ SET webdisk_mainport = ports.WEB_DAV_NO_SSL_PORT;
+ SET webdisk_ssl_self_signed =  SSL_data.is_self_signed ? 'true' : 'false';
+END;
+
+SET user = "";
+IF FORM.user;
+    user = FORM.user;
+ELSE;
+    user = CPANEL.user;
+END;
+
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_init_js = js_code
+    embed_stylesheets = [
+        'webdav/webdavaccessdownload.css'
+    ]
+    embed_scripts = [
+        'webdav/webdavaccessdownload.js'
+    ]
+    meta = '<meta name="apple-itunes-app" content="app-id=593289722">'
+-%]
+<div class="body-content">
+
+[% INCLUDE _assets/_ajaxapp_header.html.tt %]
+
+    <p class="description" id="descAccessWebDisk">
+        [% locale.maketext("To view login details or download a configuration script, select your operating system, device, or application from the appropriate menu.") %] [% locale.maketext("For more information, read our [output,url,_1,documentation].","https://go.cpanel.net/AccessWebDisk") %]
+    </p>
+
+    [% IF !(CPANEL.ENV.HTTP_PROXIED) %]
+    <p class="description" id="descWebDiskNote">
+        <b>[% locale.maketext("Note:") %]</b> [% locale.maketext("To access your Web Disk account, you [output,em,must] configure your computer’s firewall to allow the following ports:") %]
+    </p>
+
+    <ul>
+        <li>[% locale.maketext("Port [_1] ([output,acronym,SSL,Secure Socket Layer])", webdisk_sslport) %]</li>
+        [% IF !CPANEL.CPCONF.requiressl %]
+        <li>[% locale.maketext("Port [_1] (Clear Text (Not Encrypted))", webdisk_mainport) %]</li>
+        [% END %]
+    </ul>
+    [% END %]
+
+    <!-- Helper frame used to download the quick install scripts -->
+    <iframe style="visibility:hidden;width:0;height:0;" name="davaction"></iframe>
+
+    <div id="unsupported-configurations" style="display:none"></div>
+
+    <div id="detected-os" style="display:none"></div>
+
+    <form name="davdown" id="webdavDocForm">
+        <div>
+            <h3>
+                [% locale.maketext("Connection instructions for “[_1]”.", user) %]
+            </h3>
+
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                    <div class="thumbnail" id="apple-group">
+                         <div class="jumbotron-icon">
+                            <i class="fab fa-apple fa-10x" aria-hidden="true"></i>
+                        </div>
+                        <div class="caption">
+                            <select name="apple" id="dav-select-apple" class="form-control dav-selector">
+                                <option value="none">
+                                    [% locale.maketext("Apple® Operating Systems …") %]
+                                </option>
+                                <option value="osx" id="app_osx_tiger">
+                                    [% locale.maketext("[asis,OS X® Tiger (10.4)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_leopard">
+                                    [% locale.maketext("[asis,OS X® Leopard (10.5)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_snowleopard">
+                                    [% locale.maketext("[asis,OS X® Snow Leopard (10.6)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_lion">
+                                    [% locale.maketext("[asis,OS X® Lion (10.7)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_mountainlion">
+                                    [% locale.maketext("[asis,OS X® Mountain Lion (10.8)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_mavericks">
+                                    [% locale.maketext("[asis,OS X® Mavericks (10.9)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_yosemite">
+                                    [% locale.maketext("[asis,OS X® Yosemite (10.10)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_elcapitan">
+                                    [% locale.maketext("[asis,OS X® El Capitan (10.11)]") %]
+                                </option>
+                               <option value="osx105" id="app_osx_sierra">
+                                    [% locale.maketext("[asis,macOS® Sierra (10.12)]") %]
+                                </option>
+                                <option value="osx105" id="app_osx_highsierra">
+                                    [% locale.maketext("[asis,macOS® High Sierra (10.13)]") %]
+                                </option>
+                                <option value="transmit" id="app_transmit">
+                                    [% locale.maketext("[asis,Transmit™]") %]
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                    <div class="thumbnail" id="microsoft-group">
+                        <div class="jumbotron-icon">
+                            <i class="fab fa-windows fa-10x" aria-hidden="true"></i>
+                        </div>
+                        <div class="caption">
+                            <select name="microsoft" id="dav-select-microsoft" class="form-control dav-selector">
+                                <option value="none">
+                                    [% locale.maketext("Microsoft® Operating Systems …") %]
+                                </option>
+                                <option value="win98" id="app_win98">
+                                    [% locale.maketext("[asis,Windows® 98]") %]
+                                </option>
+                                <option value="win2000" id="app_win2000">
+                                    [% locale.maketext("[asis,Windows® 2000]") %]
+                                </option>
+                                <option value="win2003" id="app_win2003">
+                                    [% locale.maketext("[asis,Windows® 2003]") %]
+                                </option>
+                                <option value="winxp" id="app_winxp">
+                                    [% locale.maketext("[asis,Windows XP®]") %]
+                                </option>
+                                <option value="winvista" id="app_winvista">
+                                    [% locale.maketext("[asis,Windows Vista®]") %]
+                                </option>
+                                <option value="win7" id="app_win7">
+                                    [% locale.maketext("[asis,Windows® 7]") %]
+                                </option>
+                                <option value="win8" id="app_win8">
+                                    [% locale.maketext("[asis,Windows® 8]") %]
+                                </option>
+                                <option value="win10" id="app_win10">
+                                    [% locale.maketext("[asis,Windows® 10]") %]
+                                </option>
+                                <option value="bitkinex" id="app_bitkinex">
+                                    [% locale.maketext("[asis,Bitkinex]") %]
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                    <div class="thumbnail" id="unix-group">
+                        <div class="jumbotron-icon">
+                            <i class="fab fa-linux fa-10x" aria-hidden="true"></i>
+                        </div>
+                        <div class="caption">
+                            <select name="unix" id="dav-select-unix" class="form-control dav-selector">
+                                <option value="none" selected="selected">
+                                    [% locale.maketext("[asis,Linux®] and [output,acronym,BSD,Berkeley Software Distribution] Operating Systems …") %]
+                                </option>
+                                <option value="nautilus" id="app_nautilus">
+                                    [% locale.maketext("[asis,Nautilus]") %]
+                                </option>
+                                <option value="konqueror" id="app_konqueror">
+                                    [% locale.maketext("[asis,Konqueror]") %]
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
+                    <div class="thumbnail" id="mobile-group">
+                        <div class="jumbotron-icon">
+                            <i class="fas fa-mobile-alt fa-10x" aria-hidden="true"></i>
+                        </div>
+                        <div class="caption">
+                            <select name="mobile" id="dav-select-mobile" class="form-control dav-selector">
+                                <option value="none" selected="selected">
+                                    [% locale.maketext("Mobile Operating Systems …") %]
+                                </option>
+                                <option value="android" id="app_android">
+                                    [% locale.maketext("[asis,Android]™") %]
+                                </option>
+                                <option value="iphone" id="app_iphone">
+                                    [% locale.maketext("[asis,iPhone]®") %]
+                                </option>
+                                <option value="ipod" id="app_ipod">
+                                    [% locale.maketext("[asis,iPod® Touch]") %]
+                                </option>
+                                <option value="ipad" id="app_ipad">
+                                    [% locale.maketext("[asis,iPad]®") %]
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ssl-choice">
+                <div id="ssl_permitted" style="display:none;" class="form-group">
+                    <div class="checkbox">
+                        <label id="lblSslChkBox">
+                            <input name="ssl" type="checkbox" id="ssl" value="checkbox" checked="checked" onclick="setup_dav_instructions();" />
+                            <img id="ssl-lock" src="[% theme_magic_url("images/lock.gif") %]" />
+                            <span id="ssl-info-active">[% locale.maketext('Secure Connection ([output,acronym,SSL,Secure Socket Layer])')  %]</span>
+                        </label>
+                    </div>
+                </div>
+                <div id="ssl_not_available" style="display:none;">
+                    <img id="ssl-unlock" src="[% theme_magic_url("images/unlock.gif") %]"> <span id="ssl-infor-inactive">[% locale.maketext('Secure Connection ([output,acronym,SSL,Secure Socket Layer]) Not Available.')  %]</span>
+                    <span class="glyphicon glyphicon-info-sign" id="ssl-info" onclick="CPANEL.ajax.toggleToolTip(this, LOCALE.maketext('SSL Availablity Notice'));" title="[% locale.maketext('SSL is not available because this server uses a self-signed or invalid certificate and your operating system requires a certificate from a recognized certificate authority. Contact your system administrator for more information.') %]">
+                </div>
+                <div id="cleartext_not_available" style="display:none;">
+                    <span id="cleartext-infor-inactive">[% locale.maketext('Clear Text Availability Notice')  %]</span>
+                    <span class="glyphicon glyphicon-info-sign" id="cleartext-info" onclick="CPANEL.ajax.toggleToolTip(this,'[% locale.maketext("Clear Text Availability Notice")  %]');" title="[%locale.maketext('A unencrypted connection is not available because this account does not use Digest Authentication. Your operating system requires Digest Authentication to connect over an unencrypted channel.') %]">
+                    </span>
+                </div>
+            </div>
+
+            <div id="helper_area" style="display:none;" class="form-group">
+                <dl id="infoSSL" class="dl-horizontal">
+                    <dt>[% locale.maketext("[output,class,Server Address,title]:") %]</dt>
+                    <dd>[% webdisk_ssldomain.html %]</dd>
+                    <dt>[% locale.maketext("[output,class,Port,title]:") %]</dt>
+                    <dd>[% webdisk_sslport %]</dd>
+                    <dt>[% locale.maketext("[output,class,Username,title]:") %]</dt>
+                    <dd>[% user %]</dd>
+                    <dt>[% locale.maketext("[output,class,Password,title]:") %]</dt>
+                    <dd>[% locale.maketext("Your Web Disk account password.") %]</dd>
+                    <dt>[% locale.maketext("[output,class,SSL Enabled,title]:") %]</dt>
+                    <dd>[% locale.maketext("Enabled") %]</dd>
+                </dl>
+                <dl id="infoNonSSL" class="dl-horizontal">
+                    <dt>[% locale.maketext("[output,class,Server Address,title]:") %]</dt>
+                    <dd>[% webdisk_domain.html %]</dd>
+                    <dt>[% locale.maketext("[output,class,Port,title]:") %]</dt>
+                    <dd>[% webdisk_mainport %]</dd>
+                    <dt>[% locale.maketext("[output,class,Username,title]:") %]</dt>
+                    <dd>[% user %]</dd>
+                    <dt>[% locale.maketext("[output,class,Password,title]:") %]</dt>
+                    <dd>[% locale.maketext("Your Web Disk account password.") %]</dd>
+                    <dt>[% locale.maketext("[output,class,SSL Enabled,title]:") %]</dt>
+                    <dd>[% locale.maketext("Disabled") %]</dd>
+                </dl>
+
+                <a href="javascript:download_dav_helper_area();" onclick="download_dav_helper_area(); return false;" class="btn btn-primary" title="[% locale.maketext("Click this button to download the configuration script.") %]" id="btnDownloadQuickStartScript">[% locale.maketext("Download Configuration Script")  %]</a>
+            </div>
+
+
+            <div id="cjt_pagenotice_container"></div>
+        </div>
+    </form>
+
+    [% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='accounts_webdav.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+<script id="detected-os-template" type="text/html">
+    <a href="javascript:void()" onclick="selectDetectedOS(); return false;" id="detected-os-link">
+        [% locale.maketext("The system has detected that you use “[_1]”. Click to view instructions to access your Web Disk account from this operating system.","{os-name}") %]
+    </a>
+</script>
+[% END %]
+
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+window.PAGE = {
+    ssl_info: [
+          [%- webdisk_ssldomain.json() -%],
+          [%- webdisk_ssl_self_signed -%],
+          [%- SSL_data.is_wild_card ? 'true' : 'false' -%]
+    ],
+    domain: encodeURIComponent([% webdisk_domain.json() || 'null' %]),
+    standardport: [% webdisk_mainport.json() || 'null' %],
+    sslport:  [% webdisk_sslport.json() || 'null' %],
+    hasDigest: [% RAW_FORM.hasdigest ? 'true' : 'false' %],
+    requireSSL: [% CPANEL.CPCONF.requiressl ? 'true' : 'false' %],
+    token: "[% CPANEL.ENV.cp_security_token.html %]"
+};
+
+/**
+* Jump menu function for use with getting started wizard when this is used in that context
+* @method MM_jumpMenu
+* @param {String} targ  - window or frame referenes or name
+* @param {String} selObj Drop down list of page to select, the value in the option is the url to navigate to for the next page.
+* @param {Boolean} restore Causes the selector to navigate to the first element after we navigate to the selected page. (WHY?) */
+function MM_jumpMenu(targ, selObj, restore){ //v3.0
+    eval(targ + ".location='" + selObj.options[selObj.selectedIndex].value + "'");
+    if (restore) {
+        selObj.selectedIndex = 0;
+    }
+}
+
+</script>
+[% END %]
+
+
+

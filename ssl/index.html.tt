@@ -1,0 +1,47 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+-%]
+<div class="body-content">
+
+    <p id="descSSL" class="description">[% locale.maketext('The SSL/TLS Manager will allow you to generate SSL certificates, certificate signing requests, and private keys. These are all parts of using SSL to secure your website. SSL allows you to secure pages on your site so that information such as logins, credit card numbers, etc are sent encrypted instead of plain text. It is important to secure your site’s login areas, shopping areas, and other pages where sensitive information could be sent over the web.') %]</p>
+
+    <div class="section">
+      <h2 id="hdrPrivate"> [% locale.maketext("Private Keys (KEY)") %]</h2>
+      <p><a id="lnkPrivate" href="keys.html">[% locale.maketext("Generate, view, upload, or delete your private keys.") %]</a></p>
+      <h2 id="hdrCSR">[% locale.maketext("Certificate Signing Requests (CSR)") %]</h2>
+      <p><a id="lnkRequests" href="csrs.html">[% locale.maketext("Generate, view, or delete SSL certificate signing requests.") %]</a></p>
+      <h2 id="hdrCRT">[% locale.maketext("Certificates (CRT)") %]</h2>
+      <p><a id="lnkCRT" href="crts.html">[% locale.maketext("Generate, view, upload, or delete SSL certificates.") %]</a></p>
+
+
+      [% IF ExpVar.expand('$isallowedssl') && CPANEL.feature('sslinstall') -%]
+          <h2 id="hdrInstall">[% locale.maketext('Install and Manage SSL for your site (HTTPS)') %]</h2>
+          <p><a id="lnkInstall" href="install.html">[% locale.maketext('Manage SSL sites.') %]</a></p>
+          <noscript>
+          <div id="noscriptInfo" class="alert alert-info alert-dismissable">
+              <span id="noscriptInfoImg" class="glyphicon glyphicon-info-sign"></span>
+              <div id="noscriptInfoMsg" class="alert-message">
+                  [% locale.maketext("Since you have javascript disabled, you will not be able to fetch keys and certificates from the server, you will need to paste in the certificate and key, and cabundle (if needed).") %]
+              </div>
+          </div>
+          </noscript>
+      [% END %]
+
+      [% IF ExpVar.expand('$isreseller') && ExpVar.expand('$hasdedicatedip') %]
+        [% installed_host = execute('SSL', 'installed_host') %]
+        [% check_shared_cert = execute('SSL', 'check_shared_cert') %]
+
+        [% IF installed_host.data.host %]
+            <h2 id="hdrSharing">[% locale.maketext("Manage Certificate Sharing") %]</h2>
+            <p><a id="lnkSharing" href="manageshare.html">[% locale.maketext("Change Certificate Sharing Permissions.") %]</a></p>
+        [% END %]
+
+        [% IF check_shared_cert.data.has_shared_cert %]
+            <h2 id="hdrUrl">[% locale.maketext("Your Shared SSL Certficate URL") %]</h2>
+            <p><a id="lnkCheck" target="_blank" href="https://[% check_shared_cert.data.shared_ssl_host %]/~[% ExpVar.expand('$user').uri() %]/">https://[% check_shared_cert.data.shared_ssl_host %]/~[% ExpVar.expand('$user') %]/</a></p>
+        [% END %]
+      [% END %]
+    </div>
+</div>
+[% END #wrapper %]

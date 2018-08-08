@@ -1,0 +1,22 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    Api1.pre_exec("Htaccess", "setindex");
+    SET index_results = Api1.exec("Htaccess", "setindex", [FORM.dir, FORM.indexes]);
+    Api1.post_exec("Htaccess", "setindex");
+%]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'indexes'
+ -%]
+<div class="body-content">
+    <div class="alert alert-success" id="indexSetingSuccess">
+        <span class="glyphicon glyphicon-ok-sign" id="indexSetingSuccessImg"></span>
+        <div class="alert-message" id="indexSetingSuccessMsg">
+            [% locale.maketext("The index settings on “[_1]” have been updated. Its indexes are now: [_2]", FORM.dir, index_results) %]
+        </div>
+    </div>
+    [%
+        SET return_url = 'dohtaccess.html?dir=' _ FORM.dir;
+        INCLUDE _assets/return_link.html.tt return_location=return_url return_link_text=locale.maketext('Go Back')
+    %]
+</div>
+[% END #wrapper -%]

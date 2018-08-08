@@ -1,0 +1,123 @@
+[%# parameters: id, rows_per_page, rows_per_page_options -%]
+
+[% USE JSON -%]
+
+
+
+
+<div id="[% id %]_top_paginator" class="top_paginator pagination"></div>
+<div class="cjt_table_section">
+    <div class="cjt_table_hd">
+        <div class="cjt_table_search_container">
+            <input name="textfield" type="text" class="cjt_table_search" id="[% id %]_search_box" />
+        </div>
+        <span id="[% id %]_matches_count" class="matches_count"></span>
+
+        <div class="cjt_table_action_links">
+            <span id="[% id %]_page_size_changer" class="cjt_page_size_changer" style="display:none"></span>
+            <a id="[% id %]_column_select_link" class="column_select_link" href="javascript:void(0)"></a>
+            <a id="[% id %]_reload_link" class="reload_link" href="javascript:void(0)"></a>
+        </div>
+    </div>
+    <div id="[% id %]_container"></div>
+</div>
+
+<div id="[% id %]_bottom_paginator" class="bottom_paginator pagination"></div>
+
+
+[%
+IF !STANDARD_TABLE_LOADED;
+    SET STANDARD_TABLE_LOADED = 1;
+
+    SET LEXICON = {
+        actions =>    locale.maketext("Actions"),
+        all =>        locale.maketext('All'),
+        first =>      locale.maketext('First'),
+        last =>       locale.maketext('Last'),
+        loading =>    locale.maketext('Loading …'),
+        next =>       locale.maketext("Next"),
+        no_records => locale.maketext('No records found.'),
+        previous =>   locale.maketext('Previous'),
+        search =>     locale.maketext('Search'),
+    };
+-%]
+<script>
+if ( !window.LEXICON ) LEXICON={};
+YAHOO.lang.augmentObject( LEXICON, [% LEXICON.json() %] );
+</script>
+<link rel="stylesheet" href="[% MagicRevision('/yui/assets/skins/sam/datatable.css') %]" type="text/css" />
+<link rel="stylesheet" href="[% MagicRevision('/cjt/css/datatable.css') %]" type="text/css" />
+<!--[if lte IE 7]>
+<style type="text/css">
+.cjt-text-input-placeholder .bd {
+    position: relative;
+    top: 50%;
+}
+.cjt-text-input-placeholder .cjt-ie-shell {
+    position: relative;
+    top: -50%;
+}
+.cjt-text-input-placeholder .bd,
+.cjt-text-input-placeholder .cjt-ie-shell {
+    zoom: 1;  /* to force hasLayout */
+}
+</style>
+<![endif]-->
+<!--[if lte IE 8]>
+<style type="text/css">
+.yui-dt-resizer {
+    filter: alpha(opacity=0);
+}
+
+.column_select,
+.cjt_table_section {
+    background-color: #e2e2e2;
+    background-image: url([% MagicRevision('/cjt/css/datatable-gradient-ie678.png') %]);
+    background-repeat: repeat-x;
+}
+
+.cjt_page_size_changer,
+.yui-pg-current-page {
+    filter: progid:DXImageTransform.Microsoft.Gradient( startColorStr='#fcfcfc', endColorStr='#e2e2e2' );
+    zoom: 1;
+    display: inline-block;
+}
+
+.cjt_page_size_changer a.current {
+    filter: progid:DXImageTransform.Microsoft.Gradient( startColorStr='#cdcdcd', endColorStr='#e5e5e5' );
+    zoom: 1;
+}
+</style>
+<![endif]-->
+<!--[if IE 9]>
+<style type="text/css">
+.yui-pg-page,
+.cjt_page_size_changer {
+    behavior: url([% MagicRevision('/cjt/ie9gradients.htc') %]);
+}
+
+.yui-pg-current-page,
+.cjt_page_size_changer {
+    -cp-background-image: linear-gradient( #fdfdfd, #e2e2e2 );
+}
+
+.cjt_page_size_changer > a {
+    behavior: url([% MagicRevision('/cjt/ie9gradients.htc') %]);
+}
+.cjt_page_size_changer > a.current {
+    -cp-background-image: linear-gradient( #cdcdcd, #e5e5e5 );
+}
+
+.cjt_table_section,
+.column_select {
+    behavior: url([% MagicRevision('/cjt/ie9gradients.htc') %]);
+    -cp-background-image: linear-gradient( #fdfdfd, #e2e2e2 86px, #e2e2e2 )
+}
+</style>
+<![endif]-->
+<script type="text/javascript" src="[% MagicRevision('/yui-gen/data/data.js') -%]"></script>
+<script type="text/javascript" src="[% MagicRevision('/cjt/datatable.js') -%]"></script>
+
+<!-- preload -->
+<img id="reload_img_preload" style="display:none" src="[% MagicRevision('/cjt/css/reload-animate.gif') %]" />
+[% END -%]

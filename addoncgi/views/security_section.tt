@@ -1,0 +1,33 @@
+    <h4>[% locale.maketext('Security Information') %]</h4>
+    <div class="row">
+        <div class="col-xs-12 col-sm-6">
+            [% IF module.meta.security %]
+            <div class="well">[% module.meta.security %]</div>
+            [% END %]
+
+            [% IF module.meta.security_id && module.meta.security_id_valid %]
+            <p>
+                <a target="_blank" href="[% vendor.securl %]?id=[% module.meta.security_id %]">[% locale.maketext('[_1] Security Advisory', vendor.name.html()) %]</a>
+                ([% locale.maketext('[output,strong,Only] valid if [asis,MD5] sum at that link is [_1].', module.md5.html()) %])
+            </p>
+            [% END %]
+
+    <!-- TODO: Restore or rework security ranking code. [LC-6609]
+        [% IF module.meta.security_rank %]
+        <p>
+        [% locale.maketext('Security Ranking: ([_1] out of 10)', module.meta.security_rank.html()) %]
+        [% SET secimg_url = vendor.secimg _ "/security_rank_" _ module.meta.security_rank _ ".gif" %]
+        <img align="absmiddle" src="[% secimg_url | url %] " />
+        </p>
+        [% END %]
+    -->
+
+    <!-- TODO: Restore or rework security ranking code. [LC-6609]
+        [% IF !module.meta.security_rank || module.meta.security_rank < lowest_allowed %]
+        <p>
+        [% locale.maketext('You cannot use this [asis,cPAddon] because it is rated below the server’s approved security ranking. Contact your hosting provider for more information.') %]
+        </p>
+        [% END %]
+    -->
+        </div>
+    </div>

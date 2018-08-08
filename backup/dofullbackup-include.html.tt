@@ -1,0 +1,37 @@
+<!--
+[%
+Api1.pre_exec("Fileman", "fullbackup");
+Api1.exec("Fileman", "fullbackup", [RAW_FORM.dest, RAW_FORM.server, RAW_FORM.user, RAW_FORM.pass, RAW_FORM.email, RAW_FORM.port, RAW_FORM.rdir]);
+Api1.post_exec("Fileman", "fullbackup")
+%]
+-->
+[% IF !CPANEL.CPERROR.backups %]
+    <div id="backupSuccess" class="alert alert-info">
+        <span id="backupSuccessImg" class="glyphicon glyphicon-info-sign"></span>
+        <div id="backupSuccessMsg" class="alert-message">
+            [% locale.maketext("Full Backup in Progress …") %]
+            <div>
+                [% IF (FORM.email && !CPANEL.CPERROR.backups && !CPANEL.CPERROR.ftp) %]
+                    [% locale.maketext("Once the full backup of your account has been completed, you will receive an email at the address you specified, “[_1]”.",FORM.email) %]
+                [% END %]
+                [% IF (!FORM.email && !CPANEL.CPERROR.backups && !CPANEL.CPERROR.ftp) %]
+                    [% locale.maketext("Per your request, no notification will be sent upon backup completion.") %]
+                [% END %]
+            </div>
+        </div>
+    </div>
+[% ELSE %]
+    <div id="backupFailure" class="alert alert-danger">
+        <span id="backupFailureImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="backupFailureMsg" class="alert-message">
+            [% locale.maketext("Unable to Create Backup") %]
+            <div>
+                [% CPANEL.CPERROR.backups.html %]
+            </div>
+        </div>
+    </div>
+[% END %]
+
+
+
+

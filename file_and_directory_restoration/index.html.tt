@@ -1,0 +1,31 @@
+[%
+USE Uapi;
+
+# Declare the root directory
+SET CPANEL.CPVAR.dprefix = "../";
+
+WRAPPER '_assets/master.html.tt'
+    app_key = 'file_and_directory_restoration'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    use_master_bootstrap = 0
+    include_cjt = 0
+    feature = 'filerestoration'
+    page_stylesheets = CPANEL.is_debug_mode_enabled() ?
+        [ "file_and_directory_restoration/index.css" ] :
+        [ "file_and_directory_restoration/index.min.css" ];
+-%]
+
+<script id="file_and_directory_restoration/views/list.ptt" type="text/ng-template">
+    [% PROCESS 'file_and_directory_restoration/views/list.ptt' %]
+</script>
+
+<div class="body-content">
+    <cp-alert-list alert-group="'cpanel-restoration'"></cp-alert-list>
+    <div ng-controller="applicationController">
+        <div id="viewContent" class="ng-cloak" ng-view ng-cloak></div>
+    </div>
+</div>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+[% END -%]

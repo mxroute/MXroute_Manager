@@ -1,0 +1,135 @@
+[%
+CPANEL.CPVAR.dprefix = '../';
+
+# Delete the select key
+SET delete_key = execute("SSL", "delete_key", { friendly_name=RAW_FORM('keyname') } );
+
+SET deleted_certs = [];
+SET deleted_csrs = [];
+SET error_certs = [];
+SET error_csrs = [];
+
+IF delete_key.status;
+    SET form_cert_keys = RAW_FORM.keys.grep('^delete_cert-');
+    FOR formkey = form_cert_keys;
+        SET itemname = formkey.replace('^delete_cert-','');
+        SET delete_cert = execute( 'SSL', 'delete_cert', { friendly_name => itemname } );
+        IF ( delete_cert.status );
+            deleted_certs.push( { name_html => itemname.html(), cn_html => delete_cert.data.0.${'subject.commonName'}.html() } );
+        ELSE;
+            error_certs.push( { name_html => itemname.html(), error_html => delete_cert.errors.0.html() } );
+        END;
+    END;
+    SET form_csr_keys = RAW_FORM.keys.grep('^delete_csr-');
+    FOR formkey = form_csr_keys;
+        SET itemname = formkey.replace('^delete_csr-','');
+        SET delete_csr = execute( 'SSL', 'delete_csr', { friendly_name => itemname } );
+        IF ( delete_csr.status );
+            deleted_csrs.push( { name_html => itemname.html(), cn_html => delete_csr.data.0.commonName.html() } );
+        ELSE;
+            error_csrs.push( { name_html => itemname.html(), error_html => delete_csr.errors.0.html() } );
+        END;
+    END;
+END;
+
+SET ref = FORM.ref || '';
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    embed_scripts = ["js2/ssl/deletekey.js"]
+-%]
+<div class="body-content">
+    <h2 id="hdrDelete">
+        [% locale.maketext('Delete Private Key') %]
+    </h2>
+
+    <div id="delete-status">
+        [% IF delete_key.status %]
+            <p>
+                [% locale.maketext('The private key has been deleted: [_1]', RAW_FORM.keyname.html()) %]
+            </p>
+
+            [% IF deleted_certs.size || deleted_csrs.size %]
+            <p class="also">
+                [% locale.maketext('The following related resources have also been deleted:') %]
+                <ul class="bulleted">
+                [% FOR item IN deleted_certs -%]
+                    <li>[% locale.maketext('Certificate “[_1]”[comment,common name of certificate] - “[_2]”[comment,friendly name of certificate when it is different than the common name]', item.cn_html, item.name_html) %]</li>
+                [% END -%]
+                [% FOR item IN deleted_csrs -%]
+                    <li>[% locale.maketext('[output,acronym,CSR,Certificate Signing Request]: [output,strong,_1] - [_2]', item.cn_html, item.name_html) %]</li>
+                [% END %]
+                </ul>
+            <p>
+            [% END %]
+
+        [% ELSE %]
+            <p>
+                [% locale.maketext('The private key “[_1]” could not be deleted because an error occurred: [_2]', RAW_FORM.keyname.html(), delete_key.errors.0.html()) %]
+            </p>
+        [% END %]
+    </div>
+
+    [% IF delete_key.status && (error_certs.size || error_csrs.size) %]
+        <div id="dependent-errors">
+            <p class="also">
+                [% locale.maketext('The following resources could not be deleted because of errors:') %]
+                <ul>
+                [% FOR item IN error_certs -%]
+                    <li>[% locale.maketext('Certificate “[_1]”: [_2]', item.name_html, item.error_html) %]</li>
+                [% END -%]
+                [% FOR item IN error_csrs -%]
+                    <li>[% locale.maketext('[output,acronym,CSR,Certificate Signing Request]: [output,strong,_1] - [_2]', item.name_html, item.error_html) %]</li>
+                [% END %]
+                </ul>
+            <p>
+        </div>
+    [% END %]
+
+    <ul class="list-inline text-center">
+        [%- IF ref;
+            SWITCH ref;
+                CASE "csrs" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCSR' return_location='csrs.html?selkey=' _ generate_key.data.id _ '' return_link_text=locale.maketext('Return to SSL Certificate Signing Requests') %]
+            </li>
+        [%-     CASE "crts" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCRT' return_location='crts.html?selkey=' _ generate_key.data.id _ '' return_link_text=locale.maketext('Return to SSL Certificates') %]
+            </li>
+        [%- END;
+            END -%]
+        <li>
+        [% IF ref %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html?ref=' _ ref.uri() _ '' return_link_text=locale.maketext('Go Back') %]
+        [% ELSE %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html' return_link_text=locale.maketext('Go Back') %]
+        [% END %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    /**
+     * This module contains all the page specific constants generated by the server.
+     * @module PAGE.Properties
+     */
+     var PAGE = {
+        properties : {
+            deleted :  [% delete_key.status ? 'true' : 'false' %]
+        }
+    }
+
+    // Publish the PAGE object;
+    window["PAGE"] = PAGE;
+})();
+</script>
+[% END %]

@@ -1,0 +1,300 @@
+<ol class="breadcrumb">
+    <li><a href="" ng-click="loadView('list/rows', { loadFromCache: true }, { clearAlerts: true})">[% locale.maketext('User Manager') %]</a></li>
+    <li class="active">[% locale.maketext('Edit User') %]</li>
+</ol>
+<span spinner id="loadingSpinner" class="headerSpinner" glyph-class="fas fa-sync" title="[% locale.maketext('Loading …') %]"></span>
+
+<cp-alert-list></cp-alert-list>
+<cp-issue-list issues="ui.user.issues" id-prefix="edit_view"></cp-issue-list>
+<div class="section">
+    <form novalidate name="form" prevent-navigation-on-backspace class="ng-hide" ng-show="!ui.isLoading">
+        <input id="hiddenGuid" type="hidden" name="guid" ng-model="ui.user.guid">
+        <h4 class="section-heading">
+            [% locale.maketext('Basic Information') %]
+        </h4>
+        <div class="section-body">
+            <div class="row form-group ng-hide" ng-show="canPromote(ui.user)">
+                <div class="col-xs-12">
+                    <label for="full-name">
+                        [% locale.maketext('Full Name') %]
+                    </label>
+                </div>
+                <div class="col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8 col-md-6">
+                            <input  id="full-name"
+                                    name="full-name"
+                                    class="form-control"
+                                    placeholder="John S. Doe"
+                                    title="[% locale.maketext('The user’s full name.') %]"
+                                    ng-model="ui.user.real_name"
+                                    ng-maxlength="256"
+                                    pattern="[^<>&]*"
+                                    auto-focus="canPromote(ui.user)"
+                                    ng-disabled="ui.isSaving">
+                        </div>
+                        <div class="col-xs-12 col-sm-4 col-md-6">
+                           <ul validation-container field-name="full-name">
+                               <li validation-item field-name="full-name" validation-name="pattern" id="val-full-name-invalid-pattern">
+                                   [% locale.maketext('The full name cannot include the following special characters: [list_or_quoted,_1].', ['<','>','&']) %]
+                               </li>
+                               <li validation-item field-name="full-name" validation-name="maxlength" id="val-full-name-max-length">
+                                   [% locale.maketext('The full name cannot exceed 256 characters.') %]
+                               </li>
+                           </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row form-group">
+                <div class="col-xs-12">
+                    <label for="username">
+                        [% locale.maketext('Username') %]
+                    </label>
+                </div>
+                <div class="col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8 col-md-6">
+                            <div class="input-group">
+                                <input  id="username"
+                                        name="username"
+                                        required
+                                        readonly
+                                        username="cpanel"
+                                        class="form-control"
+                                        title="[% locale.maketext('The user’s username.') %]"
+                                        ng-model="ui.user.username">
+                                <span class="input-group-addon">@</span>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-4 col-md-6">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row form-group">
+                <div class="col-xs-12">
+                    <label for="domain">
+                        [% locale.maketext('Domain') %]
+                    </label>
+                </div>
+                <div class="col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8 col-md-6">
+                            <input id="domain"
+                                   name="domain"
+                                   class="form-control"
+                                   readonly
+                                   title="[% locale.maketext('The user’s domain.') %]"
+                                   ng-model="ui.user.domain">
+                        </div>
+                        <div class="col-xs-12 col-sm-4 col-md-6">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row form-group ng-hide" ng-show="canPromote(ui.user)">
+                <div class="col-xs-6">
+                    <toggle-label-info
+                         for="recovery-email"
+                         label-text="[% locale.maketext('Contact Email Address') %]"
+                         label-id="lblRecoveryEmail"
+                         info-icon-id="icoRecoveryEmail"
+                         info-block-id="txtRecoverEmailInfo"
+                         show-info-block="false">
+                         [% locale.maketext('The system sends account notifications and password reset confirmations to this email address.') %]
+                    </toggle-label-info>
+                </div>
+                <div class="col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8 col-md-6">
+                            <input  id="recovery-email"
+                                    name="recovery-email"
+                                    email="rfc"
+                                    restricted-email-domains="{{ ui.user.domain }}"
+                                    class="form-control"
+                                    placeholder="alt.email@another.domain.tld"
+                                    title="[% locale.maketext('Enter an alternate email address for the user.') %]"
+                                    ng-model="ui.user.alternate_email"
+                                    ng-disabled="ui.isSaving">
+                        </div>
+                        <div class="col-xs-12 col-sm-4 col-md-6">
+                           <ul validation-container field-name="recovery-email">
+                               <li validation-item field-name="recovery-email" validation-name="required" id="val-recovery-email-required">
+                                   [% locale.maketext('You must complete this field.') %]
+                               </li>
+                           </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <h4 class="section-heading">
+            [% locale.maketext('Security Information') %]
+        </h4>
+
+        <!-- prevent password autofill -->
+        <input type="text" style="display:none">
+        <input type="password" autocomplete='off' style="display:none">
+
+        <div class="section-body">
+            <div class="row form-group">
+                <div class="col-xs-12">
+                    <label for="password">
+                        [% locale.maketext('Password') %]
+                    </label>
+                </div>
+                <div class="form-group col-xs-12">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8 col-md-6">
+                            <password name="password"
+                                      auto-focus="!canPromote(ui.user)"
+                                      title="[% locale.maketext('The user’s password.') %]"
+                                      minimum-strength="{{minimumPasswordStrength}}"
+                                      placeholder="[% locale.maketext('Enter Password') %]"
+                                      password="ui.user.password"
+                                      show-meter="true"
+                                      show-strength="true"
+                                      show-generator="true"
+                                      minimum-length="5"
+                                      generate-minimum-length="5"
+                                      generate-maximum-length="18"
+                                      generate-button-tab-index="-1"
+                                      toggle-view-button-tab-index="-1"
+                                      generate-settings-tab-index="-1"
+                                      strength-meets-template="[% locale.lextext('This password has a strength of [numf,_1] which meets or exceeds the system requirement of [numf,_2].') %]"
+                                      strength-does-not-meet-template="[% locale.lextext('The password has a strength of [numf,_1], but your system requires a strength of [numf,_2].') %]"
+                                      password-strength="passwordStrength"
+                                      ng-disabled="ui.isSaving">
+                        </div>
+                        <div class="col-xs-12 col-sm-4 col-md-6">
+                           <ul validation-container field-name="password">
+                               <li validation-item field-name="password" validation-name="minlength" id="val-password-minlength">
+                                   [% locale.maketext('You must provide a password with at least 5 characters.') %]
+                               </li>
+                               <li validation-item field-name="password" validation-name="maxlength" id="val-password-maxlength">
+                                   [% locale.maketext('You must provide a password with no more than 18 characters.') %]
+                               </li>
+                               <li validation-item field-name="password" validation-name="minimumPasswordStrength" id="val-password-minimum-strength">
+                                   [% locale.maketext('You must provide a stronger password.') %]
+                               </li>
+                           </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row form-group">
+                <div class="col-xs-12">
+                    <label for="password-confirm">
+                        [% locale.maketext('Password (Again)') %]
+                        <label-suffix for="password-confirm"></label-suffix>
+                    </label>
+                </div>
+                <div class="col-xs-12 col-sm-8 col-md-6">
+                    <input  id="password-confirm"
+                            name="password-confirm"
+                            type="password"
+                            class="form-control"
+                            autocomplete="new-password"
+                            validate-equals="form.password"
+                            title="[% locale.maketext('Confirm the user’s password.') %]"
+                            ng-model="ui.user.passwordConfirm"
+                            ng-disabled="ui.isSaving"
+                            ng-required="ui.user.password">
+                </div>
+                <div class="col-xs-12 col-sm-4 col-md-6">
+                   <ul validation-container field-name="password-confirm">
+                        <li validation-item field-name="password-confirm" validation-name="required" id="val-password-confirm-required">
+                           [% locale.maketext('You must confirm the password.') %]
+                       </li>
+                       <li validation-item field-name="password-confirm" validation-name="validateEquals" id="val-password-confirm-match">
+                           [% locale.maketext('The passwords do not match.') %]
+                       </li>
+                   </ul>
+                </div>
+            </div>
+        </div>
+
+        <h4 id="servicesSectionHeader" class="section-heading"
+            ng-if="ui.user.services.email.supports.allowed || ui.user.services.ftp.supports.allowed || ui.user.services.webdisk.supports.allowed">
+                [% locale.maketext('Services') %]
+        </h4>
+        <div id="servicesSection" class="section-body"
+             ng-if="((emailDaemon.enabled && features.email) || (!emailDaemon.enabled && ui.originalServices.email.enabled)) || ((ftpDaemon.enabled && features.ftp) || (!ftpDaemon.enabled && ui.originalServices.ftp.enabled)) || ((webdiskDaemon.enabled && features.webdisk) || (!webdiskDaemon.enabled && ui.originalServices.webdisk.enabled))">
+            <div class="row">
+                <div id="emailServiceSection" class="col-xs-12 col-sm-6 col-md-4" ng-if="(emailDaemon.enabled && features.email && isAllowed(ui.user, ui.user.services.email)) || (!emailDaemon.enabled && ui.originalServices.email.enabled)">
+                    <div email-config
+                         name="email-config"
+                         ng-model="ui.user.services.email"
+                         ng-disabled="ui.isSaving || (!ui.originalServices.email.enabled && !canAddServices(ui.user))"
+                         show-toggle="canPromote(ui.user)"
+                         show-unlink="showUnlink(ui.user, 'email')"
+                         unlink-service="unlinkService(ui.user, 'email')"
+                         is-in-progress="isInProgress()"
+                         toggle-service="toggleService(ui.user.services.email)"
+                         link-action="linkServices(ui.user)"
+                         show-info="!ui.originalServices.email.enabled && ui.user.services.email.enabled && canAddServices(ui.user)"
+                         info-message="[% locale.maketext('This service uses the [asis,Subaccount’s] password.') %]"
+                         show-warning="(!ui.originalServices.email.enabled && !canAddServices(ui.user))"
+                         warning-message="[% locale.maketext('You must provide a password to enable this service.') %]">
+                    </div>
+                </div>
+                <div id="ftpServiceSection" class="col-xs-12 col-sm-6 col-md-4" ng-if="(ftpDaemon.enabled && features.ftp && isAllowed(ui.user, ui.user.services.ftp)) || (!ftpDaemon.enabled && ui.originalServices.ftp.enabled)">
+                    <div ftp-config
+                         name="ftp-config"
+                         ng-model="ui.user.services.ftp"
+                         ng-disabled="ui.isSaving || (!ui.originalServices.ftp.enabled && !canAddServices(ui.user))"
+                         show-toggle="canPromote(ui.user)"
+                         show-unlink="showUnlink(ui.user, 'ftp')"
+                         unlink-service="unlinkService(ui.user, 'ftp')"
+                         is-in-progress="isInProgress()"
+                         toggle-service="toggleService(ui.user.services.ftp)"
+                         link-action="linkServices(ui.user)"
+                         show-info="!ui.originalServices.ftp.enabled && ui.user.services.ftp.enabled && canAddServices(ui.user)"
+                         info-message="[% locale.maketext('This service uses the [asis,Subaccount’s] password.') %]"
+                         show-warning="(!ui.originalServices.ftp.enabled && !canAddServices(ui.user))"
+                         warning-message="[% locale.maketext('You must provide a password to enable this service.') %]">
+                    </div>
+                </div>
+                <div id="webdiskServiceSection" class="col-xs-12 col-sm-6 col-md-4" ng-if="(webdiskDaemon.enabled && features.webdisk && isAllowed(ui.user, ui.user.services.webdisk)) || (!webdiskDaemon.enabled && ui.originalServices.webdisk.enabled)">
+                    <div webdisk-config
+                         name="webdisk-config"
+                         ng-model="ui.user.services.webdisk"
+                         ng-disabled="ui.isSaving || (!ui.originalServices.webdisk.enabled && !canAddServices(ui.user))"
+                         show-toggle="canPromote(ui.user)"
+                         show-unlink="showUnlink(ui.user, 'webdisk')"
+                         unlink-service="unlinkService(ui.user, 'webdisk')"
+                         is-in-progress="isInProgress()"
+                         toggle-service="toggleService(ui.user.services.webdisk)"
+                         link-action="linkServices(ui.user)"
+                         enable-digest-controls="canEnableDigest(ui.user)"
+                         show-digest-warning="showDigestRequiresPasswordWarning(ui.user)"
+                         show-info="!ui.originalServices.webdisk.enabled && ui.user.services.webdisk.enabled && canAddServices(ui.user)"
+                         info-message="[% locale.maketext('This service uses the [asis,Subaccount’s] password.') %]"
+                         show-warning="(!ui.originalServices.webdisk.enabled && !canAddServices(ui.user))"
+                         warning-message="[% locale.maketext('You must provide a password to enable this service.') %]">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <action-button id="btn-save"
+                class="btn btn-primary"
+                type="submit"
+                cp-action="update(ui.user)"
+                ng-disabled="isOverQuota || !form.$valid || isInProgress()">
+                [% locale.maketext('Save') %]
+        </action-button>
+        <button id="btn-cancel-edit"
+                class="btn btn-link"
+                ng-click="loadView('list/rows', { loadFromCache: true }, { clearAlerts: true })">
+                [% locale.maketext('Cancel') %]
+        </button>
+
+    </form>
+</div>

@@ -1,0 +1,113 @@
+[%
+#Accepts these variables:
+#   full_username   - falls back to RAW_FORM.user
+#   full_dbname     - falls back to RAW_FORM.db
+
+IF !full_username.size;
+    full_username = RAW_FORM.user;
+END;
+
+IF !full_dbname.size;
+    full_dbname = RAW_FORM.db;
+END;
+
+USE Api2;
+
+SET userprivs_list = execute_or_die(
+    'Mysql',
+    'get_privileges_on_database',
+    {
+        user => full_username,
+        database => full_dbname,
+    },
+);
+
+SET userprivs = array_to_hash(userprivs_list.data());
+
+SET all_privs = userprivs.exists('ALL PRIVILEGES');
+
+SET privs = Api2.exec( 'MysqlFE', 'getmysqlprivileges' );
+
+IF CPANEL.CPERROR.mysqlfe;
+    THROW mysql CPANEL.CPERROR.mysqlfe;
+END;
+-%]
+
+<table class="nonsortable table table-striped" id="privs_table">
+    <thead>
+        <tr>
+            <th colspan="2" class="info-heading">
+                <div class="checkbox">
+                    <label>
+                        <input type="checkbox" name="ALL" id="ALL" value="ALL" [% all_privs ? 'checked="checked"' : '' %] />
+                        [% locale.maketext("ALL PRIVILEGES") %]
+                    </label>
+                </div>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        [% FOR cur_priv = privs -%]
+            [% SET priv_no_spaces = cur_priv.replace(' ','') -%]
+            [% SET tdclass = (loop.index % 4 < 2) ? 'info-odd' : 'info-even' -%]
+            [% IF !(loop.index % 2) -%]
+                <tr>
+            [% END -%]
+                    <td class="[% tdclass %]">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox"
+                                    id="chk[% priv_no_spaces %]"
+                                    name="privileges" [% ( all_privs || userprivs.exists(cur_priv) ) ? 'checked="checked"' : '' %]
+                                    value="[% cur_priv %]"
+                                    class="user_right" />
+                                [% cur_priv %]
+                            </label>
+                        </div>
+                    </td>
+            [% IF (loop.index % 2) -%]
+                </tr>
+            [% END -%]
+        [% END -%]
+        [% IF privs.size % 2 -%]
+            <td>&nbsp;</td>
+        [% END -%]
+    </tbody>
+</table>
+
+<script type="text/javascript">
+var USER_RIGHTS;
+
+/**
+ * [checkallprivs description]
+ * @return {[type]} [description]
+ */
+var checkallprivs = function() {
+    var all_checked = DOM.get("ALL").checked;
+    USER_RIGHTS.forEach( function(i) {
+        i.checked = all_checked;
+    } );
+};
+
+/**
+ * [checkprivs description]
+ * @return {[type]} [description]
+ */
+var checkprivs = function() {
+    DOM.get("ALL").checked = USER_RIGHTS.every( function(i) {
+        return i.checked;
+    } );
+};
+
+/**
+ * [init_user_rights description]
+ * @return {[type]} [description]
+ */
+var init_user_rights = function() {
+    EVENT.on("ALL", "click", checkallprivs);
+    USER_RIGHTS = DOM.getElementsByClassName("user_right", "input", "privs_table")
+    EVENT.on(USER_RIGHTS, "click", checkprivs);
+};
+
+EVENT.onDOMReady(init_user_rights);
+</script>

@@ -1,0 +1,32 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    SET return_link = "erredit.html?domain=" _  FORM.domain _ "&file="  _  FORM.file _ "&dir="  _  FORM.dir;
+
+    Api1.pre_exec("Fileman", "fmsavefile");
+    SET fm_save_file = Api1.exec("Fileman", "fmsavefile", [RAW_FORM.dir, RAW_FORM.file, RAW_FORM.page]);
+    Api1.post_exec("Fileman", "fmsavefile");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'error_pages'
+ -%]
+<div class="body-content">
+    <div id="saveSuccess" class="alert alert-success">
+        <span id="saveSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="saveSuccessMsg" class="alert-message">
+            [% locale.maketext("The file “[_1]” was saved.",FORM.file) %]
+        </div>
+    </div>
+
+    <ul class="list-inline text-center">
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix="lnkEdit" return_location=return_link return_link_text=locale.maketext("Go Back to editing file “[_1]” for domain “[_2]”.", FORM.file, FORM.domain) %]
+        </li>
+        <li>
+            [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text= locale.maketext("Go Back") %]
+        </li>
+    </ul>
+
+</div>
+[% END #wrapper %]

@@ -1,0 +1,490 @@
+<div class="edge" ng-show="hasFeature">
+    <cp-alert-list></cp-alert-list>
+    <div class="row">
+        <div class="col-xs-12">
+            <div id="search-area" class="form-group">
+                <div class="row">
+                    <div class="col-xs-6 col-sm-8 col-md-6">
+                        <div class="input-group filter-controls">
+                            <input  id="userListFilter"
+                                    name="userListFilter"
+                                    class="form-control"
+                                    placeholder="[% locale.maketext('Search') %]"
+                                    title="[% locale.maketext('Type in your search filter.') %]"
+                                    ng-model="meta.filterValue"
+                                    ng-model-options="{ debounce: 350 }"
+                                    ng-keyup="triggerClearSearch($event)"
+                                    autocomplete="off"
+                                    auto-focus
+                                    model-to-lower-case>
+                            <span class="input-group-btn">
+                                <button id="btnSearch"
+                                        type="button"
+                                        class="btn btn-default hidden-xs"
+                                        ng-click="clearSearch()">
+                                    <span class="glyphicon" ng-class="{ 'glyphicon-search': !meta.filterValue, 'glyphicon-remove': meta.filterValue }"></span>
+                                </button>
+                                <button id="btnToggleSettings" class="btn btn-default" ng-click="showAdvancedSettings = !showAdvancedSettings" title="[% locale.maketext('Toggle Advanced Settings') %]">
+                                    <span class="fas fa-cogs"></span>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-xs-2 col-sm-1">
+                        <span spinner id="loadingSpinner" class="headerSpinner" title="[% locale.maketext('Loading …') %]"></span>
+                    </div>
+                    <div class="col-xs-4 col-sm-2 col-md-5 text-right form-inline">
+                        <button id="btnCreate"
+                                type="button"
+                                class="btn btn-primary pull-right flip"
+                                ng-disabled="isOverQuota"
+                                ng-click="loadView('add', null, { clearAlerts: true })">
+                            [% locale.maketext('Add User') %]
+                        </button>
+                    </div>
+                </div>
+                <div class="row">
+                    <div id="pnlAdvancedSettings" ng-show="showAdvancedSettings" class="col-xs-12 col-md-6 ng-cloak ng-hide" ng-cloak>
+                        <div class="panel panel-default">
+                            <div class="panel-body">
+                                <div class="col-xs-4">
+                                    <div class="row">
+                                        <div class="col-xs-12">
+                                            <h4>[% locale.maketext('View') %]</h4>
+                                        </div>
+                                        <div class="col-xs-12 checkbox">
+                                            <label><input id="other-show-linkable" type="checkbox" ng-change="fetch()" ng-model="advancedFilters.showLinkable" >[% locale.maketext('Group Linkable Services') %]</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xs-3">
+                                    <div class="row">
+                                        <div class="col-xs-12">
+                                            <h4>[% locale.maketext('Services') %]</h4>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="service-no" type="radio" ng-model="advancedFilters.services" name="services" value="all" title="[% locale.maketext('List users without regard to services.') %]">[% locale.maketext('All') %]</label>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="service-email" type="radio" ng-model="advancedFilters.services" name="services" value="email" title="[% locale.maketext('Only list users with [asis,FTP] services.') %]">[% locale.maketext('Email') %]</label>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="service-ftp" type="radio" ng-model="advancedFilters.services" name="services" value="ftp" title="[% locale.maketext('Only list users with [asis,FTP] services.') %]">[% locale.maketext('FTP') %]</label>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="service-webdisk" type="radio" ng-model="advancedFilters.services" name="services" value="webdisk" title="[% locale.maketext('Only list users with Web Disk services.') %]">[% locale.maketext('Web Disk') %]</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-xs-5">
+                                    <div class="row">
+                                        <div class="col-xs-12">
+                                            <i id="btnClose" title="[% locale.maketext('Close') %]" class="fas fa-times fa-lg pull-right flip" ng-click="showAdvancedSettings = false"></i>
+                                            <h4>[% locale.maketext('Issues') %]</h4>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="other-show-both" type="radio" name="issues" ng-model="advancedFilters.issues" value="both" title="[% locale.maketext('List users without an issues check.') %]">[% locale.maketext('All') %]</label>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="other-show-issues" type="radio" name="issues" ng-model="advancedFilters.issues" value="issues" title="[% locale.maketext('Only list users that have issues.') %]">[% locale.maketext('Only Users With Issues') %]</label>
+                                        </div>
+                                        <div class="col-xs-12 radio">
+                                            <label><input id="other-show-non-issues" type="radio" name="issues" ng-model="advancedFilters.issues" value="noissues" title="[% locale.maketext('Only list users that do not have issues.') %]">[% locale.maketext('Only Users Without Issues') %]</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div>
+                <div class="row">
+                    <div id="pnlActiveFilterTags" ng-show="!showAdvancedSettings" class="col-xs-12  col-md-6 badges ng-cloak ng-hide" ng-cloak>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-4 view-divots">
+                                <b>[% locale.maketext('View:') %]</b>
+                                <span class="label label-info" ng-show="!advancedFilters.showLinkable" title="[% locale.maketext('List View') %]">
+                                    [% locale.maketext('List View') %]
+                                </span>
+                                <span class="label label-info" ng-show="advancedFilters.showLinkable" title="[% locale.maketext('Link View') %]">
+                                    [% locale.maketext('Link View') %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12 col-sm-8 filter-divots" ng-show="hasAdvancedSearch()">
+                                <b>[% locale.maketext('Filtered:') %]</b>
+                                <span id="service-email-tag" class="label label-info label-clickable" ng-show="advancedFilters.services === 'email'" ng-click="advancedFilters.services = 'all'" title="[% locale.maketext('Showing Users With Email Services') %]">
+                                    [% locale.maketext('Only Email') %]
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span id="service-ftp-tag" class="label label-info label-clickable" ng-show="advancedFilters.services === 'ftp'" ng-click="advancedFilters.services = 'all'" title="[% locale.maketext('Showing Users With [asis,FTP] Services') %]">
+                                    [% locale.maketext('Only [asis,FTP]') %]
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span id="service-webdisk-tag" class="label label-info label-clickable" ng-show="advancedFilters.services === 'webdisk'" ng-click="advancedFilters.services = 'all'" title="[% locale.maketext('Showing Users With Web Disk Services') %]">
+                                    [% locale.maketext('Only Web Disk') %]
+                                    <i class="fas fa-times"></i>
+                                </span>
+                                <span id="other-show-issues-tag" class="label label-info label-clickable" ng-show="advancedFilters.issues === 'issues'" title="[% locale.maketext('Only Users With Issues') %]" ng-click="advancedFilters.issues = 'both'">
+                                    [% locale.maketext('Only With Issues') %]
+                                    <i class="fas fa-times" ></i>
+                                </span>
+                                <span id="other-show-non-issues-tag" class="label label-info label-clickable" ng-show="advancedFilters.issues === 'noissues'" title="[% locale.maketext('Only Users Without Issues') %]" ng-click="advancedFilters.issues = 'both'">
+                                    [% locale.maketext('Only Without Issues') %]
+                                    <i class="fas fa-times"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row ng-hide pagerstats-container" ng-show="totalItems > 50">
+        <div class="col-xs-12 col-sm-4 col-md-2 view-stats" ng-class="{ 'view-stats-last': filteredTotalItems === totalItems }">
+            <b>[% locale.maketext('Total Items:') %]</b> {{totalItems}}
+        </div>
+        <div class="col-xs-12 col-sm-4 col-md-2 view-stats view-stats-last ng-hide" ng-show="filteredTotalItems < totalItems">
+            <b>[% locale.maketext('Total Filtered:') %]</b> {{filteredTotalItems}}
+        </div>
+        <div class="col-sm-3 col-sm-4 col-md-2 ng-hide view-stats hidden-xs" ng-show="filteredTotalItems === totalItems">
+            &nbsp;
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-8 text-right text-xs-left pager-form-inline text-nowrap">
+            <div id="containerPageSize" class="form-group hidden-xs">
+                <label for="ddlPageSize">[% locale.maketext('Page Size:') %]
+                    <select id="ddlPageSize"
+                            class="form-control"
+                            ng-model="meta.pageSize"
+                            ng-options="size for size in meta.pageSizes">
+                    </select>
+                </label>
+            </div>
+            <label class="visible-xs-inline-block">
+                [% locale.maketext('Page:') %]
+            </label>
+            <div id="topPager"
+                 uib-pagination
+                 ng-model="meta.pageNumber"
+                 items-per-page="meta.pageSize"
+                 total-items="filteredTotalItems"
+                 max-size="5"
+                 direction-links="false"
+                 boundary-links="true"
+                 first-text="[% locale.maketext('First') %]"
+                 last-text="[% locale.maketext('Last') %]"
+                 class="pagination-small form-group">
+            </div>
+        </div>
+    </div>
+    <div class="row ng-hide" disable-animations ng-show="pagedFilteredUser.length">
+        <div ng-repeat="user in pagedFilteredUser track by user.guid"
+             cp-last-item="doneRendering(user)"
+             class="col-xs-12 user-list"
+             ng-class="{
+                    'callout callout-info': user.type === 'hypothetical' || user.type === 'sub' && user.merge_candidates.length > 0,
+                    'stripe-even': $even && user.merge_candidates && user.merge_candidates.length === 0,
+                    'stripe-odd': $odd && user.merge_candidates && user.merge_candidates.length === 0
+                }">
+            <div class="row">
+                <div class="col-xs-3 col-sm-2 col-lg-1 avatar">
+                    <span class='fas fa-user fa-5x body' ng-class="{bodyhypothetical: user.type === 'hypothetical'}" title="{{user.typeLabel}}" id="avatar_{{$index}}"></span>
+                    <span class="fas fa-star special" ng-if="user.special" id="avatar_special_{{$index}}"></span>
+                    <span class="fas fa-question-circle fa-2x hypothetical" ng-if="user.type === 'hypothetical'"></span>
+                </div>
+                <div class="col-xs-9 col-sm-10 col-lg-11">
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-8" ng-hide="user.ui.showDeleteConfirm">
+                            <div class="realname ng-hide" ng-class="{ 'first-visible-name': user.real_name.length }" id="real_name_{{$index}}" ng-hide="!user.real_name">
+                                <span ng-bind-html="user.real_name | wrap:'[@.]':5"></span>
+                            </div>
+                            <div>
+                                <span class="username" ng-class="{ 'first-visible-name': !user.real_name.length }" ng-bind-html="user.full_username | wrap:'[@.]':5" id="username_{{$index}}"></span>
+                            </div>
+                            <div class="user-label-container" ng-show="user.has_invite">
+                                <span class="label label-info" ng-show="!user.has_expired_invite" id="invite-pending-label-{{ $index }}">
+                                    <i class="fas fa-info-circle"></i>
+                                    <span title="[% locale.maketext('This user has not used the invitation to set a password.') %]">
+                                        [% locale.maketext('Invite Pending') %]
+                                    </span>
+                                </span>
+                                <span class="label label-danger" ng-show="user.has_expired_invite" id="invite-expired-label-{{ $index }}">
+                                    <i class="fas fa-times-circle"></i>
+                                    <span title="[% locale.maketext('This user did not respond to the invitation before it expired. Please delete and re-create the user to send another invitation or set the user’s password yourself.') %]">
+                                        [% locale.maketext('Invite Expired') %]
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-4 text-nowrap services" ng-hide="user.ui.showDeleteConfirm" ng-if="user.type !== 'hypothetical'">
+                            <span id="email_{{$index}}"
+                                  ng-class="{active: user.services.email.enabled, passive: !user.services.email.enabled}"
+                                  class="text-center email-service">
+                                <span class="service">
+                                    <span class="fas fa-envelope fa-3x" title="[% locale.maketext('Email') %]"></span>
+                                    <span id="email_disabled{{$index}}"
+                                          class="fas fa-exclamation-triangle fa-2x text-warning service-disabled-decoration ng-hide"
+                                          title="[% locale.maketext('Service Disabled') %]"
+                                          ng-show="!user.services.email.supports.serviceRunning && user.services.email.enabled" >
+                                    </span>
+                                </span>
+                                <input id="has_email_{{$index}}" type="hidden" value="{{user.services.email.enabled}}">
+                            </span>
+                            <span id="ftp_{{$index}}"
+                                  ng-class="{active: user.services.ftp.enabled, passive: !user.services.ftp.enabled}"
+                                  class="text-center ftp-service">
+                                <span class="service">
+                                    <span class='fas fa-truck fa-3x' title="[% locale.maketext('FTP') %]"></span>
+                                    <span id="ftp_disabled{{$index}}"
+                                          class="fas fa-exclamation-triangle fa-2x text-warning service-disabled-decoration ng-hide"
+                                          title="[% locale.maketext('Service Disabled') %]"
+                                          ng-show="!user.services.ftp.supports.serviceRunning && user.services.ftp.enabled" >
+                                    </span>
+                                </span>
+                                <input id="has_ftp_{{$index}}" type="hidden" value="{{user.services.ftp.enabled}}">
+                            </span>
+                            <span id="webdisk_{{$index}}"
+                                  ng-class="{active: user.services.webdisk.enabled, passive: !user.services.webdisk.enabled}"
+                                  class="text-center webdisk-service">
+                                <span class="service">
+                                    <span class='far fa-hdd fa-3x' title="[% locale.maketext('Web Disk') %]"></span>
+                                    <span id="webdisk_disabled{{$index}}"
+                                          class="fas fa-exclamation-triangle fa-2x text-warning service-disabled-decoration ng-hide"
+                                          title="[% locale.maketext('Service Disabled') %]"
+                                          ng-show="!user.services.webdisk.supports.serviceRunning && user.services.webdisk.enabled" >
+                                    </span>
+                                </span>
+                                <input id="has_webdisk_{{$index}}" type="hidden" value="{{user.services.webdisk.enabled}}">
+                            </span>
+                        </div>
+                        <div class="col-xs-12 actions" ng-if="user.type !== 'hypothetical'" ng-hide="user.ui.showDeleteConfirm">
+                            <a id="btnEdit_{{$index}}"
+                                ng-disabled="isOverQuota"
+                                ng-click="edit(user)"
+                                class="btn btn-link text-nowrap"
+                                ng-if="!user.special && !user.merge_candidates.length">
+                                <i class="fas fa-pencil-alt"></i>
+                                <span>[% locale.maketext('Edit') %]</span>
+                            </a>
+                            <a id="btnPassword_{{$index}}"
+                                ng-disabled="isOverQuota"
+                                ng-click="edit(user)" class="btn btn-link text-nowrap" ng-if="user.can_set_password && !user.merge_candidates.length">
+                                <i class="fas fa-lock"></i>
+                                <span>[% locale.maketext('Change Password') %]</span>
+                            </a>
+                            <!-- TODO: Add this back later
+                            <a id="btnContact_{{$index}}" class="btn btn-link text-nowrap" ng-if="user.services.email.enabled">
+                                <i class="fas fa-envelope"></i>
+                                <span>[% locale.maketext('Contact User') %]</span>
+                            </a>
+                            -->
+                            <a id="btnDelete_{{$index}}" class="btn btn-link text-nowrap" ng-if="user.can_delete" ng-click="showDeleteConfirm(user)">
+                                <i class="fas fa-trash-alt"></i>
+                                <span>[% locale.maketext('Delete') %]</span>
+                            </a>
+                        </div>
+                        <div class="col-xs-12"
+                            ng-if="user.type === 'hypothetical' || user.type === 'sub' && user.merge_candidates.length > 0" ng-hide="user.ui.showDeleteConfirm">
+                            <h5>[% locale.maketext('Pick the services that you would like to link together.') %]</h5>
+                        </div>
+                        <div id="deleteConfirm_{{$index}}"
+                             ng-show="user.ui.showDeleteConfirm"
+                             class="col-xs-12 callout callout-danger delete-confirm ng-hide">
+                            <div class="delete-confirm-message">
+                                <i class="delete-dialog-icon fas fa-question-circle"></i>
+                                <strong ng-bind-html="wrappedDeleteText(user)"></strong>
+                                <span class="delete-note" ng-if="user.services.email.enabled">
+                                    <span class='fas fa-exclamation-triangle'></span>
+                                    [% locale.maketext('[output,strong,Note:] The system will delete this user’s email messages from the server. This will not affect any messages previously downloaded to the user’s devices.') %]
+                                </span>
+                                <div class="form-group action-group">
+                                    <button id="btnConfirmDelete_{{$index}}"
+                                        type="button"
+                                        class="btn"
+                                        button-class="btn-danger"
+                                        spinner-id="spinnerDelete_{{$index}}"
+                                        cp-action="deleteUser(user)">
+                                        [% locale.maketext('Delete') %]
+                                    </button>
+                                    <button id="btnCancelDelete_{{$index}}"
+                                        type="button"
+                                        class="btn btn-link"
+                                        ng-click="hideDeleteConfirm(user)"
+                                        ng-disabled="isDeleting(user)">
+                                        [% locale.maketext('Cancel') %]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-11 user-alert" ng-if="user.issues.length">
+                            <cp-issue-list issues="user.issues" id-prefix="{{ $index }}"></cp-issue-list>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-xs-12" ng-if="user.type === 'hypothetical' || user.type === 'sub'">
+                    <div class="row candidates" ng-repeat="candidate in user.merge_candidates | filter:filterAdvanced | filter:filterText track by candidate.guid" ng-class-even="'stripe-even'" ng-class-odd="'stripe-odd'">
+                        <div class="col-xs-3 col-sm-2 col-md-1 avatar">
+                            <div class="link-avatar-container">
+                                <span class="fas fa-level-up-alt fa-flip-horizontal fa-3x potential-link"></span>
+                                <span class="avatar-container">
+                                    <span class="fas fa-user fa-4x body" title="{{candidate.typeLabel}}" id="child_avatar_{{$parent.$index}}_{{$index}}"></span>
+                                    <span id="child_email_{{$parent.$index}}_{{$index}}" ng-show="candidate.services.email.enabled" class="fas fa-envelope fa-2x unlinked" title="[% locale.maketext('Email') %]"></span>
+                                    <span id="child_ftp_{{$parent.$index}}_{{$index}}" ng-show="candidate.services.ftp.enabled" class='fas fa-truck fa-2x unlinked' title="[% locale.maketext('FTP') %]"></span>
+                                    <span id="child_webdisk_{{$parent.$index}}_{{$index}}" ng-show="candidate.services.webdisk.enabled" class='far fa-hdd fa-2x unlinked' title="[% locale.maketext('Web Disk') %]"></span>
+                                    <span id="child_disabled_{{candidate.service}}_{{$parent.$index}}_{{$index}}"
+                                          ng-show="(!candidate.services[candidate.service].supports.allowed || !candidate.services[candidate.service].supports.serviceRunning) && candidate.services[candidate.service].enabled"
+                                          class="fas fa-exclamation-triangle text-warning service-disabled-decoration ng-hide"
+                                          title="{{!candidate.services[candidate.service].supports.allowed ? '[% locale.maketext('Feature Disabled') %]' : '[% locale.maketext('Service Disabled') %]'}}">
+                                    </span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="col-xs-9 col-sm-10 col-md-11">
+                            <div class="row" ng-hide="candidate.ui.showDeleteConfirm">
+                                <div class="col-xs-11 col-sm-9 id-container">
+                                    <span class="username first-visible-name" ng-bind-html="candidate.full_username | wrap:'[@.]':5" id="child_username_{{$parent.$index}}_{{$index}}"></span>
+                                </div>
+                                <div class="col-xs-6 col-sm-3 hypothetical-actions">
+                                    <button
+                                      type="button"
+                                      class="btn btn-primary"
+                                      id="btnLink_{{$parent.$index}}_{{$index}}"
+                                      ng-disabled="isOverQuota || candidate.ui.linking || user.ui.linkingAll"
+                                      cp-action="linkUser(candidate, user)">
+                                        [% locale.maketext('Link') %]
+                                    </button>
+                                    <button
+                                      class="btn btn-default"
+                                      id="btnDismiss_{{$parent.$index}}_{{$index}}"
+                                      ng-disabled="isOverQuota || candidate.ui.linking || user.ui.linkingAll"
+                                      cp-action="dismissLink(candidate, user)">
+                                        [% locale.maketext('Dismiss') %]
+                                    </button>
+                                </div>
+                                <div class="col-xs-12 actions">
+                                    <!-- TODO: Add this back later
+                                    <a id="btnContact_{{$parent.$parent.$index}}_{{$parent.$index}}" class="btn btn-link text-nowrap" ng-if="candidate.services.email.enabled">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>[% locale.maketext('Contact User') %]</span>
+                                    </a>
+                                    -->
+                                    <a id="btnDelete_{{$parent.$parent.$index}}_{{$parent.$index}}" class="btn btn-link text-nowrap" ng-if="candidate.can_delete && candidate.services[candidate.service].supports.deletable" ng-click="showDeleteConfirm(candidate)">
+                                        <i class="fas fa-trash-alt"></i>
+                                        <span>[% locale.maketext('Delete') %]</span>
+                                    </a>
+                                </div>
+                                <div class="col-xs-12 col-sm-11 user-alert">
+                                    <cp-issue-list issues="candidate.issues" id-prefix="{{ $parent.$index }}_{{ $index }}"></cp-issue-list>
+                                </div>
+                            </div>
+                            <div id="deleteConfirm_{{$parent.$index}}_{{$index}}" ng-show="candidate.ui.showDeleteConfirm" class="col-xs-12 callout callout-danger delete-confirm ng-hide">
+                                <div class="delete-confirm-message">
+                                    <i class="delete-dialog-icon fas fa-question-circle"></i>
+                                    <strong ng-bind-html="wrappedDeleteText(candidate)"></strong>
+                                    <span class="delete-note" ng-if="candidate.services.email.enabled">
+                                        <span class='fas fa-exclamation-triangle'></span>
+                                        [% locale.maketext('[output,strong,Note:] The system will delete this user’s email messages from the server. This will not affect any messages previously downloaded to the user’s devices.') %]
+                                    </span>
+                                    <div class="form-group action-group">
+                                        <button id="btnConfirmDelete_{{$parent.$index}}_{{$index}}"
+                                            type="button"
+                                            class="btn"
+                                            button-class="btn-danger"
+                                            spinner-id="spinnerDelete_{{$parent.$index}}_{{$index}}"
+                                            cp-action="deleteUser(candidate, user)">
+                                            [% locale.maketext('Delete') %]
+                                        </button>
+                                        <button id="btnCancelDelete_{{$parent.$index}}_{{$index}}"
+                                            type="button"
+                                            class="btn btn-link"
+                                            ng-click="hideDeleteConfirm(candidate)"
+                                            ng-disabled="isDeleting(candidate)">
+                                            [% locale.maketext('Cancel') %]
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row hidding-linkable ng-hide" ng-show="(user.merge_candidates | filter:filterAdvanced | filter:filterText).length < user.merge_candidates.length">
+                        <div class="col-xs-12 col-sm-9 col-lg-6">
+                            <p>
+                                <i class="fas fa-exclamation-circle"></i>
+                                <span id="msgHiddenServices_{{$index}}">[% locale.maketext('You have hidden potential linkable services with your filters.') %]</span>
+                            </p>
+                        </div>
+                    </div>
+                    <div class="row hypothetical-summary" ng-if="(user.type === 'hypothetical' || user.type === 'sub') && user.merge_candidates.length">
+                        <div class="col-xs-12 col-sm-9 col-lg-6">
+                            <p>
+                                <i class="fas fa-exclamation-circle"></i>
+                                [% locale.maketext('You can link service accounts that share the same username and then manage their properties jointly. Only link service accounts that a single user owns. Click Dismiss if you do not wish to link the service accounts.') %]
+                            </p>
+                        </div>
+                        <div class="col-xs-12 col-sm-3 hypothetical-actions ng-hide" ng-if="user.merge_candidates.length > 1" ng-show="advancedFilters.services === 'all'">
+                            <button
+                              class="btn btn-primary"
+                              id="btnLinkAll_{{$index}}"
+                              ng-disabled="isOverQuota || user.ui.linkingAny || user.ui.linkingAll"
+                              cp-action="linkAll(user)">
+                                [% locale.maketext('Link All') %]
+                            </button>
+                            <button
+                              class="btn btn-default"
+                              id="btnDismissAll_{{$index}}"
+                              ng-disabled="isOverQuota || user.ui.linkingAny || user.ui.linkingAll"
+                              cp-action="dismissAll(user)">
+                                [% locale.maketext('Dismiss All') %]
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row ng-hide" ng-show="viewDoneLoading && !filteredUsers.length">
+        <div id="rowNoMatch" class="col-xs-12 user-list strip-even callout callout-info">
+            <i class="fas fa-exclamation-circle"></i>
+            [% locale.maketext('No matching users.') %]
+        </div>
+    </div>
+    <div class="row ng-hide" ng-show="!viewDoneLoading">
+        <div id="loading" class="col-xs-12 user-list strip-even callout callout-info">
+            <i class="fas fa-exclamation-circle"></i>
+            [% locale.maketext('Loading …') %]
+        </div>
+        <div id="loadingLargeSet" ng-show="totalItems > 1000" class="col-xs-12 user-list strip-odd callout callout-warning ng-hide">
+            <i class="fas fa-exclamation-circle"></i>
+            [% locale.maketext('You have a large number of accounts. Some operations take longer with a large number of accounts.') %]
+        </div>
+    </div>
+    <div class="row ng-hide" ng-show="viewDoneLoading && totalItems > 50">
+        <div class="col-xs-12 text-right text-xs-left pager-form-inline text-nowrap">
+            <div id="containerPageSizeBottom" class="form-group hidden-xs">
+                <label for="ddlPageSize">[% locale.maketext('Showing:') %]
+                    <select id="ddlPageSizeBottom"
+                            class="form-control"
+                            ng-model="meta.pageSize"
+                            ng-options="size for size in meta.pageSizes">
+                    </select>
+                </label>
+            </div>
+            <label class="visible-xs-inline-block">
+                [% locale.maketext('Page:') %]
+            </label>
+            <div id="bottomPager"
+                 uib-pagination
+                 ng-model="meta.pageNumber"
+                 items-per-page="meta.pageSize"
+                 total-items="filteredTotalItems"
+                 max-size="5"
+                 direction-links="false"
+                 boundary-links="true"
+                 first-text="[% locale.maketext('First') %]"
+                 last-text="[% locale.maketext('Last') %]"
+                 class="pagination-small form-group">
+            </div>
+        </div>
+    </div>
+</div>

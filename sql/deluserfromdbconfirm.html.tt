@@ -1,0 +1,29 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+%]
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <h2 id="descRevokePrivs">[% locale.maketext("Revoke MySQL Privileges from Database") %]</h2>
+
+    <p id="descConfirm">
+        [% locale.maketext("Are you sure you wish to revoke privileges for “[_1]” from the database “[_2]”.",FORM.user,FORM.db)  %]
+    </p>
+
+    <p>
+        <a id="lnkRevoke" class="btn btn-primary" href="deluserfromdb.html?user=[% RAW_FORM.user | uri | html %]&db=[% RAW_FORM.db | uri | html %]">
+            [% locale.maketext("Revoke User Privileges from Database") %]
+        </a>
+        <a id="lnkCancel" class="btn btn-link" href="index.html">
+            [% locale.maketext("Cancel") %]
+        </a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

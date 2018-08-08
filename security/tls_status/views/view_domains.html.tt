@@ -1,0 +1,226 @@
+<div class="row account-selector-area" ng-class="{'user-selected':selected_user,'user-summary-showing':selected_user && selected_user_obj.summary}">
+    <div class="col-md-12">
+        <p ng-if="autoSSLErrorsExist"><em>{{ ::getRawLogWarning() }}</em></p>
+        <div class="row  form-group">
+            <div class="col-md-12">
+                <div class="row" ng-if="::market_products_available">
+                    <div class="col-xs-12">
+                        <div class="callout callout-warning" ng-if="::unsecuredDomains.length">
+                            <p ng-bind-html=":: get_unsecured_domains_message(unsecuredDomains)"></p>
+                            <p ng-bind-html=":: getUnsecuredDomainsMessageNote()"></p>
+                            <button class="btn btn-primary" ng-click="purchase_certificate(unsecuredDomains)">[% locale.maketext("Purchase Certificates") %]</button>
+                            <button class="btn btn-default" ng-click="show_unsecured_domains()">[% locale.maketext("Show Unsecured Domains") %]</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="form-group col-xs-12 col-sm-12 col-md-6 col-lg-6">
+                        <div class="input-group filter-controls">
+                            <input  id="domainSearchFilter"
+                                    name="domainSearchFilter"
+                                    class="form-control"
+                                    placeholder="[% locale.maketext('Search') %]"
+                                    title="[% locale.maketext('Type in your search filter.') %]"
+                                    ng-model="meta.filterValue"
+                                    ng-model-options="{ debounce: 350 }"
+                                    ng-keyup="triggerClearSearch($event)"
+                                    ng-change="domainSearchFilterChanged()"
+                                    autocomplete="off"
+                                    auto-focus>
+                            <span class="input-group-btn">
+                                <button id="btnSearch"
+                                        type="button"
+                                        class="btn btn-default hidden-xs"
+                                        ng-click="clearSearch()">
+                                    <span class="glyphicon" ng-class="{ 'glyphicon-search': !meta.filterValue, 'glyphicon-remove': meta.filterValue }"></span>
+                                </button>
+                                <button
+                                    id="btnToggleSettings"
+                                    class="btn btn-default"
+                                    ng-click="showAdvancedSettings = !showAdvancedSettings"
+                                    title="[% locale.maketext('Toggle Advanced Settings') %]">
+                                        <span class="fas fa-cogs"></span>
+                                </button>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div
+                        id="DomainSearchSettings"
+                        search-settings-panel
+                        ng-model="searchFilterOptions"
+                        ng-change="searchSettingsPanelUpdated()"
+                        class="col-xs-12"
+                        display-settings-panel="showAdvancedSettings"
+                        display-set-values="!showAdvancedSettings"
+                        ng-cloak>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <div class="page-stats" ng-bind-html="get_showing_text()"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group global-action-row" ng-if=":: autossl_enabled()">
+            <div class="row">
+                <div class="col-md-12">
+                    <button id="btnToggleInclusion"
+                        ng-disabled="!selected_auto_ssl_domains.excluded.length"
+                        type="button"
+                        spinner-id="btnToggleInclusion_spinner"
+                        cp-action="autossl_include_domains(selected_auto_ssl_domains.excluded)" >
+                        {{ include_autossl_label(selected_auto_ssl_domains.excluded) }}
+                    </button>
+                    <button id="btnToggleExclusion"
+                        ng-disabled="!selected_auto_ssl_domains.included.length"
+                        type="button"
+                        spinner-id="btnToggleExclusion_spinner"
+                        cp-action="autossl_exclude_domains(selected_auto_ssl_domains.included)" >
+                        {{ exclude_autossl_label(selected_auto_ssl_domains.included) }}
+                    </button>
+                    <button id="btnRecheckAutoSSL"
+                        ng-if="initialAutoSSLCheckComplete"
+                        action-active="{{autoSSLCheckActive.toString()}}"
+                        spinner-id="btnRecheckAutoSSL_spinner"
+                        cp-action="startUserAutoSSL()" >
+                        {{ startUserAutoSSLLabel() }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-md-12">
+                    <table class="table table-striped fixed-width-table responsive-table domains-table" ng-class="::{'autossl-disabled':!autossl_enabled()}">
+                        <colgroup>
+                            <col ng-if=":: autossl_enabled()"></col>
+                            <col></col>
+                            <col></col>
+                            <col></col>
+                        </colgroup>
+                        <thead>
+                            <th ng-if=":: autossl_enabled()">
+                                <span class="check-box">
+                                    <input
+                                        type="checkbox"
+                                        id="selectAll"
+                                        name="selectAllFiltered"
+                                        ng-model="allRowsSelected"
+                                        title="[% locale.maketext('Select All Items') %]"
+                                        ng-change="selectAllItems(allRowsSelected)">
+                                </span>
+                            </th>
+                            <th ></th>
+                            <th >[% locale.maketext('Domain') %]</th>
+                            <th >[% locale.maketext('Certificate Status') %]</th>
+                        </thead>
+                        <tbody>
+                            <tr
+                                class="domain_row no-animate {{ :: domain.certificate_type }}-ssl"
+                                ng-class="::{ 'auto-ssl':domain.certificate_is_autossl, 'cannot-autossl-exclude': !domain.can_autossl_exclude }"
+                                ui-scroll="domain in datasource"
+                                padding="1"  [%# Prevents awkward dead space during scroll %]
+                                adapter="uiScrollAdapter"
+                                start-index="0" >
+                                    <td ng-if=":: autossl_enabled()">
+                                        <span class="check-box" ng-if="domain.can_autossl_exclude">
+                                            <input
+                                                type="checkbox"
+                                                ng-disabled="domain.checkbox_disabled"
+                                                id="rowSelector{{$index}}"
+                                                ng-model="domain.selected"
+                                                ng-change="update_auto_ssl_domains(); reset_disabled()">
+                                        </span>
+                                    </td>
+                                    <td class="domain-cert-icon">
+                                        <span class="tls-cert-icon tls-cert-icon-{{ :: domain.certificate_type }} hidden-xs" title="{{::domain.certificate_type_name}}"></span>
+                                    </td>
+                                    <td data-title="[% locale.maketext('Domain') %]">
+                                        <label for="rowSelector{{$index}}" class="cutoff_with_ellipses" style="max-width:100%;" uib-tooltip="{{ :: domain.domain }}">
+                                            {{ :: domain.domain }}
+                                        </label>
+                                    </td>
+                                    <td>
+                                        <div>
+                                            <div ng-if="::domain.certificate_type != 'unsecured'" class="tls-cert-typename">
+                                                <span
+                                                    uib-tooltip="[% locale.maketext('The [asis,SSL] certificate includes this domain.') %]"
+                                                    class="fa-stack hidden-xs"
+                                                    style="width: 1em;">
+                                                        <i class="fas fa-lock fa-stack-1x" ng-class="::{'text-muted':domain.certificate_is_self_signed,'text-success':!domain.certificate_is_self_signed}"></i>
+                                                        <i class="fas fa-times fa-stack-1x text-danger" ng-if="::domain.certificate_is_self_signed" style="margin-top: 2px; font-size: 7px;"></i>
+                                                </span>
+                                                <span class="tls-cert-icon tls-cert-icon-{{ :: domain.certificate_type}} hidden-lg hidden-md hidden-sm"></span>
+                                                <span ng-bind-html="::domain.certificate_type_name"></span>
+                                            </div>
+
+                                            <div ng-if="domain.autoSSLStatus" ng-class="{'text-danger':!!domain.autoSSLStatus.error}" class="fade-in">
+                                                <em ng-bind="domain.autoSSLStatus.lastRunMessage"></em>
+                                            </div>
+                                            <div ng-if="!domain.autoSSLStatus || !domain.autoSSLStatus.error" ng-class="::{'text-danger':domain.is_expired}">
+                                                {{ domain.certificateStatusMessage }}
+                                            </div>
+                                            <div ng-if="domain.autoSSLStatus && domain.autoSSLStatus.error" class="fade-in">
+                                                <div class="pre-block">
+                                                    <span class="pre-icon">
+                                                        <span class="far fa-file-alt fa-lg"></span>
+                                                    </span>
+                                                    <pre ng-bind="domain.autoSSLStatus.error" ></pre>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <div class="action-item" ng-if="::domain.view_crt_url">
+                                                <a ng-href="{{::domain.view_crt_url}}" target="_blank"
+                                                    title="{{ :: domain.view_certificate_title }}"
+                                                    class="btn btn-link icon-link">
+                                                    <span class="text">[% locale.maketext("View Certificate") %]</span>
+                                                    <span class='fas fa-external-link-alt fa-sm'></span>
+                                                </a>
+                                            </div>
+                                            <div class="action-item" ng-if="::market_products_available && domain.upgrade_btn_label">
+                                                <a ng-href="{{upgrade_certificate_url(domain)}}"
+                                                    title="{{ :: domain.upgrade_btn_title }}"
+                                                    class="btn btn-link icon-link">
+                                                    <span class="text">{{ :: domain.upgrade_btn_label }}</span>
+                                                    <span class='fas fa-external-link-alt fa-sm'></span>
+                                                </a>
+                                            </div>
+                                            <div class="action-item" ng-if="domain.can_autossl_exclude && !domain.excluded_from_autossl">
+                                                <a ng-disabled="domain.updating" class="btn btn-link icon-link"
+                                                    title="{{ :: domain.exclude_autossl_btn_title }}"
+                                                    ng-click="autossl_exclude_domain(domain)">
+                                                    <span ng-if="domain.updating" class='fas fa-spinner fa-lg fa-spin'></span>
+                                                    <span ng-if="!domain.updating" class='glyphicon glyphicon-ban-circle'></span>
+                                                    <span class="text">[% locale.maketext('Exclude from [asis,AutoSSL]') %]</text>
+                                                </a>
+                                            </div>
+                                            <div class="action-item" ng-if="domain.can_autossl_exclude && domain.excluded_from_autossl">
+                                                <a ng-disabled="domain.updating" class="btn btn-link icon-link"
+                                                    ng-click="autossl_include_domain(domain)"
+                                                    title="{{ :: domain.include_autossl_btn_title }}">
+                                                    <span ng-if="domain.updating" class='fas fa-spinner fa-lg fa-spin'></span>
+                                                    <span ng-if="!domain.updating" class='glyphicon glyphicon-plus'></span>
+                                                    <span class="text">[% locale.maketext('Include during [asis,AutoSSL]') %]</text>
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </td>
+                            </tr>
+                            <tr class="info empty-row" ng-if="filteredDomains.length === 0" >
+                                <td colspan="5">
+                                    <span ng-bind="no_results_msg()"></span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

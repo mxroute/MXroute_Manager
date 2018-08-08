@@ -1,0 +1,322 @@
+
+[% CPANEL.CPVAR.dprefix = '../' %]
+
+[%
+IF FORM.itemsperpage;
+    CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+END;
+IF !FORM.itemsperpage || !CPANEL.CPVAR.itemsperpage;
+    CPANEL.CPVAR.itemsperpage = 10;
+END;
+%]
+
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    page_styles = css_code
+    app_key = 'redirects'
+ -%]
+
+<div class="body-content">
+    <p class="description">
+        [% locale.maketext("A redirect allows you to make one domain redirect to another domain, either for a website or a specific web page. For example, create a redirect so that [output,strong,www.example.com] automatically redirects users to [output,strong,www.example.net]. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Redirects", "_blank", "lnkRedirectsDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2>[% locale.maketext('Add Redirect') %]</h2>
+        <p class="description">
+            [% locale.maketext('A permanent redirect will notify the visitor’s browser to update any bookmarks that are linked to the page that is being redirected. Temporary redirects will not update the visitor’s bookmarks.') %]
+        </p>
+
+        <form id="mainform" name="mainform" action="addredirect.html">
+            <div class="form-group">
+                <label for="ddlType">
+                    [% locale.maketext('Type') %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="ddlType" name="type" class="form-control">
+                            <option value="permanent">[% locale.maketext('Permanent (301)') %]</option>
+                            <option value="temp">[% locale.maketext('Temporary (302)') %]</option>
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="ddlDomains">
+                    https?://<span id="wwwtxt">(www.)?</span>
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="ddlDomains" name="domain" onchange="EnableDisableRadio();" class="form-control">
+                            <option selected value=".*">[% locale.maketext('** All Public Domains **') %]</option>
+                            [% mail_domains = execute('Email', 'list_mail_domains') -%]
+                            [% FOREACH q = mail_domains.data -%]
+                                <option value="[% q.domain %]">[% q.domain %]</option>
+                            [% END -%]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="urlpath">
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="input-group">
+                            <span class="input-group-addon">/</span>
+                            <input name="path" type="text" class="form-control" size="20" id="urlpath" />
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="url">
+                    [% locale.maketext('Redirects to') %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="url" name="url" type="text" class="form-control" size="45" />
+                    </div>
+                    <div id="url_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>
+                    [% locale.maketext('www. redirection:') %]
+                </label>
+                <noscript>
+                    <style type="text/css">
+                        #radios{display:none;}
+                    </style>
+                    <div class="radio">
+                        <label>
+                        <input value="2" type="radio" name="rdwww" onclick="document.getElementById('wwwtxt').innerHTML='www.';" />
+                        [% locale.maketext('Only redirect with www.') %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                        <input value="0" type="radio" name="rdwww" onclick="document.getElementById('wwwtxt').innerHTML='(www.)?';" checked="checked" />
+                        [% locale.maketext('Redirect with or without www.') %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                        <input value="1" type="radio" name="rdwww" onclick="document.getElementById('wwwtxt').innerHTML='';" />
+                        [% locale.maketext('Do Not Redirect www.') %]
+                        </label>
+                    </div>
+                </noscript>
+                <div id="radios">
+                    <div class="radio">
+                        <label>
+                        <input id="rbtnWithWWW" value="2" type="radio" name="rdwww" onclick="document.getElementById('wwwtxt').innerHTML='www.';" disabled="disabled" />
+                        [% locale.maketext('Only redirect with www.') %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                        <input id="rbtnOptionalWWW" value="0" type="radio" name="rdwww" onclick="document.getElementById('wwwtxt').innerHTML='(www.)?';" checked="checked" disabled="disabled" />
+                        [% locale.maketext('Redirect with or without www.') %]
+                        </label>
+                    </div>
+                    <div class="radio">
+                        <label>
+                        <input id="rbtnWithoutWWW" value="1" type="radio" name="rdwww" onclick="document.getElementById('wwwtxt').innerHTML='';" disabled="disabled" />
+                        [% locale.maketext('Do Not Redirect www.') %]
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="checkbox">
+                    <label>
+                    <input value="1" type="checkbox" name="wildcard" id="wildcard">
+                    [% locale.maketext('Wild Card Redirect') %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Add") %]">
+            </div>
+        </form>
+        <strong>[% locale.maketext("Note:") %]</strong>
+        <ul>
+            <li>[% locale.maketext ('Checking the [output,strong,Wild Card Redirect] Box will redirect all files within a directory to the same filename in the redirected directory.') %]</li>
+            <li>[% locale.maketext ('You cannot use a Wild Card Redirect to redirect your main domain to a different directory on your site.') %]</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext('Current Redirects') %]</h2>
+        <div class="search-panel">
+            <form method="get">
+                <div class="row">
+                    <div class="col-xs-10 col-sm-4">
+                        <input id="txtSearch" type="text" class="form-control" size="15" name="searchregex" value="[% FORM.searchregex %]" placeholder="[% locale.maketext('Search') %]">
+                    </div>
+                    <div class="col-xs-2 col-sm-8">
+                        <input id="btnSearchGo" type="submit" class="btn btn-primary" value="[% locale.maketext('Go') %]">
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <table class="sortable table table-striped responsive-table" id="redirecttbl">
+            <thead>
+                <tr>
+                     <th>[% locale.maketext('Domain') %]</th>
+                     <th>[% locale.maketext('Directory') %]</th>
+                     <th>[% locale.maketext('Redirect Url') %]</th>
+                     <th>[% locale.maketext('Type') %]</th>
+                     <th>[% locale.maketext('Match www.') %]</th>
+                     <th>[% locale.maketext('Wildcard') %]</th>
+                     <th nonsortable="true">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+
+            [% SET redirects = execute('Mime', 'list_redirects', { regex=RAW_FORM('searchregex'), 'api.paginate_start'=FORM.api2_paginate_start, 'api.paginate_size'=CPANEL.CPVAR.itemsperpage }) %]
+
+            [% IF !redirects.status || redirects.data.size == 0 %]
+            <tr class="info empty-row">
+                <td colspan="7">[% locale.maketext('There are no redirects configured for your account.') %]</td>
+            </tr>
+            [% ELSE %]
+                [% FOREACH q = redirects.data -%]
+                <tr>
+                    <td data-title="[% locale.maketext('Domain') %]" class="long-column">[% q.displaydomain.html().replace('\.', '<wbr>.') %]</td>
+                    <td data-title="[% locale.maketext('Directory') %]" class="long-column">
+                        <a href="http://[% q.urldomain FILTER html %][% q.source FILTER html %]" target="_blank">
+                            [% q.displaysourceurl.html().replace('\.', '<wbr>.') %]
+                        </a>
+                    </td>
+                    <td data-title="[% locale.maketext('Redirect Url') %]" class="long-column">[% q.destination.html().replace('\.', '<wbr>.') %]</td>
+                    <td data-title="[% locale.maketext('Type') %]">[% q.type %]</td>
+                    <td data-title="[% locale.maketext('Match www.') %]">[% IF (q.matchwww) %]<span class="glyphicon glyphicon-ok"></span>[% ELSE %]&nbsp;[% END %]</td>
+                    <td data-title="[% locale.maketext('Wildcard') %]">[% IF (q.wildcard) %]<span class="glyphicon glyphicon-ok"></span>[% ELSE %]&nbsp;[% END %]</td>
+                    <td data-title="[% locale.maketext("Actions") %]">
+                        <a class="btn btn-link" href="delredirectconfirm.html?domain=[% q.domain FILTER uri %]&path=[% q.source FILTER uri %]&docroot=[% q.docroot FILTER uri %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext("Delete") %]
+                        </a>
+                    </td>
+                </tr>
+                [% END -%]
+            [% END %]
+        </table>
+        [% PROCESS '_assets/paginate.html.tt' uapi_result=redirects %]
+   </div>
+</div>
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    function EnableDisableRadio() {
+        if(document.mainform.domain.selectedIndex >= 1) {
+            document.mainform.rdwww[0].disabled = false;
+            document.mainform.rdwww[1].disabled = false;
+            document.mainform.rdwww[2].disabled = false;
+        } else {
+            document.mainform.rdwww[0].disabled = true;
+            document.mainform.rdwww[1].disabled = true;
+            document.mainform.rdwww[2].disabled = true;
+        }
+        return true;
+    }
+
+    var check_url = function () {
+        url_value = document.getElementById('url').value;
+
+        // original validation check ( must have no leading white space, must contain leading [no white space]:// )
+        if ( /^\S+[:][/][/]/.test(url_value) ) return true;
+        return false;
+    }
+
+    var init = function() {
+        // URL validation (must have a value and begin with a protocol identifier)
+        var validation = new CPANEL.validate.validator("[% locale.maketext('Redirects') %]");
+        validation.add('url', 'min_length(%input%, 1)', '[% locale.maketext('The “[_1]” field cannot be left blank.', locale.maketext('Redirects to')) %]');
+        validation.add('url', check_url, '[% locale.maketext('Redirect must begin with a protocol, e.g., http://') %]');
+
+        validation.attach();
+
+        CPANEL.validate.attach_to_form("submit-button", validation);
+
+    };
+
+    YAHOO.util.Event.onDOMReady(init);
+</script>
+[% END %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+.search-panel {
+    margin-bottom: 20px;
+}
+
+.long-column {
+    max-width: 350px;
+    word-wrap: break-word;
+}
+
+html[data-style="retro"] .long-column {
+    max-width: 713px;
+}
+
+@media (min-width: 500px) and (max-width: 600px) {
+    .long-column {
+        max-width: 475px;
+    }
+}
+
+@media (min-width: 601px) and (max-width: 767px) {
+    .long-column {
+        max-width: 80px;
+    }
+
+    html[data-style="retro"] .long-column {
+        max-width: 140px;
+    }
+}
+
+@media (min-width: 768px) and (max-width: 991px) {
+    .long-column {
+        max-width: 120px;
+    }
+
+    html[data-style="retro"] .long-column {
+        max-width: 140px;
+    }
+}
+
+@media (min-width: 992px) and (max-width: 1199px) {
+    .long-column {
+        max-width: 195px;
+    }
+
+    html[data-style="retro"] .long-column {
+        max-width: 140px;
+    }
+}
+
+@media (min-width: 1200px) {
+    .long-column {
+        max-width: 265px;
+    }
+
+    html[data-style="retro"] .long-column {
+        max-width: 140px;
+    }
+}
+</style>
+[% END %]

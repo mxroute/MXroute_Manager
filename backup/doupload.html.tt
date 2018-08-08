@@ -1,0 +1,17 @@
+[% SET CPANEL.CPVAR.dprefix="../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup'
+-%]
+
+<img src="../filemanager/images/up.gif" border=0>&nbsp;&nbsp;&nbsp;&nbsp;<b>[% locale.maketext("Restoring files …") %]</b>
+<br />
+<pre>
+[%
+    Api1.pre_exec("Fileman", "restorefiles");
+    Api1.exec("Fileman", "restorefiles", [undef]);
+    Api1.post_exec("Fileman", "restorefiles")
+%]
+</pre>
+
+[% END #wrapper -%]

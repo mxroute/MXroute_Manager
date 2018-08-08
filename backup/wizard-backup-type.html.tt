@@ -1,0 +1,134 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/tools.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET mysql_list_db_backups = [];
+IF FORM.type == "mysql";
+    SET mysql_list_db_backups = Api2.exec("MysqlFE", "listdbsbackup", {});
+END;
+
+SET email_list_alias_backups = [];
+IF CPANEL.feature("forwarders");
+    SET email_list_alias_backups = Api2.exec("Email", "listaliasbackups", {});
+END;
+
+SET email_list_system_filter_info = [];
+IF CPANEL.feature("blockers");
+    SET email_list_system_filter_info = Api2.exec("Email", "list_system_filter_info", {});
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup_wizard'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_stylesheets = ["css2-min/backup.css"]
+-%]
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+
+        <div id="backup-nav" class="row">
+            <div class="col-xs-12">
+                <h2 id="hdrSteps">[% locale.maketext('Steps:') %]</h2>
+                <ol>
+                    <li id="tabBackupRestore" class="one"><a href="wizard.html" id="backupRestore"><span>[% locale.maketext("Back Up or Restore") %]</span></a></li>
+                    <li id="tabFullPartial" class="two"><a href="wizard-backup.html" id="partialBackup"><span>[% locale.maketext("Full or Partial Backup") %]</span></a></li>
+                    <li id="tabDownload" class="three"><span class="current">[% locale.maketext("Download") %]</span></li>
+                </ol>
+            </div>
+        </div>
+
+        <div id="br-wrap" class="row">
+            <div class="col-xs-12">
+                <section>
+                    <h2 id="hdrFinalStep">[% locale.maketext("Final Step") %]</h2>
+                    <p id="descFinalStep">[% locale.maketext("Download your partial backup type.") %]</p>
+                </section>
+                <div id="br-content-wide">
+                    [% IF (FORM.type == "homedir") %]
+                    <h4 id="hdrDownloadHomeDir">[% locale.maketext("Download a Home Directory Backup") %]</h4>
+                    <p>
+                        <a id="lnkHomeDir" class="btn btn-primary" href="[%
+                            Api1.pre_exec("Cgi", "backuplink");
+                            Api1.exec("Cgi", "backuplink", [undef]);
+                            Api1.post_exec("Cgi", "backuplink")
+                            %]">[% locale.maketext("Home Directory") %]</a>
+                    </p>
+
+                    [% ELSIF (FORM.type == "mysql") %]
+                    <h4 id="hdrDownloadMysqlDb">[% locale.maketext("Download a MySQL Database Backup") %]</h4>
+                    <table fixedtruncate="1" class="sortable truncate-table table table-striped" id="sqlbackuptbl">
+                        <tr>
+                            <th id="thDb">[% locale.maketext("Databases") %]</th>
+                        </tr>
+                        <tbody>
+                        [% FOREACH hashref IN mysql_list_db_backups %]
+                            <tr>
+                                <td class="cell nobrd-left truncate" truncatefixed="25">
+                                    <a href="[% CPANEL.ENV.cp_security_token %]/getsqlbackup/[% hashref.db | url %].sql.gz" id="database[% loop.count() %]">[% hashref.db.html() %]</a>
+                                </td>
+                            </tr>
+                        [% END %]
+                        </tbody>
+                    </table>
+
+                    [% ELSIF (FORM.type=="email") %]
+                    <h4 id="hdrDownloadEmailFwdrs">[% locale.maketext("Download Email Forwarders or Filters Backup") %]</h4>
+                    <div class="row">
+
+                        [% IF CPANEL.feature("forwarders") %]
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <table fixedtruncate="1" class="sortable truncate-table table table-striped" id="aliastbl">
+                                <tr>
+                                    <th id="thFwdrs">
+                                        [% locale.maketext("Forwarders") %]
+                                    </th>
+                                </tr>
+                                <tbody>
+                                [% FOREACH hashref IN email_list_alias_backups %]
+                                    <tr>
+                                        <td class="cell nobrd-left truncate" truncatefixed="25">
+                                            <a href="[% CPANEL.ENV.cp_security_token %]/getaliasbackup/aliases-[% hashref.domain | url %].gz" id="forwarder[% loop.count() %]">[% hashref.domain.html() %]</a>
+                                        </td>
+                                    </tr>
+                                [% END %]
+                                </tbody>
+                            </table>
+                        </div>
+                        [% END %]
+
+                        [% IF CPANEL.feature("blockers") %]
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                           <table fixedtruncate="1" class="sortable truncate-table table table-striped" id="filtertbl">
+                                <tr>
+                                    <th id="thSysFilterInfo">
+                                        [% locale.maketext("System Filter Info") %]
+                                    </th>
+                                </tr>
+                                <tbody>
+                                [% FOREACH hashref IN email_list_system_filter_info %]
+                                    <tr>
+                                        <td class="cell nobrd-left truncate" truncatefixed="25">
+                                            <a href="[% CPANEL.ENV.cp_security_token %]/getfilterbackup/[% hashref.filter_info | url %]" id="systemFilterInfo[% loop.count() %]">[% hashref.filter_info.html() %]</a>
+                                        </td>
+                                    </tr>
+                                [% END %]
+                                </tbody>
+                            </table>
+                        </div>
+                        [% END %]
+
+                    </div>
+                    [% END %]
+                </div>
+            </div>
+        </div>
+
+        [% INCLUDE _assets/return_link.html.tt return_location="wizard-backup.html" return_link_text=locale.maketext("Go Back") %]
+
+    [% END %]
+</div>
+[% END %]

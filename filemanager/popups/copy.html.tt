@@ -1,0 +1,31 @@
+<div style="display:none;" id="copy">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Copy") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="copy-filecontent">
+            <div id="copy-hasfilelist" style="display:none;">
+                <form>
+                    <div class="form-group">
+                        <label for="copy-file-path">
+                            [% locale.maketext("File path:") %]
+                            <div id="copy-filelist"></div>
+                        </label>
+                    </div>
+                    <div class="form-group">
+                         <label>[% locale.maketext("Enter the file path that you want to copy this file to:") %]</label>
+                        <div class="input-group">
+                          <span class="input-group-addon">
+                              <span class="fas fa-home"></span>
+                          </span>
+                          <input type="text" class="form-control" name="copyfilepath" id="copy-file-path" value="/path/to/location/" />
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>

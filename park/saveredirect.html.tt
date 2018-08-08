@@ -1,0 +1,27 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+Api1.pre_exec("Park", "setredirecturl");
+SET url = Api1.exec("Park", "setredirecturl", [RAW_FORM.domain,RAW_FORM.url]);
+Api1.post_exec("Park", "setredirecturl");
+
+SET domain = FORM.domain.split(',').item(0);
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'aliases'
+ -%]
+<div class="body-content">
+    <h2 id="hdrAliasRedir">[% locale.maketext("Alias Redirection") %]</h2>
+
+    <div class="alert alert-success" id="aliasRedirSuccess">
+        <span class="glyphicon glyphicon-ok-sign" id="aliasRedirSuccessImg"></span>
+        <span class="alert-message" id="aliasRedirSuccessMsg">
+            [% locale.maketext("The domain “[_1]” is now being redirected to “[_2]”.", domain, url) %]
+        </span>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

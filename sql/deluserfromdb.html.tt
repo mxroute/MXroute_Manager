@@ -1,0 +1,36 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET deluserfromdb = execute("Mysql", "revoke_access_to_database", { "user" => RAW_FORM.user, "database" => RAW_FORM.db });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrRevoke">[% locale.maketext("Revoke MySQL Privileges from Database") %]</h2>
+
+    [% IF deluserfromdb.status %]
+    <div id="deluserfromdbSuccessMsg" class="alert alert-success">
+        <span id="addbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <span id="addbSuccessMsg" class="text">
+            [% locale.maketext("You have revoked “[_1]”’s access to the database “[_2]”.", FORM.user, FORM.db) %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="deluserfromdbErrorMsg" class="alert alert-danger">
+        <span id="deluserfromdbErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            [% FOREACH q = deluserfromdb.errors %]
+                <span id="deluserfromdbErrorMsg" class="text">
+                    [% q.html() %]
+                </span>
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

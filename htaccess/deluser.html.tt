@@ -1,0 +1,38 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_url = 'dohtaccess.html?dir=' _ FORM.dir.uri();
+
+Api1.pre_exec("Htaccess", "del_user");
+Api1.exec("Htaccess", "del_user", [RAW_FORM.dir,RAW_FORM.user]);
+Api1.post_exec("Htaccess", "del_user");
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'directory_privacy'
+-%]
+
+<div class="body-content">
+    [% IF !CPANEL.CPERROR.htaccess %]
+        <div class="alert alert-success" id="permsSuccess">
+            <span class="glyphicon glyphicon-ok-sign" id="permsSuccessImg"></span>
+            <div class="alert-message" id="permsSuccessMsg">
+                <strong>[% locale.maketext("Success:") %]</strong>
+                [% locale.maketext("The access permissions for the user “[_1]” have been removed.", FORM.user) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div class="alert alert-danger" id="permsError">
+            <span class="glyphicon glyphicon-remove-sign" id="permsErrorImg"></span>
+            <div class="alert-message" id="permsErrorMsg">
+                <strong>[% locale.maketext("Error:") %]</strong>
+                [% locale.maketext("There was problem removing the user.") %]
+                [% CPANEL.CPERROR.htaccess.html %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_url return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

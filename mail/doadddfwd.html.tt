@@ -1,0 +1,36 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET email_add_domain_forward = execute("Email", "add_domain_forwarder", {
+    "domain" => RAW_FORM.item("domain"),
+    "destdomain" => RAW_FORM.item("forward")
+});
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'forwarders'
+ -%]
+<div class="body-content">
+    <div class="section">
+        [% IF email_add_domain_forward.status %]
+            <div id="dfwdSuccess" class="alert alert-success">
+                <span id="dfwdSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+                <div id="dfwdSuccessMsg" class="alert-message">
+                    [% locale.maketext("All email sent to “[_1]” will now be copied to “[_2]”.", FORM.domain, FORM.forward) %]
+                </div>
+            </div>
+        [% ELSE %]
+            [% FOREACH error IN email_add_domain_forward.errors %]
+                <div id="fwdCperror" class="alert alert-danger">
+                    <span id="fwdCperrorImg" class="glyphicon glyphicon-remove-sign"></span>
+                    <div id="fwdCperrorMsg" class="alert-message">
+                        [% locale.maketext("The system could not add the domain forwarder: [_1]", error.html()) %]
+                    </div>
+                </div>
+            [% END %]
+        [% END %]
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='fwds.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]
+

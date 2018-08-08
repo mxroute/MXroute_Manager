@@ -1,0 +1,59 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET dbownerprefix = ExpVar.expand('$dbownerprefix');
+    USE CpanelDB;
+    SET max_length = CpanelDB.MAX_MYSQL_DBUSER_LENGTH - dbownerprefix.length();
+    SET full_user = dbownerprefix _ RAW_FORM.item('user');
+    SET adduser = execute("Mysql", "create_user", {"name" => full_user, "password" => RAW_FORM.item('pass')});
+ %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_database_wizard'
+ -%]
+
+<div class="body-content">
+    [% SET CPANEL.CPVAR.new_user = dbownerprefix _ FORM.user %]
+    [% IF adduser.status %]
+        <div class="alert alert-success" id="addedUserSuccess">
+            <span class="glyphicon glyphicon-ok-sign" id="addedUserSuccessImg"></span>
+            <span id="addedUserSuccessMsg">[% locale.maketext("You have successfully created a [asis,MySQL] user named “[_1]”.",full_user.html()) %]</span>
+        </div>
+    [% ELSE %]
+       <div id="adduserError" class="alert alert-danger">
+            <span id="adduserErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            [% FOREACH q = adduser.errors %]
+                <span id="adduserErrorMsg">[% q %]</span>
+            [% END %]
+        </div>
+    [% END %]
+
+    <div class="section">
+        <div id="step3">
+            <h2>[% locale.maketext("Step 3: Add user to the database.") %]</h2>
+            <p>[% locale.maketext("User") %]: <b id="addedUser">[% full_user.html() %]</b>
+            <br />
+            [% locale.maketext("Database") %]: <b id="dbModified">[% FORM.db %] </b></p>
+        </div>
+
+        <form action="wizard4.html" name="adduserdb" id="wizardform" method="post">
+            <input type="hidden" name="db" value="[% FORM.db %]" id="hidDB"/>
+            <input type="hidden" name="user" value="[% full_user.html() %]" id="hidUser"/>
+
+            [% INCLUDE sql/userrights_include.html.tt full_username=full_user  full_dbname = dbownerprefix _ RAW_FORM.db %]
+
+            <div class="form-group">
+                <input type="submit" value="[% locale.maketext("Next Step") %]" class="btn btn-primary" id="btnNextStep" />
+            </div>
+        </form>
+    </div>
+    <ul class="list-inline text-center">
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkStep1', return_location='wizard1.html' return_link_text=locale.maketext('Go Back') %]
+        </li>
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkHome', return_location='index.html' return_link_text=locale.maketext('Go Back to the Main MySQL Page') %]
+        </li>
+    </ul>
+</div><!-- end body-content -->
+
+[% END #wrapper -%]

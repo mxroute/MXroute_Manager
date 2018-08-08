@@ -1,0 +1,1 @@
+(function(){var DOM=YAHOO.util.Dom;var EVENT=YAHOO.util.Event;var initialize=function(){var btnDelete=DOM.get("btnDelete");if(btnDelete){setTimeout(function(){btnDelete.focus()},1)}};YAHOO.util.Event.onDOMReady(initialize)})();

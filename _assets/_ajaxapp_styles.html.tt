@@ -1,0 +1,4 @@
+[% USE Whostmgr -%]
+<style type="text/css">
+[% Whostmgr.find_file_and_insert('/cjt/css/ajaxapp-styles-min.css') -%]
+</style>

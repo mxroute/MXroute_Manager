@@ -1,0 +1,116 @@
+<div class="list-container" >
+    <h3>{{ cert_count_title() }}</h3>
+    <div class="row" ng-repeat="provider in providers" class="checkout-provider" ng-class="{'checkout-provider-current':get_current_step().provider == provider.name}">
+        <div class="col-md-12 checkout-provider-header-row">
+            <div class="content-wrapper">
+                <h4 class="checkout-provider-header">{{ get_purchases_title(provider) }}</h4>
+            </div>
+        </div>
+        <div
+            ng-repeat-start="step in get_steps(provider.name)"
+            ng-if="step == 'login'"
+            ng-class="get_step_classes(provider,'login')">
+            <div class="content-wrapper">
+                <div class="checkout-step-inner">
+                    <div class="content-wrapper">
+                        <div class="checkout-step-icon"><span class='fas fa-sign-in-alt fa-5x'></span></div>
+                        <span>[% locale.maketext("Redirecting to the authentication server to log in.") %]</span>
+                        <span class='fas fa-check fa-2x checkout-step-success-icon'></span>
+                        <span class='fas fa-spinner fa-spin fa-2x pull-right  checkout-step-pending-icon'></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-if="step == 'send_cart_items'" ng-class="get_step_classes(provider,'send_cart_items')">
+            <div class="content-wrapper">
+                <div class="checkout-step-inner">
+                    <div class="content-wrapper">
+                        <div class="checkout-step-icon"><span class='fas fa-shopping-cart fa-5x'></span></div>
+                        <span>{{ sending_items_msg() }}</span>
+                        <span class='fas fa-check fa-2x pull-right checkout-step-success-icon'></span>
+                        <span class='fas fa-spinner fa-spin fa-2x pull-right checkout-step-pending-icon'></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-if="step == 'checkout'" ng-class="get_step_classes(provider,'checkout')">
+            <div class="content-wrapper">
+                <div class="checkout-step-inner">
+                    <div class="content-wrapper">
+                        <div class="checkout-step-icon"><span class='fas fa-external-link-alt fa-5x'></span></div>
+                        <span>[% locale.maketext("Redirecting you to the store to complete your purchase.") %]</span>
+                        <span class='fas fa-check fa-2x pull-right checkout-step-success-icon'></span>
+                        <span class='fas fa-spinner fa-spin fa-2x pull-right checkout-step-pending-icon'></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-if="step == 'payment_callback'" ng-class="get_step_classes(provider,'payment_callback')">
+            <div class="content-wrapper">
+                <div class="checkout-step-inner">
+                    <div class="content-wrapper">
+                        <div class="checkout-step-icon"><span class='fas fa-cloud-download-alt fa-5x'></span></div>
+                        <span>{{ starting_polling_msg() }}</span>
+                        <span class='fas fa-check fa-2x pull-right checkout-step-success-icon'></span>
+                        <span class='fas fa-spinner fa-spin fa-2x pull-right checkout-step-pending-icon'></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div ng-repeat-end ng-if="step == 'checkout_complete'" ng-class="get_step_classes(provider,'checkout_complete')">
+            <div class="content-wrapper">
+                <div class="checkout-step-inner">
+                    <div class="content-wrapper">
+                        <div class="checkout-step-icon"><span class='fas fa-check fa-5x'></span></div>
+                        <span>[% locale.maketext("Purchase Complete.") %]</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script id="user-mismatch-modal" type="text/plain">
+    <div class="panel panel-default user-mismatch">
+        <div class="panel-heading">[% locale.maketext('Store User Mismatch') %]</div>
+        <div class="panel-body">
+            [% locale.maketext('You logged in to “[_1]” as an account that does not have privileges on order item [asis,ID] “[_2]”.', '{{html_escape(provider.display_name)}}', '{{html_escape(order_id)}}') %]
+            [% locale.maketext('You can log in to “[_1]” as another user or cancel the checkout.', '{{html_escape(provider.display_name)}}') %]
+        </div>
+
+        <div class="btn-group panel-btn-group">
+            <button type="submit" class="btn btn-primary col-xs-6 col-sm-6 col-md-6 col-lg-6"
+                ng-click="dismiss_modal(); go_to_login()">
+                [% locale.maketext('Log In') %]
+            </button>
+            <button type="button" class="btn btn-default col-xs-6 col-sm-6 col-md-6 col-lg-6"
+                ng-click="dismiss_modal(); go_to_purchase_page()">
+                [% locale.maketext('Cancel') %]
+            </button>
+        </div>
+    </div>
+</script>
+
+<style>
+    /* Shamelessly copied from whostmgr/docroot/templates/market_provider_manager/views/editProducts.ptt */
+
+    .panel.user-mismatch {
+        margin: 0;
+        border: 0;
+    }
+
+    .panel.user-mismatch .panel-btn-group {
+        width: 100%;
+    }
+
+    .panel.user-mismatch .panel-btn-group > .btn:first-child {
+        border-left: 0;
+    }
+
+    .panel.user-mismatch .panel-btn-group > .btn:last-child {
+        margin-left: 0;
+        border-right: 0;
+        border-left: 0;
+    }
+</style>

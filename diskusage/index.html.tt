@@ -1,0 +1,185 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET has_emailarchive = ( CPANEL.CPCONF.emailarchive == "disable" ? 0 : CPANEL.CPCONF.emailarchive.html); %]
+
+[% PROCESS '_assets/resource_usage_macro.html.tt' %]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'disk_usage'
+    page_js = js_code
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_scripts = ["/yui/datasource/datasource.js", "js2-min/diskusage/index.js"]
+    page_stylesheets = ["css2-min/diskusage/index.css"]
+-%]
+
+<div class="body-content">
+
+    [%-
+            # Note: a MACRO was not used here because we need to be able
+            # to access resource_usage_limits after the block runs
+            SET resource_usage_key = 'diskusage';
+            SET resource_usage_percent_used_to_warn = 80;
+            PROCESS resource_usage_block;
+
+    -%]
+
+    <p id="descMonitorYourAccount">
+        [% locale.maketext("Monitor your account[output,apos]s available space with the Disk Usage feature. All presented figures are relative to the largest directory.") %]
+
+        [% IF ExpVar.expand('$haspostgres') %]
+            [% locale.maketext("Use the [output,url,_1,File Manager,id,_2,target,filemgr] to see usage data for individual files and the [output,url,_3,MySQL,id,_4,target,mysql] and [output,url,_5,PostgreSQL,id,_6,target,postgresql] features to see data for individual databases.", "../filemanager/index.html", "lnkMonitorYourAccountFileManager", "../sql/index.html", "lnkMonitorYourAccountMySQL", "../psql/index.html", "lnkMonitorYourAccountPostgreSQL") %]
+        [% ELSE %]
+            [% locale.maketext("Use the [output,url,_1,File Manager,id,_2,target,filemgr] to see usage data for individual files and the [output,url,_3,MySQL,id,_4,target,mysql] feature to see data for individual databases.", "../filemanager/index.html","lnkMonitorYourAccountFileManager", "../sql/index.html", "lnkMonitorYourAccountPostgreSQL") %]
+        [% END %]
+        [% locale.maketext("For more information, read our [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/DiskUsage", "_blank","lnkMonitorYourAccountForMoreInformation") %]
+    </p>
+
+    <div id="cjt_pagenotice_container"></div>
+
+    <div class="section">
+        <div id="loading">
+            <img  id="imgLoading" src="[% theme_magic_url("/cjt/images/loading.gif") %]" alt="loading" />
+            [% locale.maketext("Loading …") %]
+        </div>
+        <table id="usage-table" class="table table-condensed usage-table">
+            <thead>
+                <tr>
+                    <th id="lblTableLocation">[% locale.maketext("Location") %]</th>
+                    <th id="lblTableSize">[% locale.maketext("Size (MB)") %]</th>
+                    <th id="lblTableDiskUsage">[% locale.maketext("Disk Usage") %]</th>
+                </tr>
+            </thead>
+            <tbody id="usage-table-body"></tbody>
+        </table>
+    </div>
+
+    <div id="hidden_copy">
+        <p id="descTheseFiguresMayNotReflect">
+            <strong>
+                [% locale.maketext("These figures may not reflect recent changes to your account’s disk usage.") %]
+            </strong>
+        </p>
+
+        <p id="descDiskUsageTableBelow">[% locale.maketext("The Disk Usage table below indicates how much space the directories’ contents use, not how much space the directory itself uses.") %]
+            [% locale.maketext("Files typically occupy more disk space than their actual size.") %]
+            [% locale.maketext("This may cause discrepancies between the data you see in the [output,url,_1,File Manager,id,_2,target,filemgr] versus the information you find here.", "../filemanager/index.html", "lnkDiskUsageTableBelowFileManager") %]
+        </p>
+    </div>
+
+    <div class="section">
+        <div id="sort_div" style="display:none;">
+            <div id="sort_div_contents">
+                <strong id="lblSortDirectoriesBy">[% locale.maketext("Sort directories by:") %]</strong>
+                <label id="lblSortDivRadName" class="checkbox-inline">
+                    <input id="radName" type="radio" name="dir_sort" checked="checked" onclick="flip_sort(true)" />
+                    &nbsp;[% locale.maketext("Name") %]
+                </label>
+                <label id="lblSortDivRadUsage" class="checkbox-inline">
+                    <input id="radUsage" type="radio" name="dir_sort" onclick="flip_sort(false)" />&nbsp;
+                    [% locale.maketext("Disk Usage") %]
+                </label>
+            </div>
+        </div>
+
+        <div id="table_container">
+        </div>
+    </div>
+</div>
+
+
+<script type="text/plain" id="total_disk_usage_template">
+    <tr>
+        <td>&nbsp;</td>
+        <td colspan="2">
+            <div class="total">
+            [% locale.maketext("[_1] MB total disk space used.", "{mib}") %]
+            </div>
+        </td>
+    </tr>
+</script>
+
+<script type="text/plain" id="quota_usage_template">
+    <tr>
+        <td>&nbsp;</td>
+        <td colspan="2">
+            <div class="total">
+            [% locale.maketext("[_1] MB quota limit ([_2] MB used).", "{limit}", "{used}") %]
+            </div>
+        </td>
+    </tr>
+</script>
+
+<script type="text/plain" id="table-row-template">
+    <tr>
+        <td class="directory">{url}</td>
+        <td class="percentage">{usage} MB</td>
+        <td class="usage-bar">
+            <div class="progress">
+                <div class="progress-bar" role="progressbar" aria-valuenow="{width}" aria-valuemin="0" aria-valuemax="100" style="width: {width}%;"></div>
+            </div>
+        </td>
+    </tr>
+</script>
+
+<script type="text/plain" id="table-row-template-with-note">
+    <tr>
+        <td class="directory">{url}</td>
+        <td class="percentage">{usage} MB</td>
+        <td class="usage-bar">
+            <div class="usage-background">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" aria-valuenow="{width}" aria-valuemin="0" aria-valuemax="100" style="width: {width}%;"></div>
+                </div>
+            </div>
+            <p class="help-block">{note}</p>
+        </td>
+    </tr>
+</script>
+
+
+<!-- Identical to the above except for “unknown” -->
+<script type="text/plain" id="table-row-unknown-template">
+    <tr class="directory-wrap clearfix">
+        <td class="directory">{url}</td>
+        <td class="percentage">[% locale.maketext("unknown") %]</td>
+        <td class="usage-bar">
+            <div class="usage-background">
+                <div class="progress">
+                    <div class="progress-bar" role="progressbar" aria-valuenow="{width}" aria-valuemin="0" aria-valuemax="100" style="width: {width}%;"></div>
+                </div>
+            </div>
+        </td>
+    </tr>
+</script>
+
+[% INCLUDE diskusage/diskusage_extras.html.tt %]
+
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var CONF = {
+        system_has_email_archive : [% has_emailarchive.json() || "null" %],
+        user_has_email_archive : '[% IF CPANEL.feature("emailarchive") %]1[% END %]'
+    };
+
+    var LEXICON = {
+        not_in_subdir:      '[% locale.maketext("Files in home directory.") %]',
+        hidden_subdirs:     '[% locale.maketext("Files in hidden subdirectories.") %]',
+        mailing_lists:      '[% locale.maketext("Mailing Lists") %]',
+        mailaccounts:       '[% locale.maketext("Email Accounts") %]',
+        mailarchives:       '[% locale.maketext("Email Archives") %]',
+        mail_note:          '[% locale.maketext("[comment,the star is a footnote]* Contained in the mail directory.") %]',
+        mail_excludes_note: '[% locale.maketext("[comment,the star is a footnote]* Excludes email archives.") %]',
+        other_usage:        '[% locale.maketext("Other Usage") %]',
+        over_quota:         '[% locale.maketext("This account has exceeded its disk quota.") %]',
+        warn_quota:         '[% locale.maketext("This account is using more than 90% of its disk quota.") %]'
+    };
+
+    var has_postgres = Boolean( Number( [% ExpVar.expand('$haspostgres').json() || "null" %] ) );
+</script>
+[% END %]
+

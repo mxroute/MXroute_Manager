@@ -1,0 +1,75 @@
+<form class="layout-medium ng-pristine" name="edit_a_record" novalidate>
+    <div class="modal-header"><h4>{{ ar.modal_header }}</h4></div>
+    <div class="modal-body">
+        <div class="form-group">
+            <label for="A_name">
+                {{ ar.name_label }}
+            </label>
+            <div class="row">
+                <div class="col-xs-12">
+                    <input type="text"
+                        class="form-control"
+                        id="A_name"
+                        name="A_name"
+                        required
+                        zone-name
+                        ng-model="ar.resource.name"
+                        placeholder="{{ar.zone_name_placeholder}}"
+                        convert_to_full_record_name
+                        domain="ar.domain" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <ul validation-container field-name="A_name">
+                        <li validation-item
+                            id="val_a_name_required"
+                            field-name="A_name"
+                            validation-name="required">{{ ar.required_msg }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="form-group last">
+            <label id="lblAAddress" for="A_address">
+                {{ ar.address_label }}
+            </label>
+            <div class="row">
+                <div class="col-xs-12">
+                    <input type="text"
+                        class="form-control"
+                        id="A_address"
+                        name="A_address"
+                        placeholder="203.0.113.11"
+                        required
+                        ipv4
+                        ng-model="ar.resource.address" />
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12">
+                    <ul validation-container field-name="A_address">
+                        <li validation-item
+                            field-name="A_address"
+                            validation-name="required">{{ ar.required_msg }}</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="modal-footer">
+        <button type="submit"
+            id="A_submit"
+            name="submit"
+            cp-action="ar.save()"
+            ng-disabled="edit_a_record.$invalid || edit_a_record.$pristine"
+            button-class="btn btn-primary btn-sm">
+           {{ ar.submit_label }}</button>
+        <button type="button"
+            id="A_cancel"
+            name="cancel"
+            class="btn btn-link btn-sm"
+            ng-click="ar.cancel()">
+            {{ ar.cancel_label }}</button>
+    </div>
+    </form>

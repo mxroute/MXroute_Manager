@@ -1,0 +1,24 @@
+<script type="text/javascript">
+//<![CDATA[
+var init = function() {
+
+    var restricted_domain = '[% CPANEL.CPDATA.DNS.html %]';
+
+    var validation = new CPANEL.validate.validator("[% locale.maketext("Contact Information") %]");
+
+    // Attach validation events
+    validation.add("email", "if_not_empty(%input%, CPANEL.validate.email)", '[% locale.maketext("Please use a valid email format.") %]');
+    validation.add("second_email", "if_not_empty(%input%, CPANEL.validate.email)", '[% locale.maketext("Please use a valid email format.") %]');
+    validation.add("pushbullet_access_token", "if_not_empty(%input%, CPANEL.validate.no_unsafe_periods)", '<cptext "You [output,strong,must] use an alphanumeric access token.">');
+
+    validation.attach();
+
+    CPANEL.validate.attach_to_form("submit-button", validation);
+
+    YAHOO.util.Dom.get("email").focus();
+};
+
+YAHOO.util.Event.onDOMReady(init);
+
+//]]>
+</script>

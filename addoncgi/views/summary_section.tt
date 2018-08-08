@@ -1,0 +1,104 @@
+    <h4>[% locale.maketext("Details") %]</h4>
+
+    <div class="row">
+        <div class="col-xs-12 col-sm-6">
+
+            <div class="row">
+                <div class="col-xs-12 col-sm-5 col-lg-4"><label id="software-version">[% locale.maketext("Software Version") %]</label></div>
+                <div class="col-xs-12 col-sm-7 col-lg-8" aria-labelledby="software-version" title="[% locale.maketext("Software Version: [_1], Module Version: [_1]", module.meta.version, module.version) %]">[% module.meta.version | html %]</div>
+            </div>
+
+            [% IF module.meta.packager_name || module.meta.maintainer_url %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-5 col-lg-4"><label id="packaged-by">[% locale.maketext('Packaged By') %]</label></div>
+                <div class="col-xs-12 col-sm-7 col-lg-8" aria-labelledby="packaged-by">
+                    [% IF module.meta.packager_name && module.meta.maintainer_url %]
+                    <a role="link" aria-labelledby="packaged-by" target="_blank" href="[% module.meta.maintainer_url | url %]" title="[% module.meta.maintainer_url | url %]">
+                        <span>[% module.meta.packager_name.html() %]</span>
+                        <span class="fas fa-external-link-alt" aria-hidden="true"></span>
+                    </a>
+                    [% ELSIF module.meta.packager_name %]
+                    [% module.meta.packager_name.html() %]
+                    [% ELSIF module.meta.maintainer_url %]
+                    <a role="link" aria-labelledby="packaged-by" target="_blank" href="[% module.meta.maintainer_url | url %]" title="[% module.meta.maintainer_url | url %]">
+                        <span>[% module.meta.maintainer_url | url %]</span>
+                        <span class="fas fa-external-link-alt" aria-hidden="true"></span>
+                    </a>
+                    [% END %]
+                </div>
+            </div>
+            [% END %]
+
+            [% IF module.meta.website %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-5 col-lg-4"><label id="website-link">[% locale.maketext('Website') %]</label></div>
+                <div class="col-xs-12 col-sm-7 col-lg-8">
+                    <a role="link" aria-labelledby="website-link" target="_blank" href="[% module.meta.website | url %]" title="[% module.meta.website | url %]">
+                        <span>[% module.meta.website.html() %]</span>
+                        <span class="fas fa-external-link-alt" aria-hidden="true"></span>
+                    </a>
+                </div>
+            </div>
+            [% END %]
+
+            [% IF module.meta.documentation_url %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-5 col-lg-4"><label id="documentation-link">[% locale.maketext('Documentation') %]</label></div>
+                <div class="col-xs-12 col-sm-7 col-lg-8">
+                    <a role="link" aria-labelledby="documentation-link" target="_blank" href="[% module.meta.documentation_url | url %]" title="[% module.meta.documentation_url | url %]">
+                        <span>[% module.meta.documentation_url | url %]</span>
+                        <span class="fas fa-external-link-alt" aria-hidden="true"></span>
+                    </a>
+                </div>
+            </div>
+            [% END %]
+
+            [% IF module.meta.support_url %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-5 col-lg-4"><label id="support-link">[% locale.maketext('Support') %]</label></div>
+                <div class="col-xs-12 col-sm-7 col-lg-8">
+                    <a role="link" aria-labelledby="support-link" target="_blank" href="[% module.meta.support_url | url %]" title="[% module.meta.support_url | url %]">
+                        <span>[% module.meta.support_url | url %]</span>
+                        <span class="fas fa-external-link-alt" aria-hidden="true"></span>
+                    </a>
+                </div>
+            </div>
+            [% END %]
+
+            [% IF module.meta.changelog_url %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-5 col-lg-4"><label id="change-log-link">[% locale.maketext('Change Log') %]</label></div>
+                <div class="col-xs-12 col-sm-7 col-lg-8">
+                    <a role="link" aria-labelledby="change-log-link" target="_blank" href="[% module.meta.changelog_url | url %]" title="[% module.meta.changelog_url | url %]">
+                        <span>[% module.meta.changelog_url | url %]</span>
+                        <span class="fas fa-external-link-alt" aria-hidden="true"></span>
+                    </a>
+                </div>
+            </div>
+            [% END %]
+
+            [% IF module.meta.minimum-mysql-version && module.meta.minimum_mysql_version_valid %]
+                [% IF environment.mysql_version >= module.meta.minimum-mysql-version %]
+                <p>
+                    [% locale.maketext('Requires MySQL [_1] or later.', module.meta.minimum-mysql-version.html()) %]
+                </p>
+                [% END %]
+            [% END %]
+
+            [% IF module.meta.description %]
+            <div id="description">
+                <p>[% module.meta.description | html_break %]</p>
+            </div>
+            [% END %]
+            [% IF module.meta.addopt_url %]
+            <p>
+                [% locale.maketext('Read more about the functionality that this [asis,cPAddon] provides at the following URL: [output,url,_1,_type,offsite]', module.meta.addopt_url.url()) %]
+            </p>
+            <p class="callout callout-warning">
+                [% locale.maketext('[asis,cPanel, Inc.] is not responsible for any aspect of any third-party modifications available.') %]<br />
+                [% locale.maketext('These modifications could break functionality or the ability to manage the [asis,cPAddon] via this interface. If you choose to install any third-party modifications, you do so at your own risk.') %]
+            </p>
+            [% END %]
+
+        </div>
+    </div>

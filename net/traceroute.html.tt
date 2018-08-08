@@ -1,0 +1,24 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../"; %]
+
+[% SET traceroute =  Api2.exec("Net", "traceroute", {} ); %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'track_dns'
+ -%]
+
+<div class="body-content">
+    <table class="table table-striped sortable">
+    [% IF traceroute.size; %]
+        [% FOREACH route IN traceroute; %]
+        <tr>
+            <td>[%  route.line.html() %]</td>
+        </tr>
+        [% END %]
+    [% END %]
+    </table>
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]
+

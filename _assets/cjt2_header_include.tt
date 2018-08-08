@@ -1,0 +1,20 @@
+[%
+    USE JSON;
+    SET is_proxy = (CPANEL.ENV.HTTP_PROXIED == 'proxy') ? 1 : 0;
+    SET app_name = 'cpanel';
+
+    IF !application_dir.defined;
+        SET app = ExpVar.expand('$basedir');
+    ELSE;
+        SET app = application_dir;
+    END;
+
+    SET file = ExpVar.expand('$basefilename') IF !file.defined;
+    SET master = "_assets";
+
+    SET requirejs_url_base = '/frontend/' _ CPANEL.CPDATA.RS;
+    SET page_theme_path = requirejs_url_base.json();
+    SET page_master_path = master.json();
+%]
+
+[% PROCESS 'libraries/cjt2/cjt2_header_include.tt' %]

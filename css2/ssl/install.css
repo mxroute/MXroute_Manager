@@ -1,0 +1,166 @@
+.relative {
+    position: relative;
+    width: 100%;
+}
+.relative input {
+    margin: 0; /* cancel WebKit default style */
+}
+
+.cjt_validation_error img {
+    vertical-align: middle;
+}
+
+.ssl-certificate-parse-warn img,
+.ssl-certificate-parse-error img {
+    vertical-align: middle;
+    padding-bottom: 2px;
+}
+
+.ssl-certificate-parse div.warn {
+    display: inline-block;
+    color: #1d1d1d;
+    background-color: #fcf8e1;
+    border: 1px solid #f1c40f;
+    padding: 2px 4px;
+    margin-left: 10px;
+    margin-right: 10px;
+    white-space: normal;
+    max-width: 400px;
+    border-radius: 4px;
+    vertical-align: top;
+    position: relative;
+    top: -2px;
+}
+
+.ssl-certificate-parse div.error {
+    display: inline-block;
+    background-color: #ff9999;
+    border: 1px solid #ff6e65;
+    padding: 2px 4px;
+    margin-left: 10px;
+    margin-right: 10px;
+    white-space: normal;
+    max-width: 400px;
+    border-radius: 4px;
+    vertical-align: top;
+    position: relative;
+    top: -2px;
+}
+
+.ssl-certificate-parse div.warn,
+.ssl-certificate-parse div.error {
+    max-width: 160px;
+}
+
+.ssl-certificate-parse-warn span {
+    vertical-align: top;
+    display: inline-block;
+}
+
+.ssl-certificate-parse-error span {
+    vertical-align: top;
+    display: inline-block;
+}
+
+ul.ssl-certificate-parse-domains {
+    margin: 0;
+    padding: 0;
+    list-style-type: none;
+}
+.ssl-certificate-parse .ssl-modulus {
+    font-family: monospace;
+    vertical-align: middle;
+}
+
+/* So these messages don't cover up the Fetch buttons. */
+.validation_errors_div {
+    max-width: 220px;
+}
+
+.attachOpposite {
+    bottom: 0;
+    position: absolute;
+}
+
+html[dir="ltr"] .attachOpposite {
+    right: 0;
+}
+
+html[dir="rtl"] .attachOpposite {
+    left: 0;
+}
+
+html .ssl-certificate-parse th {
+    font-weight: bold;
+}
+
+html .ssl-certificate-parse th,
+html .ssl-certificate-parse td {
+    vertical-align: top;
+}
+
+html[dir="ltr"] .ssl-certificate-parse th {
+    text-align: left;
+}
+
+html[dir="rtl"] .ssl-certificate-parse th {
+    text-align: right;
+}
+
+.cjt-notice-content ul.ssl-install-domain-types {
+    margin-bottom: 0;
+}
+
+/* This is to match the styles below from WHM */
+.ssl-results-panel .sortable td {
+    padding: 4px;
+}
+.ssl-results-panel .sortable th {
+    padding-right: 5px;
+}
+/* YUI 2 DataTable forgot (?) to attach a "yui-dt-last" to table headers. */
+.ssl-results-panel .sortable .yui-dt-hd th:last-of-type {
+    padding-right: 4px;
+}
+
+.ssl-certificate-parse th {
+    background-image: none;
+    border-width: 0;
+}
+
+.ssl-certificate-parse td {
+    border-width: 0;
+}
+
+.home-icon {
+    width: 20px;
+    height: 19px;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.action-links a {
+    display: inline-block;
+    padding: 1px 0;
+}
+
+.no-hosts-installed {
+    display: none;
+}
+
+.page-section .item-row {
+    margin-top: 0.5em;
+}
+
+html[dir="ltr"] div.item-row > * {
+    margin-left: 1.5em;
+}
+
+html[dir="rtl"] div.item-row > * {
+    margin-right: 1.5em;
+}
+
+html[dir="ltr"] div.item-row > *:first-child {
+    margin-left: 0;
+    margin-right: 0;
+}

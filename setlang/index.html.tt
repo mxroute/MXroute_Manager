@@ -1,0 +1,164 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+%]
+[% USE Api2; %]
+
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    page_styles = css_code
+    app_key = 'change_language'
+ -%]
+
+[%
+#The account's locale name, in the session locale.
+    SET account_locale = locale.get_user_locale();
+    SET account_locale_name = locale.get_locale_name_or_nothing(account_locale,1) || "($account_locale)";
+    SET button_text = locale.maketext('Revert to Account’s Locale Setting');
+%]
+
+[% PROCESS '_assets/_ajaxapp_header.html.tt' -%]
+<div class="body-content">
+<p class="description" id="txtDescription">
+    [% locale.maketext("This function allows you to change the language displayed in your cPanel interface. If you need a new language, contact your cPanel provider so they can install it.") %]
+</p>
+
+<div id="cjt_pagenotice_container">
+    <div id="success_preload" class="cjt-notice cjt-notice-success" style="position:absolute;visibility:hidden">
+        <div class="bd"></div>
+    </div>
+</div>
+
+<div class="section">
+    <h2>[% locale.maketext("Change Language") %]</h2>
+    <div class="alert alert-info" id="alertSuccess">
+        <span class="glyphicon glyphicon-info-sign" id="alertSuccessIcon"></span>
+        [% locale.maketext('Your account’s language is set to “[_1]”.', account_locale_name) %]
+    </div>
+    <form action="javascript:void(0)" onsubmit="save(this)">
+        <div class="form-group">
+            <label for="lang" id="lblLang">
+                [% locale.maketext('Select a Language') %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <select id="lang" name="lang" class="form-control">
+                    [% PROCESS 'setlang/_locale_option_tags.html.tt' selected_locale=account_locale -%]
+                    </select>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <input id="submit" type="submit" class="btn btn-primary" value="[% locale.maketext_plain_context('Change') %]" />
+        </div>
+    </form>
+</div>
+[% INCLUDE _assets/return_link.html.tt return_location='../' return_link_text=locale.maketext('Go Back') %]
+
+[% PROCESS '_assets/_ajaxapp_footer.html.tt' -%]
+</div>
+
+<script type="text/plain" id="session_locale_reset">
+<div id="session_locale_reset_alert" class="cjt-alert-info">
+    <div class="message-container">
+        <span class="glyphicon glyphicon-info-sign" id="alertRevertInfoIcon"></span>
+        <div id="txtSessionLocaleReset" class="alert-message">
+            [% locale.maketext('The locale selected when you logged in is overriding your account’s locale setting. To use your account’s locale setting, click the “[_1]” button below.',button_text) %]
+        </div>
+    </div>
+
+    <div class="controls-container" id="btnResetSessionLocaleContainer">
+        <button id="btnResetSessionLocale" onclick="reset_session_locale()" class="btn btn-primary">[% button_text %]</button>
+    </div>
+</div>
+</script>
+
+
+[% BLOCK css_block %]
+<style type="text/css">
+    #cjt_pagenotice_container {
+        margin-bottom: 10px;
+    }
+
+    .cjt-alert-info {
+        color: #31708F;
+    }
+
+    #session_locale_reset_alert .alert-message {
+        display: inline;
+    }
+
+    #session_locale_reset_alert .controls-container {
+        margin-top: 10px;
+    }
+</style>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    EVENT.onDOMReady( function() {
+        DOM.get("success_preload").parentNode.removeChild(DOM.get("success_preload"));
+    } );
+
+    if ( /\bsession_locale=[^;]/.test(document.cookie) ) {
+        window.HAS_SESSION_LOCALE_COOKIE = true;
+        var SESSION_LOCALE_NOTICE = new CPANEL.widgets.Page_Notice( {
+            content: DOM.get("session_locale_reset").text
+        } );
+    }
+
+    function _cookie_reset() {
+        document.cookie = "session_locale=;path=/;expires=" + (new Date(0)).toUTCString();
+    }
+
+    function reset_session_locale() {
+        if (window.HAS_SESSION_LOCALE_COOKIE) {
+            _cookie_reset();
+            var content = "<div>[% locale.maketext('You are now using your account’s locale setting. This page will now reload and display in [get_locale_name,_1,1].',locale.get_user_locale()) %]</div>";
+            new CPANEL.widgets.Page_Notice( {level:"success", content:content, replaces:SESSION_LOCALE_NOTICE} );
+            location.reload();
+        }
+    }
+
+    var ERROR_NOTICE;
+    function save(form) {
+        var panel = new CPANEL.ajax.Progress_Panel( null, {
+            status_html: "[% locale.maketext('Saving new locale …') %]"
+        } );
+        var source = DOM.get("submit");
+        panel.show_from_source(source);
+
+        CPANEL.api( {
+            module: "SetLang",
+            func:   "setlocale",
+            data: { locale: form.lang.options[ form.lang.selectedIndex ].value },
+            callback: {
+                failure: function(o) {
+                    panel.after_hideEvent.subscribe( panel.destroy, panel, true );
+                    panel.hide_to_point(source);
+
+                    var err = String(o.error || o.cpanel_error || o);
+
+                    if (ERROR_NOTICE && ERROR_NOTICE.cfg) {
+                        ERROR_NOTICE.cfg.setProperty("content", err.html_encode());
+                    }
+                    else {
+                        ERROR_NOTICE = new CPANEL.widgets.Page_Notice({level:"error", content:err.html_encode(), replaces:ERROR_NOTICE});
+                    }
+                },
+                success: function(o) {
+                    _cookie_reset();
+                    panel.set_status("[% locale.maketext('Success! This page will now reload.') %]");
+                    location.reload();
+                }
+            }
+        } );
+    }
+</script>
+[% END %]
+
+[% END #wrapper -%]
+

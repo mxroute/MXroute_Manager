@@ -1,0 +1,26 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    <h2 id="hdrDelKey">
+        [% IF FORM.item('pub') %]
+            [% locale.maketext("Public SSH Key") %]
+        [% ELSE %]
+            [% locale.maketext("Private SSH Key") %]
+        [% END %]
+    </h2>
+    <p id="delKeyConfirm">[% locale.maketext('Are you certain that you wish to delete the key named “[output,inline,_1,class,status]”?', FORM.key) %]</p>
+    <p>
+        <a id="lnkDelKey" class="btn btn-primary" href="dodelkey.html?pub=[% FORM.pub.uri() %]&key=[% FORM.key.uri() %]">
+            [% locale.maketext("Delete Key") %]
+        </a>
+        <a id="lnkCancel" class="btn btn-link" href="index.html">
+            [% locale.maketext("Cancel") %]
+        </a>
+    </p>
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

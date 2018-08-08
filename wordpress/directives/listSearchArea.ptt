@@ -1,0 +1,35 @@
+<div id="search-area" class="form-group">
+    <div class="row input-row">
+        <div class="col-xs-12 col-sm-11">
+            <div class="input-group filter-controls">
+                <input
+                    id="search-input"
+                    class="form-control"
+                    placeholder="[% locale.maketext('Search') %]"
+                    title="[% locale.maketext('Type in your search filter.') %]"
+                    ng-model="list.meta.filterValue"
+                    ng-model-options="{ debounce: 250 }"
+                    ng-keyup="triggerClearSearch($event)"
+                    ng-change="filterInstances()"
+                    autocomplete="off"
+                    auto-focus
+                    model-to-lower-case />
+                <span class="input-group-btn">
+                    <button
+                        id="search-button"
+                        type="button"
+                        class="btn btn-default"
+                        ng-click="clearSearch()">
+                        <span class="glyphicon" ng-class="{ 'glyphicon-search': !list.meta.filterValue, 'glyphicon-remove': list.meta.filterValue }"></span>
+                    </button>
+                </span>
+            </div>
+        </div>
+        <div class="spinner-container hidden-xs col-sm-1">
+            <spinner
+                id="top-loading-spinner"
+                title="[% locale.maketext('Loading …') %]">
+            </spinner>
+        </div>
+    </div>
+</div>

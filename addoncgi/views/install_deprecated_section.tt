@@ -1,0 +1,41 @@
+[%
+# Arguments
+# form   - hash -
+# data   - hash -
+# vendor - hash -
+#    name - string - vendor name
+# environment - hash
+#    mysql_version - string
+#    contactemail  - string
+#    script_name   - string - name of the script
+# module - hash -
+#    name - string
+#    version - string
+#    meta - hash -
+#    supports_action - hash - with booleans for each action name
+# settings - hash -
+#    no_modified_cpanel - boolean
+#    no_3rd_party       - boolean
+#    min_password_strength - number
+#
+SET module_name = module.name;
+
+SET install_class = data.sorted_instances.size > 0 ? "" : "active ";
+%]
+
+[% #Install %]
+    <div class="row">
+        <div class="col-xs-12 col-sm-10 col-md-6">
+            <p id="deprecation-notice">
+                [% locale.maketext('This [asis,cPAddon] is deprecated. You cannot create new installations with this [asis,cPAddon].') %]
+            </p>
+            [% IF alt_module %]
+            <p id="deprecation-alternative">
+                [% locale.maketext('Create new installations with the “[_1]” [asis,cPAddon].', alt_module.display_app_name) %]
+            </p>
+            <a id="deprecation-alternative-button" href="[% alt_module.url %]" class="btn btn-primary">
+                [% locale.maketext('Go to “[_1]”', alt_module.display_app_name) %]
+            </a>
+            [% END %]
+        </div>
+    </div>

@@ -1,0 +1,63 @@
+[% FOREACH notice IN notices.get_list() %]
+[%  IF notice.type == 'critical_error' || notice.type == 'error' %]
+<div class="alert alert-danger">
+    <span class="glyphicon glyphicon-remove-sign"></span>
+    <div class="alert-message" id="[% notice.id %]">
+        <strong>[% locale.maketext('Error:') %]</strong>
+        [% notice.message | html_break %]
+        [% IF notice.list_items && notice.list_items.size %]
+        [% PROCESS 'addoncgi/views/notice_list.tt' items => notice.list_items %]
+        [% END %]
+    </div>
+</div>
+[%  ELSIF notice.type == 'warning' %]
+<div class="alert alert-warning">
+    <span class="glyphicon glyphicon-exclamation-sign"></span>
+    <div class="alert-message" id="[% notice.id %]">
+        <strong>[% locale.maketext('Warning:') %]</strong>
+        [% notice.message | html_break %]
+        [% IF notice.list_items && notice.list_items.size() %]
+        [% PROCESS 'addoncgi/views/notice_list.tt' items => notice.list_items %]
+        [% END %]
+    </div>
+</div>
+[%  ELSIF notice.type == 'info' %]
+<div class="alert alert-info">
+    <span class="glyphicon glyphicon-info-sign"></span>
+    <div class="alert-message" id="[% notice.id %]">
+        <strong>[% locale.maketext('Information:') %]</strong>
+        [% notice.message | html_break %]
+        [% IF notice.list_items && notice.list_items.size() %]
+        [% PROCESS 'addoncgi/views/notice_list.tt' items => notice.list_items %]
+        [% END %]
+    </div>
+</div>
+[%  ELSIF notice.type == 'success' %]
+<div class="alert alert-success">
+    <span class="glyphicon glyphicon-ok-sign"></span>
+    <div class="alert-message" id="[% notice.id %]">
+        <strong>[% locale.maketext('Success:') %]</strong>
+        [% notice.message | html_break %]
+        [% IF notice.list_items && notice.list_items.size() %]
+        [% PROCESS 'addoncgi/views/notice_list.tt' items => notice.list_items %]
+        [% END %]
+    </div>
+</div>
+[%  ELSIF notice.type == 'plain' %]
+<p id="[% notice.id %]">
+[% notice.message | html_break %]
+[% IF notice.list_items && notice.list_items.size() %]
+[% PROCESS 'addoncgi/views/notice_list.tt' items => notice.list_items %]
+[% END %]
+</p>
+[%  ELSIF notice.type == 'pre' %]
+<p id="[% notice.id %]">
+    <pre>[%- notice.message | html -%]
+        [%- IF notice.list_items && notice.list_items.size() -%]
+        [%- PROCESS 'addoncgi/views/notice_list.tt' items => notice.list_items -%]
+        [%- END -%]</pre>
+</p>
+[%  ELSIF notice.type == 'html' %]
+[% notice.message %]
+[%  END %]
+[% END %]

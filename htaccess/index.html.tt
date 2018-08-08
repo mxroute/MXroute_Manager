@@ -1,0 +1,135 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    SET app_name = "password-protect";
+
+    SET pwd_protect_nvdata = execute( 'NVData', 'get', { 'names' => 'optionselect_password-protect' } );
+
+    SET directory = RAW_FORM.dir;
+
+    SET default_dir = "";
+
+    Api2.pre_exec("Email", "listmaildomains");
+    SET domains_list =  Api2.exec("Email", "listmaildomains", {} );
+    Api2.post_exec("Email", "listmaildomains");
+
+    IF pwd_protect_nvdata.status;
+        SET nvdata_value = pwd_protect_nvdata.data.0.value,
+            value = nvdata_value.split(':'),
+            selected_option = value.0,
+            domain = value.1,
+            always_open_dir = value.2;
+
+        IF always_open_dir == 1;
+            IF selected_option == 'webroot';
+                default_dir = CPANEL.homedir _ '/public_html';
+            ELSIF selected_option ==  'domainrootselect';
+                 default_dir = Api2.exec("DomainLookup" , "getdocroot" , {"domain" => domain}).0.docroot;
+            ELSE;
+                default_dir = CPANEL.homedir _ '/public_html'
+                selected_option = 'webroot';
+            END;
+        END;
+    END;
+
+    directory = directory || default_dir;
+
+    Api1.pre_exec("Htaccess", "htdirls");
+    SET directory_list = Api1.exec("Htaccess", "htdirls", [directory]);
+    Api1.post_exec("Htaccess", "htdirls");
+%]
+
+[% css_code = PROCESS css_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'directory_privacy'
+    page_styles = css_code
+    use_master_bootstrap = 0
+-%]
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+
+<div class="body-content">
+    <p class="description" id="descDirPriv">
+        [% locale.maketext("Set a password to protect certain directories of your account. When you enable this feature, a user that tries to open a protected folder will be prompted to enter a username and password before they can access your content.") %]
+        [% locale.maketext("For more information, read our [output,url,_1,documentation,target,_2].", "//go.cpanel.net/DirectoryPrivacy", "_blank") %]
+    </p>
+
+    <div>
+        <button id="btnSettings" type="button" class="btn btn-default pull-right" data-toggle="modal" data-target="#modalSettings">
+          <span class='fas fa-cog fa-lg'></span> [% locale.maketext("Settings") %]
+        </button>
+
+        <p>[% locale.maketext("Click the icon to [output,strong,open] a folder. Click the name to [output,strong,select] a folder.") %]</p>
+
+        <section class="directory-list">
+        [% directory_list %]
+        </section>
+    </div>
+</div><!-- end body-content -->
+
+<!-- Modal -->
+<div class="modal fade" id="modalSettings" tabindex="-1" role="dialog" aria-labelledby="lblModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button id="btnHeaderSettingsClose" type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+                <h4 class="modal-title" id="lblModalLabel">[% locale.maketext("Directory Privacy") %]</h4>
+            </div>
+            <div class="modal-body">
+                <div class="radio" id="settings_webroot">
+                    <label for="dirselect_webroot">
+                      <input type="radio" name="dirselect" value="webroot" id="dirselect_webroot" [% selected_option == 'webroot' ? ' checked' : '' %]/>
+                      [% locale.maketext("Web Root ([asis,public_html or www])") %]
+                    </label>
+                </div>
+                <div class="radio" id="settings_domainroot">
+                    <label for="optionselect_domainrootselect_radio">
+                      <input  type="radio" name="dirselect" id="optionselect_domainrootselect_radio" value="domainrootselect" [% selected_option == 'domainrootselect' ? ' checked' : '' %]/>
+                      [% locale.maketext("Document Root for:") %]
+                    </label>
+                    <select id="ddlDomainSelect" name="domainselect" class="form-control option-directory-select" [% selected_option == 'domainrootselect' ? '' : 'disabled' %]>
+                        [% IF domains_list.size(); %]
+                           [% FOREACH item IN domains_list; %]
+                                <option value="[%  item.domain.html() %]"  [% IF selected_option == 'domainrootselect' AND domain == item.domain.html();%] selected="true"[% END %]>
+                                    [%  item.domain.html() %]
+                                </option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                </div>
+
+                <div class="settings-select-extras">
+                    <div class="checkbox">
+                        <label for="settings_saved">
+                            <input type="checkbox" id="settings_saved" name="saveoption" [% always_open_dir == "1" ? 'checked': "" %] />
+                            <span id="lblOpenDirectoryTxt">
+                            [% locale.maketext("Always open this directory in the future") %]
+                            </span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btnSettingsCancel" type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+                <button id="btnSettingsSave" type="button" class="btn btn-primary">Save changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+[% END #wrapper -%]
+
+
+[% BLOCK css_block %]
+<style type="text/css">
+.directory-list {
+    padding-bottom: 20px;
+}
+.settings-select-extras {
+    padding-top: 20px;
+}
+</style>
+[% END %]

@@ -1,0 +1,41 @@
+[% SET CPANEL.CPVAR.dprefix="../"  %]
+[%
+    Api1.pre_exec("Gpg", "exportsecretkey");
+    SET export_secretkey = Api1.exec("Gpg", "exportsecretkey", [RAW_FORM.key]);
+    Api1.post_exec("Gpg", "exportsecretkey");
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+    page_js = js_code
+%]
+<div class="body-content">
+    <div class="section">
+        <div class="form-group">
+            <label id="lblPrivateKey">
+                [% locale.maketext("Private Key") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-lg-6">
+                    <textarea id="txtPrivateKey" cols="80" class="form-control" rows="10" readonly>[% export_secretkey %]</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html"  return_link_text=locale.maketext("Go Back" ) %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function(event) {
+        var txtarea = document.getElementById("txtPrivateKey");
+        if (txtarea) {
+            txtarea.addEventListener("click", function (e) {
+                e.target.select();
+            });
+        }
+    });
+</script>
+[% END %]

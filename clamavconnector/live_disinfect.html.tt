@@ -1,0 +1,7 @@
+[%
+Api1.pre_exec("ClamScanner", "disinfect");
+SET disinfect = Api1.live_exec("ClamScanner", "disinfect", [FORM]);
+Api1.post_exec("ClamScanner", "disinfect");
+%]
+[% disinfect %]
+[% locale.maketext("Cleanup Complete!") %]

@@ -1,0 +1,165 @@
+<div class="panel" ng-class="{
+    'panel-default': !conflictResolutionRequired || !needsConflictResolution(),
+    'panel-warning': conflictResolutionRequired && (needsConflictResolution() || isLinking),
+    'panel-success': service.willLink && !isLinking,
+    'panel-danger': service.willDismiss
+}">
+    <div class="panel-heading">
+        <label>[% locale.maketext('Email') %]</label>
+        <span class="pull-right flip ng-hide" ng-show="showToggle">
+            <toggle-switch id="toggleEmail"
+                           no-spinner="true"
+                           ng-model="service.enabled"
+                           on-toggle="toggleService()"
+                           label-position="left"
+                           ng-disabled="isDisabled || hasConflict() && isResolved() && !isLinking"
+                           ng-hide="(hasConflict() && !isResolved()) || isLinking"
+                           enabled-label="[% locale.maketext('Enabled') %]"
+                           disabled-label="[% locale.maketext('Disabled') %]">
+            </toggle-switch>
+        </span>
+        <span class="fas fa-exclamation-triangle" id="email-has-conflicts-warning" ng-show=" conflictResolutionRequired && (needsConflictResolution() || isLinking)" title="[% locale.maketext('The system detected a service account with the same username.') %] [% locale.maketext('You must select an action.') %]"></span>
+        <span class="fas fa-info-circle"          id="email-has-conflicts-info"    ng-show="!conflictResolutionRequired && (needsConflictResolution() || isLinking)" title="[% locale.maketext('The system detected a service account with the same username.') %]"></span>
+    </div>
+    <div class="panel-body">
+        <!-- Handle merge candidates -->
+        <div ng-class="{ 'text-warning': conflictResolutionRequired }" ng-show="needsConflictResolution() || isLinking">
+            <p>[% locale.maketext('An [asis,Email] service account with the same username and domain as this [asis,subaccount] already exists.') %]</p>
+
+            <div class="well well-sm existing-service-summary" ng-show="needsConflictResolution() || isLinking">
+                <div id="email-details-expander" class="text-center existing-service-summary-header" ng-click="toggleConflictSummary()">
+                    <label>[% locale.maketext('Existing Account Summary') %]</label>
+                    <span class="fas fa-fw fa-caret-down" ng-class="{ 'fa-rotate-180': !isSummaryCollapsed }"></span>
+                </div>
+                <div class="existing-service-summary-body" uib-collapse="isSummaryCollapsed">
+                    <hr>
+                    <ul>
+                        <li id="existing-email-quota">
+                            <label>[% locale.maketext('Quota') %]:</label>
+                            <span ng-show="service.quota">{{ service.quota }} MB</span>
+                            <span ng-show="!service.quota">[% locale.maketext('Unrestricted') %]</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <p>[% locale.maketext('You cannot create a duplicate [asis,Email] service account. To manage their settings jointly, link the [asis,Email] account to the [asis,subaccount].') %]</p>
+            <div class="conflict-button-container text-center">
+                <button id="email-conflict-link"
+                        type="button"
+                        ng-disabled="isInProgress()"
+                        cp-action="runLinkAction()"
+                        button-ng-class="{ 'btn-warning': conflictResolutionRequired, 'btn-small': !conflictResolutionRequired, 'btn-default': !conflictResolutionRequired }">
+                    <span class="fas fa-link" ng-hide="isLinking"></span>
+                    [% locale.maketext('Link') %]
+                </button>
+                <button class="btn btn-warning"
+                        id="email-conflict-dismiss"
+                        type="button"
+                        ng-click="setDismiss()"
+                        ng-show="showConflictDismiss">
+                    <span class="fas fa-unlink"></span>
+                    [% locale.maketext('Dismiss') %]
+                </button>
+            </div>
+        </div>
+
+        <div class="text-success" ng-show="service.willLink && !isLinking">
+            <p>[% locale.maketext('The system will link this [asis,Email] service account to the [asis,subaccount].') %]</p>
+            <div class="conflict-button-container text-center">
+                <button class="btn btn-link"
+                        id="email-link-undo"
+                        type="button"
+                        ng-click="clearConflictResolution()">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext('Undo') %]
+                </button>
+            </div>
+        </div>
+        <div class="text-danger" ng-show="service.willDismiss">
+            <p>[% locale.maketext('This [asis,subaccount] will not have [asis,Email] access.') %] [% locale.maketext('You can edit this setting later in the User Manager interface.') %]</p>
+            <div class="conflict-button-container text-center">
+                <button class="btn btn-link"
+                        id="email-dismiss-undo"
+                        type="button"
+                        ng-click="clearConflictResolution()">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext('Undo') %]
+                </button>
+            </div>
+        </div>
+
+        <!-- Normal configuration settings -->
+        <div ng-hide="hasConflict()">
+            <div class="ng-hide" cp-alert ng-show="showWarning"  id="emailWarningMessage">
+                {{warningMessage}}
+            </div>
+            <div class="ng-hide" cp-alert ng-show="showInfo" id="emailInfoMessage" type="info">
+                {{infoMessage}}
+            </div>
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12">
+                        <label>[% locale.maketext('Quota') %]</label>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <app-limit id="emailQuota"
+                                   ng-model="service.quota"
+                                   ng-disabled="!service.enabled"
+                                   units-label="MB"
+                                   unlimited-value="defaults.email.unlimitedValue"
+                                   unlimited-label="{{defaults.email.unlimitedLabel}}"
+                                   minimum-value="1"
+                                   maximum-value="defaults.email.max_quota"
+                                   default-value="defaults.email.default_quota"
+                                   selected-unit="service.quotaUnit"
+                                   maximum-length="10">
+                        </app-limit>
+                    </div>
+                    <div class="col-xs-12">
+                        [%-
+                            IF CPANEL.CPDATA.MAX_EMAILACCT_QUOTA && CPANEL.CPDATA.MAX_EMAILACCT_QUOTA != "unlimited";
+                                SET quota_required = locale.maketext("You must enter a valid number or select [output,em,Maximum].");
+                            ELSE;
+                                SET quota_required = locale.maketext("You must enter a valid number or select [output,em,Unlimited].");
+                            END;
+                        -%]
+                        <ul validation-container field-name="emailQuota_txtLimit">
+                            <li validation-item field-name="emailQuota_txtLimit" validation-name="max">
+                                {{ ::maxMessage }}
+                            </li>
+                            <li validation-item field-name="emailQuota_txtLimit" validation-name="required">
+                                [%- quota_required -%]
+                            </li>
+                            <li validation-item field-name="emailQuota_txtLimit" validation-name="number">
+                                [%- quota_required -%]
+                            </li>
+                            <li validation-item field-name="emailQuota_txtLimit" validation-name="min">
+                                [%- locale.maketext("Quota must be greater than zero.") -%]
+                            </li>
+                            <li validation-item field-name="emailQuota_txtLimit" validation-name="integer">
+                                [%- locale.maketext("Quota must be an integer.") -%]
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="panel-footer ng-hide" ng-show="showUnlink">
+        <div class="row">
+            <div class="col-xs-12">
+                <action-button id="unlinkEmail"
+                               class="btn btn-link btn-xs pull-right"
+                               ng-click="unlinkService()"
+                               ng-disabled="isInProgress()"
+                               title="[% locale.maketext('Unlink this [asis,Email] service account from this [asis,subaccount].') %]">
+                    <i class="fas fa-unlink"></i>
+                    [% locale.maketext('Unlink') %]
+                </action-button>
+            </div>
+        </div>
+    </div>
+</div>

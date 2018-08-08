@@ -1,0 +1,30 @@
+<div style="display:none;" id="rename">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Rename") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="rename-filecontent">
+        <form method="post" action="dorename.html">
+            <div id="rename-hasfile" style="display: none;">
+                <div>
+                    <label for="rename-file">
+                        [% locale.maketext("Old file name:") %]
+                        <div id="rename-filelist"></div>
+                    </label>
+                </div>
+                <p>
+                    <label for="rename-file">
+                        [% locale.maketext("New file name:") %]
+                    </label>
+                    <input type="text" class="form-control" name="newname" id="rename-newfile" style="width: 100%;" />
+                    <input type="hidden" name="dir" id="rename-dir" />
+                    <input type="hidden" name="file" id="rename-file" />
+                </p>
+            </div>
+        </form>
+     </div>
+    </div>
+    <div class="ft"></div>
+</div>

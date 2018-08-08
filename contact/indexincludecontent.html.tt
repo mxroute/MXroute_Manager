@@ -1,0 +1,11 @@
+<style type="text/css">
+
+.validation_spacing {
+    height: 75px;
+    vertical-align: text-top;
+}
+
+</style>
+<h1>[% locale.maketext("Contact Information [output,amp] Preferences") %]</h1>
+
+

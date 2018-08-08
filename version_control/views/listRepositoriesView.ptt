@@ -1,0 +1,363 @@
+
+<callout callout-type="warning" ng-if="!repositories.hasShellAccess">
+    [% locale.maketext("[output,strong,Warning:] Your system administrator [output,strong,must] enable shell access to allow you to view clone [output,acronym,URLs,Uniform Resource Locators].") %]
+</callout>
+
+
+<div class="description">
+    [% locale.maketext('Create and manage [asis,Git™] repositories. You can use [asis,Git] to maintain any set of files and track the history of changes from multiple editors (version control).') %] [% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2,id,_3].', 'https://go.cpanel.net/GitVersionControl', 'gitVersionControl', "lnkGitVersionDocs") %]
+</div>
+
+<div id="tableShowHideContainer">
+    <div class="row action-row">
+        <div class="col-xs-12">
+            <div class="pull-right">
+                <button id="btnCreateRepositories"
+                    class="btn btn-primary alignment"
+                    type="button"
+                    ng-click="repositories.createRepository()"
+                    title="[% locale.maketext('Create repository.') %]">
+                    [% locale.maketext('Create') %]
+                </button>
+            </div>
+        </div>
+    </div>
+    <!-- search and pagination controls -->
+    <div id="paginationControls" class="row search-page-container">
+        <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+            <search id="filterRepoList"
+                ng-model="repositories.meta.searchText"
+                placeholder="[% locale.maketext('Search') %]"
+                autofocus
+                ng-change="repositories.searchList()">
+            </search>
+        </div>
+        <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+            <div id="paginator" class="pagination-container pull-right flip hidden-xs hidden-sm">
+                <page-size id="topPageSize"
+                    allowed-sizes="repositories.meta.pageSizes"
+                    total-items="repositories.meta.totalItems"
+                    ng-model="repositories.meta.pageSize"
+                    show-all="false"
+                    ng-change="repositories.selectPageSize()">
+                </page-size>
+                <uib-pagination id="topPager"
+                    ng-change="repositories.selectPage()"
+                    ng-model="repositories.meta.pageNumber"
+                    max-size="0"
+                    items-per-page="repositories.meta.pageSize"
+                    total-items="repositories.meta.totalItems"
+                    direction-links="true"
+                    boundary-links="true"
+                    rotate="false"
+                    first-text="<<"
+                    last-text=">>"
+                    previous-text="<"
+                    next-text=">">
+                </uib-pagination>
+            </div>
+        </div>
+    </div>
+
+    <!-- table stats -->
+    <div id="tableStats" class="row hidden-xs hidden-sm">
+        <div class="col-xs-8">
+            <div class="page-stats selected-stats">
+            </div>
+        </div>
+        <div class="col-xs-4">
+            <div id="paginationMessage" class="page-stats pull-right flip">
+            {{repositories.paginationMessage()}}
+            </div>
+        </div>
+    </div>
+
+    <!-- table container -->
+    <div id="tableContainer">
+        <table id="table" class="table table-striped-child responsive-table">
+            <thead>
+                <tr>
+                    <th id="repoHeader">
+                        <span toggle-sort id="sortByRepo"
+                            onsort="repositories.sortList()"
+                            sort-meta="repositories.meta"
+                            sort-field="name">
+                            [% locale.maketext('Repository') %]
+                        </span>
+                    </th>
+                    <th id="remoteHeader" class="hidden-xs">
+                        <span toggle-sort id="sortByPath"
+                            onsort="repositories.sortList()"
+                            sort-meta="repositories.meta"
+                            sort-field="repository_root">
+                            [% locale.maketext('Repository Path') %]
+                        </span>
+                    </th>
+                    <th class="hidden-xs">
+                        <!-- Place holder for create and bulk actions for later -->
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Loading Message row -->
+                <tr id="loadingNotice"
+                    class="info empty-row ng-hide"
+                    ng-show="repositories.isLoading">
+                    <td colspan="3" id="loadingMessage">
+                        <i id="loadingSpinner" class="fas fa-spinner fa-spin"></i>
+                        [% locale.maketext('Loading …') %]
+                    </td>
+                </tr>
+
+                <!-- Empty Search Message row-->
+                <tr id="emptySearchListNotice"
+                    class="info empty-row ng-hide"
+                    ng-show="repositories.meta.searchText !== '' &&
+                        repositories.filteredList.length == 0 &&
+                        !repositories.isLoading &&
+                        !repositories.reloadRequired">
+                    <td colspan="3" id="emptySearchMessage">
+                        [% locale.maketext('The system could not find any repositories that match your criteria. [output,url,_1,Create,id,_2,class,_3,title,Create repository.]', "#/create", "lnkSearchCreate","search-create-link") %]
+                    </td>
+                </tr>
+
+                <!-- Empty Message row-->
+                <tr id="emptyListNotice"
+                    class="info empty-row ng-hide"
+                    ng-show="repositories.filteredList.length == 0 &&
+                        !repositories.isLoading &&
+                        repositories.meta.searchText == '' &&
+                        !repositories.reloadRequired">
+                    <td colspan="3" id="emptyMessage">
+                        [% locale.maketext('The system could not find any repositories. [output,url,_1,Create,id,_2,class,_3,title,Create repository.]', "#/create", "lnkEmptyCreate","search-create-link") %]
+                    </td>
+                </tr>
+
+                <!-- list repeater -->
+                <tr ng-repeat-start="repo in repositories.filteredList track by repo.repository_root"
+                    ng-show="!repositories.isLoading"
+                    ng-class="{warning:repo.delete_requested, info:repo.cloneInProgress, success:repo.cloneState == 'complete'}">
+                    <td>
+                        <div class="row-expand-container">
+                            <button id="lnkToggleViewRepoInfo_{{repo.qaSafeSuffix}}" class="btn btn-link"
+                                title="[% locale.maketext('View repository information.') %]"
+                                aria-label="[% locale.maketext('View repository information.') %]"
+                                ng-click="repositories.getRepositoryDetails(repo, !repo.isExpanded);"
+                                ng-disabled="repo.detailsLoading || repo.cloneInProgress"
+                                >
+                                <i ng-show="repo.detailsLoading"
+                                    class="fas fa-spinner"
+                                    aria-hidden="true">
+                                </i>
+                                <i class="fas"
+                                    ng-class="{ 'fa-chevron-right': !repo.isExpanded, 'fa-chevron-down': repo.isExpanded }"
+                                    aria-hidden="true"
+                                    ng-show="!repo.detailsLoading">
+                                </i>
+                            </button>
+
+                        </div>
+                        <span id="repoName_{{repo.qaSafeSuffix}}"
+                            class="repository-name wordbreak"
+                            ng-bind="repo.name">
+                        </span>
+                    </td>
+                    <td class="hidden-xs">
+                        <span id="repoRoot_{{repo.qaSafeSuffix}}"
+                            ng-bind="repo.repository_root" class="wordbreak display-inline-block">
+                        </span>
+                    </td>
+                    <td class="action-column hidden-xs"
+                        ng-class="{showDeleteMode:repo.delete_requested}">
+                        <button id="btnManage_{{repo.qaSafeSuffix}}"
+                            class="btn btn-outline-primary btn-sm"
+                            title="[% locale.maketext('Manage the repository settings.') %]"
+                            ng-click="repositories.manageRepository(repo.repository_root)"
+                            ng-disabled="repo.cloneInProgress">
+                            <i class="fas fa-wrench" aria-hidden="true"></i>
+                            [% locale.maketext("Manage") %]
+                        </button>
+                        <button id="btnGitWebRedirect_{{repo.qaSafeSuffix}}"
+                            class="btn btn-outline-primary btn-sm"
+                            title="[% locale.maketext('View the repository history in [asis,Gitweb].') %]"
+                            ng-click="repositories.redirectToGitWeb(repo.gitWebURL, repo.name)"
+                            ng-disabled="repo.cloneInProgress">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            [% locale.maketext("History") %]
+                        </button>
+                        <button type="button" id="btnRepoDelete_{{repo.qaSafeSuffix}}"
+                            class="btn btn-outline-primary btn-sm"
+                            title="[% locale.maketext('Delete the repository.') %]"
+                            ng-click="repo.delete_requested = true"
+                            ng-disabled="repo.delete_requested || repo.cloneInProgress">
+                            <i class="fas fa-trash" aria-hidden="true"></i>
+                            [% locale.maketext("Delete") %]
+                        </button>
+                    </td>
+                </tr>
+                <tr ng-repeat-end=""
+                    class="wordbreak"
+                    ng-class="{warning:repo.delete_requested, info:repo.cloneInProgress, success:repo.cloneState == 'complete'}">
+                    <td class="expand-panel-data" colspan="3">
+                        <div class="vc-list-panel expand-panel"
+                            ng-if="repo.isExpanded">
+                            <div class="row">
+                                <div class="box col-xs-12 col-sm-6">
+                                    <div>
+                                        <label>[% locale.maketext("Branch Information") %]</label>
+                                    </div>
+                                    <div ng-show="repo.hasActiveBranch">
+                                        <code class="format">[% locale.maketext("Checked-out Branch") %]:</code>
+                                        <code id="activeBranch_{{repo.qaSafeSuffix}}" ng-bind="repo.activeBranch" class="wordbreak display-inline-block format">
+                                        </code>
+                                    </div>
+                                    <div ng-show="!repo.hasActiveBranch">
+                                        <callout id="noCommits_{{repo.qaSafeSuffix}}" class="branch-callout"
+                                            callout-type="information">
+                                            <p>[% locale.maketext("No checked-out branch is available.") %]</p>
+                                        </callout>
+                                    </div>
+                                    <div ng-show="repo.hasActiveBranch">
+                                        <div class="info-spacing">
+                                            <code class="format">[% locale.maketext("Commit") %]</code>
+                                            <code id="SHA_{{repo.qaSafeSuffix}}" ng-bind="repo.lastUpdateSHA" class="format"></code>
+                                        </div>
+                                        <div class="info-spacing">
+                                            <code class="format">[% locale.maketext("Author") %]:</code>
+                                            <code id="author_{{repo.qaSafeSuffix}}" ng-bind="repo.author" class="format"></code>
+                                        </div>
+                                        <div class="info-spacing">
+                                            <code class="format">[% locale.maketext("Date") %]:</code>
+                                            <code id="date_{{repo.qaSafeSuffix}}" ng-bind="repo.lastUpdateDate" class="format"></code>
+                                        </div>
+                                        <div class="info-spacking">
+                                            <code id="commitMessage_{{repo.qaSafeSuffix}}" ng-bind="repo.commitMessage" class="wordbreak commands format"></code>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="box col-xs-12 col-sm-6">
+                                    <label>[% locale.maketext("Repository Path") %]</label>
+                                    <div id="repoRoot_{{repo.qaSafeSuffix}}"
+                                        class="info-spacing"
+                                        ng-bind="repo.repository_root">
+                                    </div>
+                                    <button id="btnFileManagerRedirect_{{repo.qaSafeSuffix}}"
+                                            ng-show="repositories.hasFilemanagerAccess"
+                                            class="btn btn-outline-primary btn-sm"
+                                            title="[% locale.maketext('View the repository in the File Manager interface.') %]"
+                                            ng-click="repositories.redirectToFileManager(repo.fileManagerRedirectURL, repo.name)">
+                                            <i class='fas fa-external-link-alt'></i>
+                                            [% locale.maketext("File Manager") %]
+                                    </button>
+                                </div>
+
+                                <div class="box col-xs-12 col-sm-6" ng-if="repo.cloneURL">
+                                    <label for="repoEditCloneUrl">[% locale.maketext("Clone URL") %]</label>
+                                    <div class="input-group">
+                                        <input
+                                            name="repoEditCloneUrl"
+                                            id="repoEditCloneUrl_{{repo.qaSafeSuffix}}"
+                                            type="text"
+                                            class="form-control"
+                                            ng-value="repo.cloneURL"
+                                            ng-disabled="viewEditMode"
+                                            readonly />
+                                        <span class="input-group-btn">
+                                            <button type="button" id="cloneURLBtn_{{repo.qaSafeSuffix}}"
+                                                class="btn btn-default btn-default-white"
+                                                ng-click="repositories.cloneToClipboard(repo.cloneURL)"
+                                                title="[% locale.maketext("Copy Clone URL to clipboard") %]">
+                                                <i class="far fa-copy" aria-hidden="true"></i>
+                                                [% locale.maketext("Copy") %]
+                                            </button>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <div class="box col-xs-12 col-sm-6">
+                                    <label
+                                        class="visible-xs">
+                                        [% locale.maketext("Actions") %]
+                                    </label>
+                                    <div class="expand-actions">
+                                        <button id="btnManage_{{repo.qaSafeSuffix}}"
+                                            class="btn btn-outline-primary btn-sm visible-xs-inline"
+                                            title="[% locale.maketext('Manage the repository settings.') %]"
+                                            ng-click="repositories.manageRepository(repo.repository_root)">
+                                            <i class="fas fa-wrench" aria-hidden="true"></i>
+                                            [% locale.maketext("Manage") %]
+                                        </button>
+                                        <button id="btnMobileGitWebRedirect_{{repo.qaSafeSuffix}}"
+                                            class="btn btn-outline-primary btn-sm visible-xs-inline"
+                                            title="[% locale.maketext('View the repository history in [asis,Gitweb].') %]"
+                                            ng-click="repositories.redirectToGitWeb(repo.gitWebURL, repo.name)">
+                                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                                            [% locale.maketext("History") %]
+                                        </button>
+                                        <button type="button" id="btnMobileRepoDelete_{{repo.qaSafeSuffix}}"
+                                            class="btn btn-outline-primary btn-sm visible-xs-inline"
+                                            title="[% locale.maketext('Delete the repository.') %]"
+                                            ng-click="repo.delete_requested = true"
+                                            ng-disabled="repo.delete_requested">
+                                            <i class="fas fa-trash" aria-hidden="true"></i>
+                                            [% locale.maketext("Delete") %]
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="vc-list-panel"
+                            ng-if="repo.delete_requested">
+                            <div class="delete-warning">
+                                <div class="display-table">
+                                    <div class="display-table-cell">
+                                        <span class="delete-question-mark">?</span>
+                                    </div>
+                                    <div class="display-table-cell">
+                                        <div class="box">
+                                            <span class="delete-message wordbreak" ng-bind="repositories.deleteText(repo)"></span>
+                                            <p>
+                                                [% locale.maketext("All of the repository’s files will be [output,strong,permanently] deleted.") %]
+                                            </p>
+                                        </div>
+                                        <div class="box">
+                                            <button type="button" id="repoConfirmDelete_{{repo.qaSafeSuffix}}"
+                                                class="btn btn-primary btn-sm"
+                                                title="[% locale.maketext('Delete the repository.') %]"
+                                                spinner-id="spinnerDelete_{{repo.qaSafeSuffix}}"
+                                                cp-action="repositories.delete(repo)">
+                                                <i class="fas fa-trash" aria-hidden="true"></i>
+                                                [% locale.maketext("Delete") %]
+                                            </button>
+                                            <button type="button" id="repoCancelDelete_{{repo.qaSafeSuffix}}"
+                                                class="btn btn-link"
+                                                title="[% locale.maketext('Cancel.') %]"
+                                                ng-click="repo.delete_requested = false"
+                                                ng-disabled="repo.removing">
+                                                [% locale.maketext("Cancel") %]
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="clone-in-progress" ng-if="repo.cloneInProgress">
+                            <span ng-switch="repo.cloneState">
+                                <span ng-switch-when="processing">
+                                    <i id="cloneInProgressSpinner_{{repo.qaSafeSuffix}}" class="fas fa-spinner fa-spin"></i> [% locale.maketext("Clone is in progress …") %]
+                                </span>
+                                <span ng-switch-when="complete">
+                                    <i id="cloneSuccessCheck_{{repo.qaSafeSuffix}}" class="far fa-check-circle"></i> [% locale.maketext("Clone is complete") %]
+                                </span>
+                                <span ng-switch-default>
+                                    <i id="cloneQueuedSpinner_{{repo.qaSafeSuffix}}" class="fas fa-spinner fa-spin"></i> [% locale.maketext("Queued for cloning …") %]
+                                </span>
+                            </span>
+                        </div>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>

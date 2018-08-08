@@ -1,0 +1,38 @@
+<div id="accountBackups">
+    <h2 id="hdrAccountBackups">[% locale.maketext("Account Backups") %]</h2>
+[% list_backups_result = execute('Backup', 'list_backups', {}) %]
+[% IF list_backups_result.metadata('cnt') -%]
+    <form action="[% cp_security_token -%]/getbackupdate/">
+        <label id="lblBackupDateSelect" for="backup_date">[% locale.maketext("Select an account backup date to download:") %]</label>
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <select name="backupdate" class="form-control" id="backup_date"></select>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <input type="submit" class="btn btn-primary" name="backupdatebtn" id="backupDateBtn" value="[% locale.maketext('Download') %]">
+        </div>
+    </form>
+
+    <script type="text/javascript">
+        var select = DOM.get("backup_date"),
+            option,
+            date;
+
+        [%- FOREACH q = list_backups_result.data -%]
+            date = "[% q %]".split("-");
+            date = LOCALE.local_datetime(new Date(date[0], date[1] - 1, date[2]), "date_format_long");
+            option = document.createElement("OPTION");
+            option.text = date;
+            option.value = "[% q -%]";
+            select.add(option);
+        [% END -%]
+    </script>
+[% ELSE %]
+    <p id="noBackupsMessage">[% locale.maketext("You do not have any automatically generated backups that are currently available. Your server administrator or server owner [output,strong,must] enable this feature.") %]</p>
+[% END %]
+
+ </div>

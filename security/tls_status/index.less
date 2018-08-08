@@ -1,0 +1,280 @@
+.fade-in.ng-enter {
+    transition: all linear 0.5s;
+    opacity: 0;
+}
+.fade-in.ng-enter.ng-enter-active {
+    opacity: 1;
+}
+
+.domains-table colgroup col {
+    &:nth-child(1) {
+        width: 20px;
+    }
+    &:nth-child(2) {
+        width: 70px;
+    }
+    &:nth-child(3) {
+        width: 30%;
+    }
+}
+
+.domains-table tbody td.domain-cert-icon {
+    line-height: 0;
+}
+
+.domains-table.autossl-disabled colgroup col {
+    &:nth-child(1) {
+        width: 70px;
+    }
+    &:nth-child(2) {
+        width: 30%;
+    }
+}
+
+@media (max-width: 600px) {
+    .domains-table.autossl-disabled colgroup col,
+    .domains-table colgroup col {
+        &:nth-child(1) {
+            width: 100%;
+        }
+        &:nth-child(2) {
+            width: 0;
+        }
+        &:nth-child(3) {
+            width: 0;
+        }
+        &:nth-child(4) {
+            width: 0;
+        }
+    }
+
+    .domains-table tbody {
+        tr.cannot-autossl-exclude {
+            td:first-child {
+                padding: 0;
+                border: 0;
+                height: 0;
+            }
+        }
+
+        td:nth-child(2) {
+            padding: 0;
+            border: 0;
+            height: 0;
+        }
+
+        .tls-cert-icon {
+            width: 30px;
+            height: 30px;
+            margin-right: 5px;
+        }
+
+        .tls-cert-typename {
+            & > * {
+                vertical-align: middle;
+            }
+        }
+        .tls-cert-icon-label {
+            display: inline-block;
+            padding-top: 5px;
+        }
+
+        .action-item:first-child .btn {
+            padding-left: 12px;
+        }
+    }
+}
+
+.pre-block {
+    display: flex;
+    align-items: center;
+    justify-content: left;
+
+    .pre-icon {
+        padding: 5px 5px 5px 10px;
+        margin-right: 5px;
+        z-index: 2;
+    }
+    pre {
+        white-space: pre-wrap;
+        margin-left: -36px;
+        padding-left: 36px;
+        margin-top: 3px;
+        margin-bottom: 3px;
+    }
+}
+
+.tls-cert-icon {
+    display: inline-block;
+    background-image: url(images/tls_status_icon.svg);
+    background-position: left center;
+    background-size: auto 100%;
+    height: 60px;
+    width: 60px;
+
+    &.tls-cert-icon-dv {
+        background-position: 60% center;
+    }
+
+    &.tls-cert-icon-ov {
+        background-position: 80% center;
+    }
+
+    &.tls-cert-icon-ev {
+        background-position: 100% center;
+    }
+
+    &.tls-cert-icon-autossl {
+        background-position: 40% center;
+    }
+
+    &.tls-cert-icon-self-signed {
+        background-position: 20% center;
+    }
+}
+
+a.icon-link:hover {
+    text-decoration: none;
+
+    & span.text {
+        text-decoration: underline;
+    }
+}
+
+td label:first-child {
+    margin-bottom: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+.fixed-width-table {
+    table-layout: fixed;
+}
+.cutoff_with_ellipses {
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    overflow: hidden;
+}
+.global-action-row {
+    min-height: 35px;
+}
+div.tooltip-inner {
+    max-width: 1000px;
+}
+.service-icon {
+    width: 50px;
+    text-align: center;
+}
+.service-active {
+    color: #337ab7;
+}
+.service-ban {
+    font-size: 25px;
+    position: absolute;
+    bottom: 15px;
+    right: 0px;
+}
+.action-item {
+    display: inline-block;
+
+    .btn {
+        .fas::before {
+            width: 20px;
+            text-align: center;
+        }
+    }
+
+    &:first-child .btn {
+        padding-left: 0;
+    }
+}
+.ssl-lock {
+    display: inline-block;
+    opacity: 0.2;
+
+    .fa-stack {
+        width: 1.5em;
+    }
+    .fa-lock {
+        text-shadow: 0 0 1px rgba(0, 0, 0, 0);
+    }
+}
+.self-signed-ssl-lock .fa-times {
+    margin-top: 0.25em;
+}
+.ev-ssl-lock .fa-check,
+.ov-ssl-lock .fa-check {
+    text-shadow: 0 0 2px #000000;
+    margin-left: 0.55em;
+    margin-top: 0.55em;
+}
+.dv-ssl-lock .fa-sync,
+.dv-ssl-lock .fa-ban {
+    text-shadow: 0 0 2px #000000;
+    margin-left: 0.55em;
+    margin-top: 0.55em;
+    display: none;
+}
+.autossl-ssl.auto-ssl .dv-ssl-lock .fa-sync,
+.autossl-ssl.auto-ssl .dv-ssl-lock .fa-sync,
+.dv-ssl.auto-ssl .dv-ssl-lock .fa-sync,
+.dv-ssl.auto-ssl .dv-ssl-lock .fa-ban {
+    display: inline-block;
+}
+.ev-ssl-lock .fa-star {
+    font-size: 0.7em;
+    margin-top: 0.4em;
+}
+.self-signed-ssl .self-signed-ssl-lock .fa-lock,
+.dv-ssl .dv-ssl-lock .fa-lock,
+.ov-ssl .ov-ssl-lock .fa-lock,
+.ev-ssl .ev-ssl-lock .fa-lock {
+    text-shadow: 0 0 1px #000000;
+}
+
+.ssl-lock-row .btn-link {
+    cursor: pointer;
+
+    .fa-stack i {
+        cursor: pointer;
+    }
+
+    &:focus {
+        .ssl-lock {
+            opacity: 0.5;
+        }
+    }
+}
+.self-signed-ssl .self-signed-ssl-lock .fa-lock,
+.dv-ssl .dv-ssl-lock,
+.autossl-ssl .dv-ssl-lock .fa-lock,
+.ov-ssl .ov-ssl-lock .fa-lock,
+.ev-ssl .ev-ssl-lock .fa-lock {
+    text-shadow: 0 0 1px #000000;
+}
+.self-signed-ssl .self-signed-ssl-lock,
+.dv-ssl .dv-ssl-lock,
+.autossl-ssl .dv-ssl-lock,
+.ov-ssl .ov-ssl-lock,
+.ev-ssl .ev-ssl-lock {
+    opacity: 1;
+}
+.ssl-lock-row {
+    .fa-stack i {
+        cursor: default;
+    }
+    .btn.disabled,
+    .btn[disabled] {
+        padding: 0;
+        opacity: 1;
+        cursor: default;
+        pointer-events: none;
+    }
+    .btn {
+        padding: 0;
+        opacity: 1;
+    }
+    .glyphicon-chevron-right {
+        opacity: 0.5;
+    }
+}

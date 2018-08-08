@@ -1,0 +1,111 @@
+[%-
+CPANEL.CPVAR.dprefix   = '../';
+
+# Generate the key
+IF RAW_FORM('do_generate');
+    SET generate_key = execute('SSL', 'generate_key', {
+        keysize=RAW_FORM('keysize'),
+        friendly_name=RAW_FORM('fname')
+    });
+
+    # Retrieve the generated key
+    SET show_key = execute('SSL', 'show_key', { id=generate_key.data.id });
+
+    # Prepare variables for output
+    SET safe_name = show_key.status ? show_key.data.details.friendly_name.html() : "";
+END;
+
+SET ref = FORM.ref || '';
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    embed_stylesheets = ["css/ssl.css"]
+    embed_scripts = ["js2/ssl/genkey.js"]
+-%]
+<div class="body-content">
+    <h2 id="hdrGenerate">
+        [% locale.maketext('Generate a Private Key') %]
+    </h2>
+
+    [% IF generate_key.status %]
+        <div id="generateSuccess" class="alert alert-success">
+            <span id="generateSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="generateSuccessMsg" class="alert-message">
+                [% locale.maketext('The server has generated the private key as requested. To use this private key on another server, copy and paste the information from the encoded field below.') %]
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblFname" for="fname" class="title">[% locale.maketext('Description:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <p class="form-control-static" id="fname">[% safe_name %]</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblEncodedKey" for="encoded-key">[% locale.maketext('Encoded Private Key:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="encoded-key">[%- show_key.data.key -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblDecodedKey" for="decoded-key" class="title">[% locale.maketext('Decoded Private Key:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="decoded-key">[%- show_key.data.text -%]</pre>
+                </div>
+            </div>
+        </div>
+
+    [% ELSIF generate_key %]
+        <div id="generateError" class="alert alert-danger">
+            <span id="generateErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="generateErrorMsg" class="alert-message">
+                [% locale.maketext('There was a problem generating the private key.') %]
+                [% generate_key.errors.0 FILTER html %]
+            </div>
+        </div>
+    [% ELSIF !RAW_FORM('do_generate') -%]
+        <div id="parametersError" class="alert alert-danger">
+            <span id="parametersErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="parametersErrorMsg" class="alert-message">
+                [% locale.maketext('No parameters were passed to generate the key.') %]
+            </div>
+        </div>
+    [% END %]
+
+    <ul class="list-inline text-center">
+        [%- IF ref;
+            SWITCH ref;
+                CASE "csrs" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCSR' return_location='csrs.html?selkey=' _ generate_key.data.id _ '#generate' return_link_text=locale.maketext('Return to SSL Certificate Signing Requests') %]
+            </li>
+        [%-     CASE "crts" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCRT' return_location='crts.html?selkey=' _ generate_key.data.id _ '#generate' return_link_text=locale.maketext('Return to SSL Certificates') %]
+            </li>
+        [%- END;
+            END -%]
+        <li>
+        [% IF ref %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html?ref=' _ ref.uri() _ '' return_link_text=locale.maketext('Return to Private Keys') %]
+        [% ELSE %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html' return_link_text=locale.maketext('Return to Private Keys') %]
+        [% END %]
+        </li>
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkHome' return_location='index.html' return_link_text=locale.maketext('Return to SSL Manager') %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]
+

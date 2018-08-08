@@ -1,0 +1,86 @@
+/* CSS Document */
+/*body {
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+    line-height: 18px;
+    font-family: 'Open Sans', sans-serif;
+    background-color: #ffffff;
+}
+
+h1, h2, h3, h4, h5, h6, .h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: 'Open Sans', sans-serif;
+}
+
+.topright {
+background: url(../filemanager/images/bottomrightbg.jpg) repeat-y;
+
+}
+.topright a:link,a:visited,a:active {
+    color: #006699;
+    font-size: 13px;
+    text-decoration: underline;
+    text-shadow:#336666;
+}
+.topright h1{
+    font-size:16px;
+}
+.bottomright {
+background-image: url(../filemanager/images/bottomrightbg.jpg);
+background-repeat: repeat-y;
+}
+.bottomright a {
+    color: #437878;
+    font-size: 13px;
+    text-decoration: underline;
+    text-shadow:#006699;
+}
+
+h1.bottomright {
+    font-size:16px;
+}
+
+#leftmain h1 {
+    float: left;
+    font-size: 18px;
+    font-weight: bold;
+    height: 50px;
+    line-height: 20px;
+    padding-bottom: 15px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+.bottomright a.trash {
+    display: block;
+    height: 30px;
+    width: 60px;
+    background:url(../filemanager/images/TrashFull.gif) no-repeat;
+    font-size: 9px ;
+    color:#000;
+    text-align:center;
+    padding: 30px 0px 0px 0px;
+    margin: 0px;
+    text-decoration:none;
+
+    }
+.bottomright a.trash:hover {
+    background:url(../filemanager/images/TrashEmpty.gif) no-repeat;
+    }
+
+.highlight {
+    font-size: 11px;
+    font-weight:bold;
+    color: #005825;
+}
+#leftmain h1.main {
+    color:#013541;
+    font-size:22px;
+    margin:0 10px 0 0;
+}
+.bottomright a.create-button {
+    font-size:11px;
+    text-decoration: none;
+    }
+#settings{float:left;color:#fff;font-size:11px;margin-top:8px;}
+*/

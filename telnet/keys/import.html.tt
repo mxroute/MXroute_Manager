@@ -1,0 +1,67 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    [% IF FORM.privkey %]
+    <p id="sectionPrivKey">
+        [%
+            Api2.pre_exec("SSH", "importkey");
+            SET importkey = Api2.exec("SSH", "importkey", {"pass"=>(RAW_FORM.pass), "name"=>(RAW_FORM.keyname), "key"=>(RAW_FORM.privkey)} );
+            Api2.post_exec("SSH", "importkey");
+        %]
+
+        [% IF CPANEL.CPERROR.ssh %]
+            <div id="importPrivError" class="alert alert-danger">
+                <span id="importPrivErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+                <div id="importPrivErrorMsg" class="alert-message">
+                    [% locale.maketext("Failed to import private key named “[_1]”.", FORM.keyname)  %]<br>
+                    [% CPANEL.CPERROR.ssh.html() %]
+                </div>
+            </div>
+        [% ELSE %]
+            [% IF !(FORM.privkey == undef) %]
+                <div id="importPrivSuccess" class="alert alert-success">
+                    <span id="importPrivSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+                    <div id="importPrivSuccessMsg" class="alert-message">
+                        [% locale.maketext("The key named “[_1]” was imported.", FORM.keyname) %]
+                    </div>
+                </div>
+            [% END %]
+        [% END %]
+    </p>
+    [% END %]
+
+    [% IF !(FORM.pubkey == undef) %]
+        [%
+            Api2.pre_exec("SSH", "importkey");
+            SET importkey = Api2.exec("SSH", "importkey", {"name"=>RAW_FORM.keyname _ ".pub", "key"=>RAW_FORM.pubkey} );
+            Api2.post_exec("SSH", "importkey");
+        %]
+
+        [% IF CPANEL.CPERROR.ssh %]
+            <div id="importPubError" class="alert alert-danger">
+                <span id="importPubErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+                <div id="importPubErrorMsg" class="alert-message">
+                    [% locale.maketext("Failed to import public key named “[_1]”.", FORM.keyname)  %]<br>
+                    [% CPANEL.CPERROR.ssh.html() %]
+                </div>
+            </div>
+        [% ELSE %]
+            [% IF !(FORM.pubkey == undef) %]
+                <div id="importPubSuccess" class="alert alert-success">
+                    <span id="importPubSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+                    <div id="importPubSuccessMsg" class="alert-message">
+                        [% locale.maketext("The key named “[_1]” was imported.", FORM.keyname) %]
+                    </div>
+                </div>
+            [% END %]
+        [% END %]
+    </p>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Back to Manage Keys') %]
+</div>
+[% END #wrapper %]

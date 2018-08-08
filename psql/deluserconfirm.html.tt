@@ -1,0 +1,21 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    <p id="descConfirmation">
+        [% locale.maketext("Are you sure you wish to permanently remove the user “[_1]”?", FORM.user) %]
+    </p>
+    <a id="btnDelete" class="btn btn-primary" href="deluser.html?user=[% FORM.user | uri %]">
+        [% locale.maketext("Remove User") %]
+    </a>
+    <a id="btnCancel" class="btn btn-link" href="index.html">
+        [% locale.maketext("Cancel") %]
+    </a>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

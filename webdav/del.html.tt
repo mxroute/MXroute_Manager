@@ -1,0 +1,70 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    SET del_webdisk =  Api2.exec("WebDisk", "delwebdisk", {"login"=>FORM.login} );
+    IF del_webdisk.size;
+        SET webdisk_login = del_webdisk.0.login;
+    END;
+
+    #if we have an email and there is no error in cperror, everything is groovy
+    SET is_valid = (CPANEL.CPERROR.webdisk == '' && webdisk_login != '');
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'web_disk'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+-%]
+
+<div class="body-content">
+    <div id="message"></div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='accounts_webdav.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+<script type="text/plain" id="success_message">
+    [% locale.maketext("The Web Disk account “[_1]” has been deleted.",FORM.login) %]
+</script>
+
+<script type="text/plain" id="failed_message">
+    [% locale.maketext("There was a problem deleting the Web Disk account “[_1]”.",FORM.login) %]
+    [% IF CPANEL.CPERROR.webdisk %]
+    <ul>
+        <li>
+            [% CPANEL.CPERROR.webdisk.html() %]
+        </li>
+    </ul>
+    [% END %]
+</script>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+/**
+* Initializes the page
+* @method initializePage */
+var initializePage = function() {
+    var hasError = [% is_valid ? 'false' : 'true' %];
+    var text = "";
+    if(hasError) {
+        text = DOM.get("failed_message").text;
+    }
+    else {
+        text = DOM.get("success_message").text;
+    }
+
+    new CPANEL.widgets.Page_Notice( {
+        level: hasError ? "error" : "success",
+        content: text,
+        container: 'message'
+    } );
+}
+
+// Initialize the page
+YAHOO.util.Event.onDOMReady(function(){ initializePage(); });
+</script>
+[% END %]
+

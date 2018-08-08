@@ -1,0 +1,22 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+%]
+<div class="body-content">
+    <p id="descDeleteKeyConfirm">
+        [% locale.maketext("Are you sure you wish to delete this key?") %]
+    </p>
+
+    <a id="btnYes" class="btn btn-primary" href="dodelpkey.html?key=[% FORM.key %]" >
+        [% locale.maketext("Yes") %]
+    </a>
+    <a id="btnNo" class="btn btn-link" href="index.html" >
+        [% locale.maketext("No") %]
+    </a>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END %]

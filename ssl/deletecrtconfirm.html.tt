@@ -1,0 +1,102 @@
+[%
+# Set up the page state
+SET cert_id = RAW_FORM('id');
+
+# Get the certificate information.
+SET cert_param_missing = cert_id == "";
+IF !cert_param_missing;
+    SET show_cert = execute('SSL', 'show_cert', { id=cert_id });
+    IF show_cert && show_cert.status;
+        SET show_cert_success = 1;
+    END;
+END;
+
+SET CPANEL.CPVAR.dprefix = '../';
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+-%]
+<div class="body-content">
+    <h2 id="hdrDelete">
+        [% locale.maketext('Delete Certificate') %]
+    </h2>
+
+    [% IF host_not_set %]
+    <div id="noidError" class="alert alert-danger">
+        <span id="noidErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="noidErrorMsg" class="alert-message">
+            [% locale.maketext('You did not provide the “[_1]” in the request.', 'id') %]
+        </div>
+    </div>
+    [% ELSE %]
+    <p>[% locale.maketext('Are you sure you wish to delete the certificate “[output,strong,_1]”?', show_cert.data.details.friendly_name.html()) %]</p>
+    <p id="certificate_info"></p>
+    <p>
+       <a id="btnDelete" class="btn btn-primary" href="deletecrt.html?id=[% RAW_FORM('id') FILTER uri %]">[% locale.maketext('Delete Certificate') %]</a>
+       <a id="lnkCancel"
+            class="btn btn-link"
+            href="crts.html">
+            [% locale.maketext('Cancel') %]
+        </a>
+    </p>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='crts.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% PROCESS 'ssl/ssl_certificate_parse.html.tt' -%]
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+[% INSERT 'sharedjs/asn1_optimized.js' %]
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('base/cjt/ajaxapp-min.js', 'base');
+    INSERT $lex_path IF lex_path;
+    INSERT 'sharedjs/sslwidgets_optimized.js';
+%]
+[% INSERT 'cjt/ssl-min.js' %]
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('sharedjs/sslwidgets_optimized.js');
+    INSERT $lex_path IF lex_path;
+    INSERT 'sharedjs/sslwidgets_optimized.js';
+%]
+
+[% SET lexicon = {
+    'Processing …' => locale.maketext('Processing …'),
+} -%]
+
+YAHOO.lang.augmentObject( LOCALE.LEXICON, [% lexicon.json() %] );
+
+[% IF show_cert_success && show_cert.data.cert %]
+(function() {
+
+    var PAGE = {
+        data : {
+            certificate : [% show_cert.data.cert.json() %]
+        }
+    };
+
+    /**
+      * Initialize the page
+      *
+      * @method initialize
+      * @private
+      */
+    var initialize = function() {
+        var panel = DOM.get("certificate_info");
+        panel.innerHTML = [% locale.maketext('Processing …').json() %];
+        CPANEL.widgets.ssl.showCertificateParse(PAGE.data.certificate, panel);
+    }
+
+    // Register startup events.
+    YAHOO.util.Event.onDOMReady(initialize);
+}());
+[% END %]
+</script>
+[% END #js_block %]

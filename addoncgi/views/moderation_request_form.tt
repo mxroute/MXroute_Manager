@@ -1,0 +1,101 @@
+[%
+# Arguments
+# form   - hash -
+#   called_from_root - boolean
+# data   - hash -
+#   moderated_request_count - number
+#   moderation_request_limit_reached - boolean
+#   module_moderation_request_limit_reached - boolean
+# environment - hash
+#   script_name - string
+# module - hash -
+#   name - string
+# vendor - hash
+#   name - string
+# actionlessuri - string - previous form data preserved
+SET cancel_url = to_uri(environment, actionlessuri);
+%]
+
+<p>
+    [% locale.maketext('Your hosting provider moderates installations for the [_1] [asis,cPAddon].', module.display_app_name.html()) %]
+</p>
+
+[% IF data.moderation_request_limit_reached %]
+<div class="alert alert-warning">
+    <span class="glyphicon glyphicon-exclamation-sign"></span>
+    <div class="alert-message" id="maximum-moderation-limit">
+        <strong>[% locale.maketext('Warning:') %]</strong>
+        [% locale.maketext('You exceeded your maximum [asis,Addon Moderation Request] limit. You cannot install any additional moderated [asis,cPAddons] until your hosting provider processes your previous requests.') %]
+    </div>
+</div>
+[% ELSIF data.module_moderation_request_limit_reached %]
+<div class="alert alert-warning">
+    <span class="glyphicon glyphicon-exclamation-sign"></span>
+    <div class="alert-message" id="maximum-moderation-limit-for-this-addon">
+        <strong>[% locale.maketext('Warning:') %]</strong>
+        [% locale.maketext('You exceeded the maximum [asis,cPAddon Moderation Request] limit for [_1]. You cannot install any additional instances of this [asis,cPAddon] until your hosting provider processes your previous requests.', module.display_app_name.html()) %]
+    </div>
+</div>
+[% ELSIF !data.form_valid %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message" id="validationErrors">
+        <p>[% locale.maketext('You entered one or more invalid items:') %]</p>
+        <ul>
+            [% FOREACH message IN data.error_messages %]
+                <li>[% message | html %]</li>
+            [% END %]
+        </ul>
+        </div>
+    </div>
+[% ELSE %]
+<p>
+    [% locale.maketext('You must request approval from your hosting provider below:') %]
+</p>
+
+<form id="cpaddonssendmodreqform" action="[% environment.script_name | url %]" method="post">
+    <input type="hidden" name="debug" value="[% environment.debug | html %]" />
+    <input type="hidden" name="verbose" value="[% environment.verbose | html %]" />
+    <input type="hidden" name="addon" value="[% module.name | html %]" />
+    <input type="hidden" name="action" value="sendmodreq" />
+    [% FOREACH key IN form.keys;
+        NEXT IF key == 'addon-0';
+        NEXT IF key == 'action-0';
+        NEXT IF key == 'action';
+        NEXT IF key == 'request_note';
+        NEXT IF key == 'license'%]
+    <input type="hidden" name="[% key | html %]" value="[% form.$key | html %]" id="[% key %]" />
+    [% END %]
+    <p>
+        <textarea name="request_note" cols="80" rows="5" class="form-control" id="txtModerationRequest">[%-
+            locale.maketext('[comment,Keep the word “Please” in this string. This is not an instruction to the user, but a request that will be emailed from the user to the server administrator.]Please install the “[_1]” [asis,cPAddon] with the settings that I provided.', module.display_app_name.html());
+            "\n\n";
+            locale.maketext('(Provide more information if needed)');
+        -%]</textarea>
+    </p>
+    [% IF data.moderated_request_count > 0 %]
+    <p>
+        [% locale.maketext('You have [_1] pending [numerate,_1,request,requests] for the [_2] [asis,cPAddon].', data.moderated_request_count.html(), module.display_app_name.html()) %]
+    </p>
+    [% END %]
+    <p>
+        <button type="submit" class="btn btn-primary" id="btnSubmitModerationRequest">
+            <i id="spinner-submit" style="display: none" class="fas fa-sync fa-spin"></i>
+            <span class="button-label">
+                [% locale.maketext('Submit Request') %]
+            </span>
+        </button>
+        <a href="[% cancel_url %]" class="btn btn-link" id="btnCancelModerationRequest">
+            [% locale.maketext('Cancel') %]
+        </a>
+    </p>
+</form>
+[% END %]
+
+[% IF !environment.called_from_root;
+    SET back_url = to_uri(environment);
+%]
+<p align="center">
+    [<a id="main" href="[% back_url | url %]">[% locale.maketext('Main') %]</a>]
+</p>
+[% END %]

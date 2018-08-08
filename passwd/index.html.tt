@@ -1,0 +1,254 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET password_max_age =  (CPANEL.CPCONF.item('SecurityPolicy::PasswordAge::maxage') == "disable") ? 0 : CPANEL.CPCONF.item('SecurityPolicy::PasswordAge::maxage');
+SET password_strength_get_required_strength = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"passwd"} ).0;
+SET web_disk_has_digest = Api2.exec("WebDisk", "hasdigest", {} ).0;
+SET mysqlfe_has_mycnf_for_cpuser = Api2.exec("MysqlFE", "has_mycnf_for_cpuser", {} );
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'change_password'
+    feature = 'password'
+    page_js = js_code
+    use_master_bootstrap = 0
+    page_stylesheets = []
+-%]
+
+    [%
+        SET external_auth_modules = execute("ExternalAuthentication","configured_modules").data;
+        SET configured_providers = execute("ExternalAuthentication","get_authn_links").data;
+    %]
+
+    [% INCLUDE _assets/_ajaxapp_header.html.tt %]
+
+    [% IF external_auth_modules.size && external_auth_modules %]
+
+        <div class="ng-cloak body-content">
+                <div class="section">
+                    <h2>
+                        [% locale.maketext('Change Password') %]
+                    </h2>
+                    <div>
+                        [% PROCESS change_password_form %]
+                    </div>
+                </div>
+                <div class="section">
+                    <h2>
+                        [% locale.maketext('External Authentication') %]
+                    </h2>
+                    <div>
+                        [% PROCESS manage_external_auth.html.tt %]
+                   </div>
+                </div>
+            <div growl></div>
+        </div>
+
+        <script type="text/javascript">
+            CPANEL.namespace("CPANEL.PAGE");
+            CPANEL.PAGE.external_auth_modules = [% external_auth_modules.json(); %];
+            CPANEL.PAGE.configured_providers  = [% configured_providers.json(); %];
+            [% IF (FORM.item('msg') == "forced") %]
+            CPANEL.PAGE.skipNotificationsCheck = true;
+            [% END %]
+            window.PAGE = CPANEL.PAGE;
+        </script>
+    [% ELSE %]
+        <div class="body-content">
+            <div class="section">
+                <h2>
+                    [% locale.maketext('Change Password') %]
+                </h2>
+                <div>
+                    [% PROCESS change_password_form %]
+                </div>
+            </div>
+        </div>
+        <script type="text/javascript">
+            CPANEL.namespace("CPANEL.PAGE");
+            [% IF (FORM.item('msg') == "forced") %]
+            CPANEL.PAGE.skipNotificationsCheck = true;
+            [% END %]
+            window.PAGE = CPANEL.PAGE;
+        </script>
+    [% END %]
+
+    [% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+    [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+[% END #wrapper %]
+
+[% BLOCK change_password_form %]
+    <div class="callout callout-info">
+        [% IF (FORM.item('msg') == "age") %]
+            <p ng-non-bindable id="msgExpiredPassword">
+                [% locale.maketext("You have not changed your password in [quant,_1,day,days]. The current security policy requires that you change your password every [quant,_2,day,days] to avoid your account being compromised.", FORM.item('days_since_change'), password_max_age.html()) %]
+            </p>
+        [% END %]
+
+        [% IF (FORM.item('msg') == "strength") %]
+            <p id="msgPasswordStrengthRequirements">
+                [% locale.maketext("Your password does not meet the strength requirements, you must change it now to avoid having your account compromised.") %]
+            </p>
+        [% END %]
+
+        [% IF (FORM.item('msg') == "forced") %]
+            <p id="msgAdminRequestsChangePassword">
+                [% locale.maketext("An administrator has requested you change your password.") %]
+            </p>
+        [% END %]
+
+        <p id="msgChangePassword">
+            [% locale.maketext("Change your account password below. Password strength is important in web hosting; we strongly recommend using the Password Generator to create your password. Follow the tips below to keep your password safe.") %]
+        </p>
+        <p id="msgChangePasswordLogoutMessage">
+            [% locale.maketext("[output,strong,Note:] If you change your password, you will end your current session."); %]
+        </p>
+    </div>
+
+
+    <!-- [% web_disk_has_digest.hasdigest.html() %] -->
+    <form  method="post" name="userform" id="userform" action="changepass.html">
+        <!-- prevent password autofill -->
+        <input type="text" style="display:none">
+        <input type="password" autocomplete='off' style="display:none">
+        [% IF FORM.item('msg') %]
+        <input ng-non-bindable type="hidden" name="msg" id="msg" value="[% FORM.item('msg') %]" />
+        [% END %]
+        [% IF (FORM.item('days_since_change')) %]
+        <input ng-non-bindable type="hidden" name="days_since_change" id="days_since_change" value="[% FORM.item('days_since_change') %]" />
+        [% END %]
+        <div class="form-group">
+            <label id="lblOldPassword" for="oldpassword">[% locale.maketext("Old Password") %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="password" autocomplete='off' maxlength="128" name="oldpass" id="oldpassword" size="20" class="form-control" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"><div id="oldpassword_error"></div></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblPassword" for="password">[% locale.maketext("New Password") %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="password" autocomplete='off' name="newpass" id="password" maxlength="128" class="form-control" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"><div id="password_error"></div></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblPassword2" for="pass2">[% locale.maketext("New Password (Again):") %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input class="form-control" autocomplete='off' maxlength="128" size="20" name="newpass2" id="pass2" type="password" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"><div id="pass2_error"></div></div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblPasswordStrength">
+                [% locale.maketext("Strength") %] (<div style="display: inline" id="why_strong_passwords_link" class="action_link">[% locale.maketext("Why?") %]</div>)
+            </label>
+            [% INCLUDE _assets/why_strong_passwords.html.tt %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div id="password_strength" class="password_strength"></div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="button"class="btn btn-default" id="create_strong_password" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                </div>
+            </div>
+        </div>
+        <!--
+            [%
+                FOREACH hashref in mysqlfe_has_mycnf_for_cpuser;
+                    hashref.item('has_mycnf_for_cpuser').html();
+                END;
+            %]
+        -->
+        [% IF !(CPANEL.CPVAR.item('has_mycnf_for_cpuser')) %]
+            <input type="hidden" name="enablemysql" id="hidEnableMysql" checked="checked" value="1">
+        [% ELSE %]
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="enablemysql" name="enablemysql" value="1">
+                                [% locale.maketext("Synchronize MySQL password")  %]
+                            </label>
+                            <span id="enablemysql-info" class="glyphicon glyphicon-info-sign" onclick="CPANEL.ajax.toggleToolTip(this,'[% locale.maketext('Synchronize MySQL password') %]');" title="[% locale.maketext("This option will set your MySQL password to be the same as your new password. If you have a “[_1]” set up in your home directory and want to keep using the password in your “[_1]”, you should uncheck this option. Checking this option will not update the password currently set in “[_1]”.",'.my.cnf')  %]">
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+        [% END %]
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div class="checkbox">
+                        <label>
+                            [% IF (CPANEL.CPVAR.item('hasdigest') || (FORM.item('enable_digest')) || FORM.item('enabledigest')) %]
+                                <input type="checkbox" value="1" checked="checked" id="enabledigest" name="enabledigest">
+                            [% ELSE %]
+                                <input type="checkbox" value="1" id="enabledigest" name="enabledigest">
+                            [% END %]
+                            [% locale.maketext("Enable Digest Authentication")  %]
+                        </label>
+                        <span id="enabledigest-info" class="glyphicon glyphicon-info-sign" onclick="CPANEL.ajax.toggleToolTip(this,'[% locale.maketext('Digest Authentication') %]');" title="[% locale.maketext("[list_and,_*] require Digest Authentication support to be enabled in order to access your Web Disk over a clear text/unencrypted connection.","Windows Vista®","Windows® 7","Windows® 8") %] [% locale.maketext("If the server has an SSL certificate signed by a recognized certificate authority and you are able to make an SSL connection over port 2078, you do not need to enable this.")  %]"></span>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <input name="B1" type="submit" class="btn btn-primary" value="[% locale.maketext("Change your password now!") %]" id="btnChangePassword" />
+        </div>
+    </form>
+
+    <h2 id="hdrProtectPassword">
+        [% locale.maketext("Protect your password:") %]
+    </h2>
+    <span id="msgDontWritePassword">
+        [% locale.maketext("Don’t write down your password, memorize it. In particular, don’t write it down and leave it anywhere, and don’t place it in an unencrypted file! Use unrelated passwords for systems controlled by different organizations. Don’t give or share your password, in particular to someone claiming to be from computer support or a vendor unless you are sure they are who they say they are. Don’t let anyone watch you enter your password. Don’t enter your password on a computer you don’t trust. Use the password for a limited time and change it periodically.") %]
+    </span>
+
+    <h2 id="hdrHardToGuess">
+        [% locale.maketext("Choose a hard-to-guess password:") %]
+    </h2>
+    <ul id="listPasswordManagementAdvice">
+        <li>[% locale.maketext("The system attempts to prevent particularly insecure passwords, but it is not foolproof.") %]</li>
+        <li>[% locale.maketext("Do not use words that are in a dictionary, names, or any personal information (for example, your birthday or phone number).") %]</li>
+        <li>[% locale.maketext("Avoid simple patterns. Instead, use UPPER and lower case letters, numbers, and symbols. Make certain that your password is at least eight characters long.") %]</li>
+        <li>[% locale.maketext("When you choose a new password, make certain that it is not related to your previous passwords.") %]</li>
+    </ul>
+[% END # %]
+
+[% BLOCK js_block %]
+    <script type="text/javascript">
+        var REQUIRED_PASSWORD_STRENGTH = parseInt('[% password_strength_get_required_strength.strength %]', 10) || 0;
+        var init_page = function() {
+            var oldpass_validator = new CPANEL.validate.validator("Old Password");
+            oldpass_validator.add("oldpassword", "min_length(%input%, 1)", "[% locale.maketext("Old password cannot be empty.")  %]");
+            oldpass_validator.attach();
+
+            var password_validators = CPANEL.password.setup("password", "pass2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+
+            // attach the old vs new validator to the password field using the existing password field validator
+            // so it gets executed at the same time as the other validators
+            password_validators[0].add("password", "not_equals('oldpassword', 'password')", "[% locale.maketext("You cannot reuse the old password.") %]");
+
+            CPANEL.validate.attach_to_form("btnChangePassword", [oldpass_validator, password_validators[0], password_validators[1]]);
+
+            YAHOO.util.Dom.get("oldpassword").focus();
+        };
+        YAHOO.util.Event.onDOMReady(init_page);
+    </script>
+[% END #js_block %]
+

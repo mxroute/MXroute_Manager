@@ -1,0 +1,59 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/tools.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup_wizard'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_stylesheets = ["css2-min/backup.css"]
+-%]
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+        <div class="section">
+            <div id="backup-nav" class="row">
+                <div class="col-xs-12">
+                    <h2 id="hdrSteps">[% locale.maketext('Steps:') %]</h2>
+                    <ol>
+                        <li id="tabBackupRestore" class="one"><span class="current">[% locale.maketext("Back Up or Restore") %]</span></li>
+                        <li id="tabFullPartial" class="two"><span>[% locale.maketext("Full or Partial Backup") %]</span></li>
+                        <li id="tabDownload" class="three"><span>[% locale.maketext("Download") %]</span></li>
+                    </ol>
+                </div>
+            </div>
+
+            <div id="br-wrap" class="row">
+                <div id="br-content-main" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h4 id="hdrBackup">[% locale.maketext("Back Up") %]</h4>
+                    <p>[% locale.maketext("This feature allows you to download a compressed copy of all or part of your website.") %]</p>
+                    <p>[% locale.maketext("The system will include the following items in the backup file:") %]</p>
+                    <ul>
+                        <li>[% locale.maketext("The home directory.") %]</li>
+                        [% IF CPANEL.feature("mysql") %]<li>[% locale.maketext("[asis,MySQL][output,chr,174] databases.") %]</li>[% END %]
+                        [% IF CPANEL.feature("forwarders") %]<li>[% locale.maketext("Email forwarder configurations.") %]</li>[% END %]
+                        [% IF CPANEL.feature("blockers") %]<li>[% locale.maketext("Email filter configurations.") %]</li>[% END %]
+                    </ul>
+                    <p><a href="wizard-backup.html" id="wizard-backup" class="btn btn-primary">[% locale.maketext("Back Up") %]</a></p>
+                </div>
+
+                <div id="br-content-sec" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <h4 id="hdrRestore">[% locale.maketext("Restore") %]</h4>
+                    <p>[% locale.maketext("This feature allows you to upload an existing partial backup file in order to restore parts of your website.") %]</p>
+                    <p>[% locale.maketext("The system will restore the following items if they exist in the backup file:") %]</p>
+                    <ul>
+                        <li>[% locale.maketext("The home directory.") %]</li>
+                        [% IF CPANEL.feature("mysql") %]<li>[% locale.maketext("[asis,MySQL][output,chr,174] databases.") %]</li>[% END %]
+                        [% IF CPANEL.feature("forwarders") %]<li>[% locale.maketext("Email forwarder configurations.") %]</li>[% END %]
+                        [% IF CPANEL.feature("blockers") %]<li>[% locale.maketext("Email filter configurations.") %]</li>[% END %]
+                    </ul>
+                    <p><a href="wizard-restore.html" id="wizard-restore" class="btn btn-primary">[% locale.maketext("Restore") %]</a></p>
+                </div>
+            </div>
+        </div>
+    [% END %]
+</div>
+[% END %]

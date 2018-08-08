@@ -1,0 +1,32 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+Api1.pre_exec("SubDomain", "setsuburl");
+Api1.exec("SubDomain", "setsuburl", [RAW_FORM.domain,RAW_FORM.url]);
+Api1.post_exec("SubDomain", "setsuburl")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'subdomains'
+ -%]
+
+<div class="body-content">
+    <h2>[% locale.maketext("Redirection") %]</h2> [% IF CPANEL.CPERROR('subdomain').subdomain %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            [% CPANEL.CPERROR('subdomain').subdomain %]
+        </div>
+    </div>
+    [% ELSE -%]
+    <div class="alert alert-success">
+        <span class="glyphicon glyphicon-ok-sign"></span>
+        <div class="alert-message">
+            [% locale.maketext("“[_1].[_2]” is currently being redirected to:", FORM.domain.split('_').item(0), FORM.domain.split('_').item(1)) %] <strong>[% FORM.url %]</strong>.
+        </div>
+    </div>
+    [% END -%]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

@@ -1,0 +1,219 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = '../addoncgi/cpaddons.html?addon=' _ FORM.from_cpaddon.uri();
+SET subdomain_valid_regex = Api2.exec("SubDomain", "validregex", {} );
+SET subdomain_get_reserved_subdomains = Api2.exec("SubDomain", "getreservedsubdomains", {} );
+
+SET CPANEL.CPVAR.autodirsonly = "1";
+SET CPANEL.CPVAR.autoskipreserved = "1";
+SET CPANEL.CPVAR.autoinput = "dir";
+SET CPANEL.CPVAR.autofunc = "dirComplete";
+
+IF FORM.itemsperpage;
+    SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+END;
+IF (!( FORM.itemsperpage) || !( CPANEL.CPVAR.itemsperpage));
+    SET CPANEL.CPVAR.itemsperpage = "10";
+END;
+
+PROCESS '_assets/resource_usage_macro.html.tt';
+
+Api1.pre_exec("Email", "listmaildomainsopt");
+SET list_domains = Api1.exec("Email", "listmaildomainsopt", [undef]);
+Api1.post_exec("Email", "listmaildomainsopt")
+
+%]
+
+[%
+    # Note: a MACRO was not used here because we need to be able
+    # to access resource_usage_limits after the block runs
+    SET resource_usage_key = 'subdomains';
+    SET resource_usage_percent_used_to_warn = 80;
+    resource_code = PROCESS resource_usage_block;
+%]
+[% js_code = PROCESS js_block %]
+[% css_code = PROCESS css_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    page_styles = css_code
+    app_key = 'subdomains'
+    page_scripts = ["js/statusbox_optimized.js", "js2-min/subdomain/index.js"]
+ -%]
+
+[% INCLUDE _assets/_ajaxapp_header.html.tt %]
+
+<div class="body-content">
+    <p id="subDomainDescription" class="description">
+        [% locale.maketext("A subdomain is a subsection of your website that can exist as a new website without a new domain name. Use subdomains to create memorable URLs for different content areas of your site. For example, you can create a subdomain for your blog that is accessible through [output,strong,blog.example.com] and [output,strong,www.example.com/blog]") %]
+    </p>
+
+    <div id="addSubDomain" class="section">
+        <h2>[% locale.maketext("Create a Subdomain") %]</h2>
+
+        [% resource_code %]
+        [% IF !resource_usage_limits || !resource_usage_limits.is_maxed %]
+        <form id="domainform" name="domainform" action="../subdomain/doadddomain.html" >
+            <div class="form-group">
+                <label for="domain">
+                    [% locale.maketext("Subdomain") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" onchange="updatedir(this);" id="domain" name="domain" />
+                    </div>
+                    <div id="domain_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="rootdomain">
+                    [% locale.maketext("Domain") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="rootdomain" name="rootdomain" onchange="updatedir(this);" class="form-control">
+                        [% list_domains %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>
+                    [% locale.maketext("Document Root") %]
+                </label>
+                [%
+                    SET input_group_text = '<span id="docrootImg" class="fas fa-home"></span> /';
+                    IF CPANEL.CPCONF.publichtmlsubsonly;
+                        input_group_text = input_group_text _ 'public_html/';
+                    END;
+                %]
+                <script type="text/javascript">
+                function dirComplete(inputObj) {}
+                </script>
+                [% PROCESS 'autodir/dirbox.html.tt' input_group_addon_text=input_group_text restrict_autodir_to_docroot=CPANEL.CPCONF.publichtmlsubsonly %]
+            </div>
+            <div class="form-group">
+                <input id="subdomain_submit" class="btn btn-primary" type="submit" value="[% locale.maketext("Create") %]" name="go" />
+            </div>
+        </form>
+        [% END %]
+        [% IF FORM.from_cpaddon %]
+            <input id="from_cpaddon" type="hidden" name="from_cpaddon" value="[% FORM.from_cpaddon %]" />
+            [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back to Site Software') %]
+        [% END %]
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Modify a Subdomain") %]</h2>
+
+        <!-- This needs to be before the <form> element below
+             or else browsers will not recognize its contained <form> element. -->
+        [% Api1.exec("relinclude", ["subdomain/include_changedocroot.html.tt"]) %]
+        <div class="search-panel">
+            <form id="searchArea" method="get">
+                <div class="row">
+                    <div class="col-xs-8 col-sm-6">
+                        <input id="searchregex" type="text" class="form-control" size="15" name="searchregex" value="[% FORM.searchregex %]" placeholder="[% locale.maketext("Search")  %]">
+                    </div>
+                    <div class="col-xs-4 col-sm-6">
+                        <input id="search" type="submit" class="btn btn-primary" value="[% locale.maketext("Go") %]">
+                        <input id="itemsPerPage" type="hidden" name="itemsperpage" value="[% CPANEL.CPVAR.itemsperpage.html %]" />
+                    </div>
+                </div>
+            </form>
+        </div>
+        <table id="subdomaintbl" class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Subdomains") %]</th>
+                    <th>[% locale.maketext("Document Root") %]</th>
+                    <th>[% locale.maketext("Redirection") %]</th>
+                    <th>[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% INCLUDE subdomain/subdomains_list_content.html.tt %]
+            </tbody>
+        </table>
+
+        [% INCLUDE _assets/paginate.html.tt %]
+    </div>
+</div>
+
+[% INCLUDE _assets/_ajaxapp_footer.html.tt %]
+
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+    var VALID = [];
+    PAGE.public_html_subs_only = [% (CPANEL.CPCONF.publichtmlsubsonly) ? "true" : "false" %];
+
+    var updatedir = function() {
+        var subdomain = document.domainform.domain.value;
+        subdomain = subdomain.replace('*','_wildcard_');
+        if (PAGE.public_html_subs_only) {
+            document.domainform.dir.value = subdomain;
+        } else {
+            document.domainform.dir.value = subdomain + '.' + document.domainform.rootdomain.value;
+        }
+        VALID['dir'].verify();
+    };
+
+    var valid_regex = new RegExp( "[% subdomain_valid_regex.0.json().remove('^"').remove('"$') %]" );
+
+    var reserved_subdomains = {
+    [% FOREACH hashref IN subdomain_get_reserved_subdomains %]
+        "[%  hashref.json().remove('^"').remove('"$') %]" : true,
+    [% END %]
+        "" : false
+    };
+
+    delete reserved_subdomains[""];
+
+    function is_valid_subdomain() {
+        var normalized = DOM.get("domain").value.trim().toLowerCase();
+        return Object.keys(reserved_subdomains).indexOf(normalized) == -1 && valid_regex.test(normalized);
+    }
+
+    var init = function() {
+        [% IF !resource_usage_limits || !resource_usage_limits.is_maxed %]
+        VALID['domain'] = new CPANEL.validate.validator("[% locale.maketext('Subdomain Input') %]");
+        VALID['domain'].add("domain", is_valid_subdomain, "[% locale.maketext('That is not a valid subdomain.') %]");
+        VALID['domain'].attach();
+
+        VALID['dir'] = new CPANEL.validate.validator("[% locale.maketext('Directory Path') %]");
+        VALID['dir'].add("dir", "dir_path", "[% locale.maketext('Directory paths cannot be empty or contain the following characters: [output,chr,92] ? % * : | [output,quot] [output,gt] [output,lt]') %]");
+        if (!PAGE.public_html_subs_only) {
+            VALID['dir'].add("dir", "reserved_directory", "[% locale.maketext('That directory is reserved for use by the system.') %]");
+        }
+        VALID['dir'].attach();
+
+        CPANEL.validate.attach_to_form("subdomain_submit", VALID);
+
+        YAHOO.util.Dom.get("domain").focus();
+        [% END %]
+    };
+
+    YAHOO.util.Event.onDOMReady(init);
+
+    function MM_jumpMenu(selObj,targ,restore){ //v3.0
+      if (selObj.options[selObj.selectedIndex].value == "") { return; }
+      targ.action=selObj.options[selObj.selectedIndex].value;
+      targ.submit();
+      confirmation();
+      if (restore) selObj.selectedIndex=0;
+    }
+
+</script>
+[% END %]
+
+[% BLOCK css_block %]
+<style type="text/css">
+td { word-wrap: break-word; }
+</style>
+[% END %]

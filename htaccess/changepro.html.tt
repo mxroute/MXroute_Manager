@@ -1,0 +1,41 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_url = 'dohtaccess.html?dir=' _ FORM.dir;
+
+Api1.pre_exec("Htaccess", "set_protect");
+SET results = Api1.exec("Htaccess", "set_protect", [
+        RAW_FORM.dir,
+        RAW_FORM.protected,
+        RAW_FORM.resname
+    ]);
+Api1.post_exec("Htaccess", "set_protect");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'directory_privacy'
+-%]
+
+<div class="body-content">
+    [% IF !CPANEL.CPERROR.htaccess %]
+    <div class="alert alert-success" id="permsSuccess">
+        <span class="glyphicon glyphicon-ok-sign" id="permsSuccessImg"></span>
+        <div class="alert-message" id="permsSuccessMsg">
+            <strong>[% locale.maketext("Success:") %]</strong>
+            [% locale.maketext("The access permissions for “[_1]” have been set.", FORM.dir) %]
+        </div>
+    </div>
+    [% ELSE %]
+    <div class="alert alert-danger" id="permsError">
+        <span class="glyphicon glyphicon-remove-sign" id="permsErrorImg"></span>
+        <div class="alert-message" id="permsErrorMsg">
+            <strong>[% locale.maketext("Error:") %]</strong>
+            [% locale.maketext("There was a problem creating the sub-domain.") %]
+            [% CPANEL.CPERROR.htaccess.html %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_url return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

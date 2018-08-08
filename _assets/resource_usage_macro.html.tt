@@ -1,0 +1,81 @@
+[%-
+USE CPHash;
+USE Master;
+
+BLOCK resource_usage_block;
+
+  SET resource_stats_bar = execute('StatsBar', 'get_stats', {
+      "display" => resource_usage_key,
+      "infinitylang" => 1,
+      "warnings" => 1,
+      "warninglevel" => resource_usage_percent_used_to_warn,
+      "warnout" => 1,
+  }).data;
+
+  SET resource_usage_limits = '';   #There is no “undef” in TT2.
+
+  IF resource_stats_bar.size();
+      SET resource_usage_limits = resource_stats_bar.0;
+  END;
+
+  IF resource_usage_limits;
+      IF resource_usage_limits.is_maxed;
+ -%]
+
+        <div id="[%- resource_usage_key -%]MaxOut" class="alert alert-danger">
+            <span id="[%- resource_usage_key -%]MaxOutImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="[%- resource_usage_key -%]MaxOutMessage" class="alert-message">
+                [%-
+                    SET resource_usage_limits_max   =  CPHash.vmethod('item',resource_usage_limits, '_max');
+
+                    # Matches the behavior in Cpanel::API::StatsBar::get_stats
+                    IF CPHash.vmethod('item',resource_usage_limits,'normalized') && CPHash.vmethod('item',resource_usage_limits,'units') == 'MB';
+                          resource_usage_limits_max = resource_usage_limits_max * 1024 * 1024;
+                    END;
+
+                    locale.makevar(resource_usage_limits.maxed_phrase, resource_usage_limits_max);
+
+                    PROCESS if_you_want_more;
+                 -%]
+            </div>
+        </div>
+
+    [%- ELSE -%]
+
+        <div class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                [%-
+                    SET resource_usage_limits_count =  CPHash.vmethod('item',resource_usage_limits, '_count');
+                    SET resource_usage_limits_max   =  CPHash.vmethod('item',resource_usage_limits, '_max');
+                    # Matches the behavior in Cpanel::API::StatsBar::get_stats
+                    IF CPHash.vmethod('item',resource_usage_limits,'normalized') && CPHash.vmethod('item',resource_usage_limits,'units') == 'MB';
+                          resource_usage_limits_count = resource_usage_limits_count * 1024 * 1024;
+                          resource_usage_limits_max = resource_usage_limits_max * 1024 * 1024;
+                    END;
+
+                    locale.makevar(resource_usage_limits.near_limit_phrase, resource_usage_limits_count, resource_usage_limits_max );
+
+                    PROCESS if_you_want_more;
+                -%]
+            </div>
+        </div>
+
+    [%-
+      END;
+  END;
+
+END; # END BLOCK
+
+-%]
+[%- BLOCK if_you_want_more; -%]
+    [% IF varcache.upgrade_app_info && ExpVar.expand('$appname') != "webmail" %]
+        <a class="lnkInlinePrefUpgrade" href="[%- CPANEL.CPVAR.dprefix _ varcache.upgrade_app_info.url | html -%]">
+        [%- varcache.upgrade_app_info.itemdesc.html() -%]
+        </a>
+    [% ELSIF resource_usage_limits.units %]
+        [% locale.maketext("If you want more[comment,amount], contact your service provider.") %]
+    [% ELSE %]
+        [% locale.maketext("If you want more[comment,quantity], contact your service provider.") %]
+    [% END %]
+[% END -%]

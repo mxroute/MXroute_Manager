@@ -1,0 +1,173 @@
+[%
+    USE JSON;
+    SET account_locale = locale.get_user_locale(), #The account's locale name, in the session locale.
+        direction = locale.get_html_dir_attr(),
+        form = CPANEL.FORM,
+        security_token = CPANEL.ENV.cp_security_token,
+        directory_path = form.dir,
+        file_name = form.file,
+        charset = form.charset,
+        file_charset = form.file_charset,
+        base_url = form.baseurl,
+        base_dir = form.basedir,
+        theme    = CPANEL.CPDATA.RS,
+        home_dir_path = CPANEL.ENV.HOME,
+        url = "http://" _ CPANEL.ENV.DOMAIN ;
+
+    SET file_open_results = execute ("Fileman", "get_file_content", { dir => directory_path, file=> file_name, from_charset => charset});
+
+    SET file_info = file_open_results.data;
+%]
+
+<style type="text/css">
+[% INSERT "filemanager/editors/html_editor.css" %]
+</style>
+
+<form id="htmlEditorForm" class="cpanelHide">
+    <textarea id="editorArea" name="content"></textarea>
+</form>
+
+[% IF CPANEL.is_debug_mode_enabled() %]
+<script type="text/javascript" src="[% MagicRevision('/yui-gen/utilities_container/utilities_container.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('/cjt/cpanel-all.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/jquery/3.2.0/jquery-3.2.0.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/ckeditor/optimized/ckeditor.js') %]"></script>
+[% ELSE %]
+<script type="text/javascript" src="[% MagicRevision('/yui-gen/utilities_container/utilities_container.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('/cjt/cpanel-all-min.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/jquery/3.2.0/jquery-3.2.0.min.js') %]"></script>
+<script type="text/javascript" src="[% MagicRevision('../../libraries/ckeditor/optimized/ckeditor.js') %]"></script>
+[% END %]
+
+[% SET lex_path = locale.cpanel_get_lex_path('/usr/local/cpanel/base/frontend/' _ theme _ '/filemanager/editors/html_editor.js', './html_editor.js') %]
+[% IF lex_path %]<script src="[% lex_path %]"></script>[% END %]
+<script type="text/javascript" src="./html_editor.js"></script>
+
+[% PROCESS "_assets/_ajaxapp.html.tt" -%]
+
+<script type="text/javascript">
+(function() {
+var encodedURIForBrowse = "./image_browser.html?dir=" + encodeURIComponent("[% base_dir %]") + "&dirPath=" + encodeURIComponent("[% directory_path %]");
+var encodedURIForLink = "./image_link.html?dir=" + encodeURIComponent("[% base_dir %]") + "&dirPath=" + encodeURIComponent("[% directory_path %]");
+
+    var config = {
+        toolbar: "cpanelToolbar",
+        baseHref: "[% base_url %]",
+        toolbar_cpanelToolbar: [
+            { name: "save", items : [ "CpanelSave","-", "Templates" ] },
+            { name: "newdocument", items: ["Print"]},
+            { name: "clipboard", items : ["Paste","PasteText","PasteFromWord","-","Undo","Redo" ] },
+            { name: "editing", items : [ "Find","Replace","-","SelectAll"] },
+            { name: "forms", items : [ "Form", "Checkbox", "Radio", "TextField", "Textarea", "Select", "Button", "HiddenField" ] },
+            "/",
+            { name: "basicstyles", items : [ "Bold","Italic","Underline","Strike","Subscript","Superscript","-","RemoveFormat" ] },
+            { name: "paragraph", items : [ "NumberedList","BulletedList","-","Outdent","Indent","-","Blockquote","CreateDiv","-","JustifyLeft","JustifyCenter","JustifyRight","JustifyBlock","-","BidiLtr","BidiRtl" ] },
+            { name: "links", items : [ "Link","Unlink","Anchor" ] },
+            { name: "insert", items : [ "Image", "oembed", "Table","HorizontalRule","SpecialChar","PageBreak" ] },
+            "/",
+            { name: "styles", items : [ "Styles","Format","Font","FontSize" ] },
+            { name: "colors", items : [ "TextColor","BGColor" ] },
+            { name: "tools", items : [ "ShowBlocks"] },
+            { name: "source", items: ["Source"]},
+            { name: "cppreview", items : [ "CpanelPreview" ] },
+            { name: "editordetails", items: ["About"]}
+        ],
+        contentsLangDirection: "[% direction %]", // set users current lang direction
+        language: "[% account_locale %]", // set users current language
+        defaultLanguage: "en",
+        dialog_buttonOrder: "[% direction %]", // set users current lang direction
+        dialog_startupFocusTab: true,
+        fullPage: true,
+        toolbarCanCollapse: false,
+        fillEmptyBlocks : false,
+        extraPlugins : "cpanelsave,cpanelpreview",
+        filebrowserImageUploadUrl: "./image_upload.html",
+        filebrowserImageBrowseUrl: encodedURIForBrowse,
+        oembed_WrapperClass: "embededContent",
+        image_previewText: " ",
+        autoParagraph: true,
+        autoUpdateElement: true,
+        removePlugins : "scayt,save",
+        disableNativeSpellChecker : false,
+        allowedContent: true,
+        appData: {
+            unprotectedClassNames: ["cpanelShow", "cpanelHide"],
+            homeDir: "[% base_dir %]",
+            baseURL: "[% base_url %]"
+        },
+        keystrokes: [
+            [ CKEDITOR.CTRL + 66, 'bold' ],
+            [ CKEDITOR.CTRL + 73, 'italic' ],
+            [ CKEDITOR.CTRL + 85, 'underline'],
+
+            [ CKEDITOR.CTRL + 90, 'undo' ],
+            [ CKEDITOR.CTRL + 89, 'redo' ],
+
+            [ CKEDITOR.CTRL + 83, 'cpanelsave' ],
+        ]
+    };
+
+
+    // adding a test to see if the api call to get the file and contents went correctly
+    // then we can do things to appData based on that result
+    var apiReturn = [% file_open_results.json() %];
+
+    var appData = {
+        container :"editorArea",
+        fileContentInfo: [% file_info.json() %],
+        fileMetaData: {
+            dirPath: "[% directory_path %]",
+            fileName: "[% file_name %]",
+            charset: "[% file_info.from_charset %]"
+        },
+        securityToken: "[% security_token %]",
+        formID: "htmlEditorForm"
+    };
+    if (apiReturn.errors) {
+        _openError();
+        appData.fileMetaData.dirPath = "";
+        appData.fileMetaData.fileName = "";
+    }
+
+
+    // Configure the custom plugins for the editor.
+    var customPlugins = [
+        {
+            name : "cpanelsave",
+            path : "../../../ckeditor_plugins/cpanelsave/"
+        },
+        {
+            name : "cpanelpreview",
+            path : "../../../ckeditor_plugins/cpanelpreview/"
+        }
+    ];
+    // function to show growl message if we fail to open a file when invoking the editor
+    // fade_delay is an optional number of seconds to show the growl (default is 5)
+    // closable is an optional bool that allows the notice to be dismissed by clicking (default true)
+    function _openError(){
+        var Dynamic_Notice = CPANEL.ajax.Dynamic_Notice,
+            result = apiReturn,
+            errorContent = "",
+            notice;
+
+        if (result.errors) {
+            errorContent = result.errors.join(" ");
+            notice = new Dynamic_Notice({
+                content: LOCALE.maketext("Failed to open the file with the following errors: [_1]", errorContent),
+                level: "error",
+                fade_delay: 20,
+                closable: true
+            });
+        } else {
+            notice = new Dynamic_Notice({
+                content: LOCALE.maketext("Failed to open the file."),
+                level: "error",
+                fade_delay: 20,
+                closable: true
+            });
+        }
+    }
+
+    CPANEL.editor.initialize(config, appData, customPlugins);
+})();
+</script>

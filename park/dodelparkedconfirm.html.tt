@@ -1,0 +1,27 @@
+[%
+
+SET CPANEL.CPVAR.dprefix = "../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'aliases'
+ -%]
+
+<div class="body-content">
+    <p class="description" id="descDelConfirm">
+        [% locale.maketext("Are you sure you want to permanently remove the alias, “[_1]”?", FORM.domain) %]
+    </p>
+
+    <p>
+        <a class="btn btn-primary" id="btnRemove" href="dodelparked.html?domain=[% FORM.domain | url %]">
+            [% locale.maketext("Remove Alias") %]
+        </a>
+        <a class="btn btn-link" href="index.html" id="btnCancel">
+            [% locale.maketext("Cancel") %]
+        </a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

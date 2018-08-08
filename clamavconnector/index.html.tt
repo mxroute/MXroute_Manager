@@ -1,0 +1,38 @@
+[% SET CPANEL.CPVAR.dprefix = "../";
+
+    Api1.pre_exec("ClamScanner", "main");
+    SET clam_main = Api1.exec("ClamScanner", "main", [undef]);
+    Api1.post_exec("ClamScanner", "main")
+ %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'virus_scanner'
+    page_js = js_code
+-%]
+
+<div class="body-content">
+    <div class="section">
+        <div id="results">
+            [% clam_main %]
+        </div>
+    </div>
+    <div class="section">
+        <div id="disinfect" style="display: none">
+            [% locale.maketext("Click [output,url,_1,here] if you need to return to the [output,strong,Cleanup Process] screen.", "disinfect.html") %]
+        </div>
+    </div>
+    [% INCLUDE _assets/return_link.html.tt return_location="../index.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    // temporary workaround for case 41180
+    if (/Already In Progress/i.test(document.getElementById('results').innerHTML)) {
+        document.getElementById('disinfect').style.display='block';
+    }
+</script>
+[% END %]
+

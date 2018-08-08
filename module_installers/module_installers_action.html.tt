@@ -1,0 +1,40 @@
+
+[%
+    # ajax_request_url and body_content are set outside of this template
+
+    USE Api2;
+
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET return_link = 'main.html?lang=' _ FORM.item('lang').uri();
+%]
+
+[% page_defaults = PROCESS js_block%]
+
+[% PROCESS installer_app_key.html.tt %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = installer_app_key
+    page_js_top = page_defaults
+    use_master_bootstrap = 0
+    page_stylesheets = [
+        'module_installers/module.css'
+    ]
+ -%]
+
+[% PROCESS '_assets/cjt2_header_include.tt' file="module" %]
+
+<div class="body-content">
+    <h2>[% body_content %]</h2>
+
+    [% INCLUDE module_output.html.tt %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+    <script type="text/javascript">
+        var CPANEL = window.CPANEL || {};
+        CPANEL.namespace("CPANEL.PAGE");
+        CPANEL.PAGE = {
+            ajax_request_url: "[% ajax_request_url %]"
+        };
+    </script>
+[% END %]

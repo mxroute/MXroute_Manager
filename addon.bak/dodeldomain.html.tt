@@ -1,0 +1,75 @@
+[%
+SET CPANEL.CPVAR.dprefix="../";
+
+IF ((FORM.user) && (FORM.domain));
+    SET del_ftp_res = execute("Ftp", "delete_ftp", { "user" => FORM.user, "domain" => FORM.domain });
+END;
+
+Api2.pre_exec("AddonDomain", "deladdondomain");
+SET deldomain_res = Api2.exec("AddonDomain" , "deladdondomain" , {
+    "domain" => RAW_FORM.domain,
+    "subdomain" => RAW_FORM.subdomain
+});
+Api2.post_exec("AddonDomain", "deladdondomain");
+SET del_domain_error = CPANEL.CPERROR.addondomain;
+SET del_subdomain_error = CPANEL.CPERROR.subdomain;
+
+SET errors = [];
+SET successes = [];
+
+IF del_domain_error;
+    errors.push(del_domain_error.html());
+ELSE;
+    successes.push(locale.maketext("The addon domain “[_1]” has been removed.", FORM.domain));
+
+    IF del_ftp_res && del_ftp_res.status;
+        successes.push(locale.maketext("The linked FTP account “[_1]” has been removed.", FORM.user));
+    ELSE;
+        FOR msg in del_ftp.errors;
+            errors.push(msg.html());
+        END;
+    END;
+
+    IF del_subdomain_error;
+        errors.push(del_subdomain_error.html());
+    ELSE;
+        successes.push(locale.maketext("The linked subdomain “[_1]” has been removed.", FORM.fullsubdomain));
+    END;
+
+END;
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'addon_domains'
+ -%]
+
+<div class="body-content">
+
+    [% IF errors.size() > 0 %]
+        <div id="delError" class="alert alert-danger">
+            <span id="delErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            [% FOREACH msg = errors %]
+            <div class="alert-message">
+                [% msg %]
+            </div>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% IF successes.size() > 0 %]
+        <div id="delSuccess" class="alert alert-success">
+            <span id="delSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            [% FOREACH msg = successes %]
+            <div class="alert-message">
+                [% msg %]
+            </div>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html"  return_link_text=locale.maketext("Go Back" ) %]
+
+</div><!-- end body-content -->
+[% END #wrapper -%]
+

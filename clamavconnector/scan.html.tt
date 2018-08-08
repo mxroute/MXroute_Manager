@@ -1,0 +1,95 @@
+[% SET CPANEL.CPVAR.dprefix = "../"; %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'virus_scanner'
+    page_js = js_code
+-%]
+
+<div class="body-content">
+    <div class="section">
+        <p>
+            <strong>[% locale.maketext("Scanning:") %]</strong>
+            <span id="viriifile">[% locale.maketext("Loading …") %]</span>
+        </p>
+
+        <form name="viriiform">
+            <div class="form-group">
+                <label id="lblFile" for="cfilen">
+                    [% locale.maketext("File") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-3">
+                        <input type="text" class="form-control" name="cfilen" id="cfilen" size="5" disabled />
+                    </div>
+                    <div class="col-xs-1">/</div>
+                    <div class="col-xs-3">
+                        <input type="text" class="form-control" name="tfilen" id="tfilen" size="5" disabled />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblCBytes" for="cbytes">
+                    [% locale.maketext("Data") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="cbytes" id="cbytes" size="5" disabled />
+                            <span class="input-group-addon">MB</span>
+                        </div>
+                    </div>
+                    <div class="col-xs-1">/</div>
+                    <div class="col-xs-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="tbytes" id="tbytes" size="5" disabled />
+                            <span class="input-group-addon">MB</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblScannerProgress" for="cbytes">
+                    [% locale.maketext("Scanner Progress") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-10">
+                        <iframe name="bars" src="bars.html" scrolling="no" width="609" height="28" marginwidth="0" marginheight="0" leftmargin="0" topmargin="0"></iframe>
+                    </div>
+                    <div class="col-xs-2">
+                        <div class="input-group">
+                            <input type="text" class="form-control" name="percent" id="percent" size="3" disabled />
+                            <span class="input-group-addon">%</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblInfectedFiles" for="status">
+                    [% locale.maketext("Infected Files") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select size="8" class="form-control" name="status" id="status"></select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="index.html" return_link_text=locale.maketext("Go Back") %]
+
+</div><!-- end body-content -->
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+parent.frames.actfr.document.location.href = 'live_go.html?scan=[% FORM.scanpath | url %]';
+</script>
+[% END %]
+
+

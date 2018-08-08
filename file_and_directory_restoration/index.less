@@ -1,0 +1,39 @@
+/*
+# file_and_directory_restoration/index.less                        
+#                                                    Copyright 2018 cPanel, Inc.
+#                                                           All rights Reserved.
+# copyright@cpanel.net                                         http://cpanel.net
+# This code is subject to the cPanel license. Unauthorized copying is prohibited
+*/
+
+.breadcrumb {
+    display: inline-block;
+}
+
+.scrollContainer {
+    display: flex;
+    overflow: hidden;
+    max-height: calc(~"100vh - 290px");
+    will-change: overflow;
+    position: relative;
+    margin-top: 30px;
+}
+
+.pagination-container {
+    text-align: inherit;
+}
+
+.leftPanel,
+.rightPanel {
+    overflow: auto;
+    height: auto;
+}
+
+#goToPageContainer > :first-child {
+    display: inline-block;
+}
+
+#goToPage {
+    display: inline-block;
+    width: initial;
+}

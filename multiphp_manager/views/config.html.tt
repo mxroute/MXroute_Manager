@@ -1,0 +1,311 @@
+<!-- TABLE SECTION -->
+<div id="vhostContainer" class="list-container">
+    <form class="layout-medium" novalidate>
+        <div growl></div>
+        <div class="row">
+            <div class="col-xs-12" ng-cloak>
+                <cp-alert-list></cp-alert-list>
+            </div>
+        </div>
+        <section id="systemPhpSection" class="section">
+            <div class="row">
+                <div class="col-xs-12">
+                    <h3 class="section-header">[% locale.maketext('System [asis,PHP] Version') %]</h3>
+                    <div class="description">
+                        [% locale.maketext("The system default [asis,PHP] version is set by the system administrator.") %]
+                        <p>
+                            [% locale.maketext("Any domain that is set to the [output,em,inherit] value indicates that it does not have its own [asis,PHP] version explicitly set. Read more about [output,url,_1,inherit,target,_blank].", "https://go.cpanel.net/inherit") %]
+                        </p>
+                    </div>
+                    <div class="form-inline indent-form">
+                        <!-- View I - Display System PHP version -->
+                        <div id="displaySection" class="form-group" ng-hide="system.editView">
+                            <span class="systemPhpValue">
+                                <span ng-if="!systemPhp">
+                                    [% locale.maketext("The system “[_1]” version is unavailable.", "PHP") %]
+                                </span>
+                                <span ng-if="systemPhp">
+                                    {{ systemPhp.displayPhpVersion }}
+                                </span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="section">
+            <section class="phpSection">
+                <h3 class="section-header">[% locale.maketext("Set [asis,PHP] Version per Domain") %]</h3>
+                <div class="description">
+                    [% locale.maketext("Select the domains that you wish to change from the table, then apply a [asis,PHP] version from the list.") %]
+                </div>
+                <div class="row" ng-class="{'callout callout-warning': restrictedPhp.showAlert}">
+                    <div class="col-xs-12">
+                        <div class="form-inline domain-container">
+                            <div class="form-group">
+                                <label for="phpVersion">[% locale.maketext('[asis,PHP] Version') %]</label>
+                                <select id="selectPhpVersion"
+                                        class="form-control phpSelect"
+                                        ng-disabled="phpVersionsEmpty || restrictedPhp.showAlert"
+                                        ng-options="pkg.displayPhpVersion for pkg in phpVersions track by pkg.version"
+                                        ng-model="selectedVersion">
+                                    <option id="domainEmptyOption" ng-show="phpVersionsEmpty" value="">
+                                        [% locale.maketext('[comment,Empty place holder.]-- Not Available --[comment,Empty place holder.]') %]
+                                    </option>
+                                </select>
+                                <button id="btnDomainPhpApply"
+                                    class="btn btn-primary"
+                                    type="button"
+                                    ng-disabled="phpVersionsEmpty || !vhostSelected || restrictedPhp.showAlert"
+                                    title="[% locale.maketext('Apply new [asis,PHP] version to selected domains.') %]"
+                                    cp-action="applyDomainPhp()">
+                                    [% locale.maketext('Apply') %]
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-xs-12">
+                        <div ng-show="restrictedPhp.showAlert">
+                            <p id="restrictedPhpAlertInfo" ng-bind-html="restrictedPhp.alertInfo"></p>
+                            <ul id="filteredRestrictedDomainList" class="list-unstyled row" ng-show="!restrictedPhp.showAllDomains">
+                                <li ng-repeat="domain in restrictedPhp.domainsSelected|limitTo:6 track by $index"
+                                    class="col-xs-6 col-sm-4 domain-list-item">
+                                    {{ domain }}
+                                </li>
+                            </ul>
+                            <ul id="allRestrictedDomainList" class="list-unstyled row" ng-show="restrictedPhp.showAllDomains">
+                                <li ng-repeat="domain in restrictedPhp.domainsSelected"
+                                    class="col-xs-6 col-sm-4 domain-list-item">
+                                    {{ domain }}
+                                </li>
+                            </ul>
+                            <div>
+                                <a id="btnShowMoreRestrictedDomains"
+                                    href="javascript:void(0)"
+                                    ng-show="!restrictedPhp.showAllDomains && restrictedPhp.showMore"
+                                    ng-click="toggleRestrictedDomains()"
+                                    title="[% locale.maketext('Show all affected domains[comment,button label]') %]">
+                                    [% locale.maketext("Show More") -%]
+                                </a>
+                            </div>
+                            <div>
+                                <a id="btnHideRestrictedDomains"
+                                    href="javascript:void(0)"
+                                    ng-show="restrictedPhp.showAllDomains && restrictedPhp.showMore"
+                                    ng-click="toggleRestrictedDomains()"
+                                    title="[% locale.maketext('Hide affected domains[comment,button label]') %]">
+                                    [% locale.maketext("Hide") -%]
+                                </a>
+                            </div>
+                            <div class="text-right">
+                                <button id="btnAlertApply"
+                                    class="btn btn-primary"
+                                    type="button"
+                                    title="[% locale.maketext('Apply new [asis,PHP] version to all selected domains.') %]"
+                                    cp-action="performApplyDomainPhp()">
+                                    [% locale.maketext('Apply') %]
+                                </button>
+                                <button id="btnAlertCancel"
+                                    class="btn btn-default"
+                                    ng-click="hidePhpAlert()"
+                                    title="[% locale.maketext('Cancel apply for new [asis,PHP].') %]">
+                                    [% locale.maketext('Cancel') %]
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row search-page-container">
+                    <div class="col-xs-6">
+                        <!-- Search -->
+                        <search ng-model="meta.filterValue" ng-change="selectPage(1)" debounce="500"></search>
+                    </div>
+
+                    <div class="col-xs-6">
+                        <div class="pagination-container">
+                            <!-- Pagination -->
+                            <page-size id="pageSize" allowed-sizes="meta.pageSizes" total-items="meta.totalItems"
+                                ng-model="meta.pageSize" show-all="true" ng-show="showPager" ng-change="selectPage(1)">
+                            </page-size>
+                            <uib-pagination id="paginateItems" total-items="meta.totalItems" ng-model="meta.currentPage"
+                                max-size="meta.maxPages" boundary-links="true" rotate="false"
+                                previous-text="<" next-text=">" first-text="<<" last-text=">>"
+                                items-per-page="meta.pageSize" ng-show="showPager" ng-change="selectPage()">
+                            </uib-pagination>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-8">
+                        <div class="page-stats selected-stats">
+                            <span class="title">Selected</span>
+                            <span id="selectedCounter" class="badge badge-info">
+                                {{totalSelectedDomains}}
+                            </span>
+                        </div>
+                    </div>
+                    <div class="col-xs-4">
+                        <div class="page-stats item-stats">
+                            <span class="title">Showing</span>
+                            {{meta.start}} - {{meta.limit}} of {{meta.totalItems}} items
+                        </div>
+                    </div>
+                </div>
+            </section>
+            <div class="row">
+                <div class="col-xs-12">
+                    <table id="vhostList" class="table table-striped responsive-table">
+                        <thead>
+                            <tr>
+                                <th class="checkColumn">
+                                    <div class="btn-group checkbox-group" uib-dropdown is-open="checkdropdownOpen">
+                                        <span class="btn check-box">
+                                            <input type="checkbox" id="selectAll"
+                                                ng-model="allRowsSelected"
+                                                title="[% locale.maketext('Select all domains on this page.') %]"
+                                                ng-change="selectAllVhosts()"
+                                                ng-disabled="loadingVhostList">
+                                        </span>
+                                        <button type="button" class="btn btn-default dropdown-toggle" uib-dropdown-toggle>
+                                            <span class="caret"></span>
+                                            <span class="sr-only">Checkbox Options</span>
+                                        </button>
+                                        <ul class="dropdown-menu" role="menu" uib-dropdown-menu>
+                                            <li><a href="#" ng-click="clearAllSelections($event)">[% locale.maketext('Clear all selections[comment,action text]') %]</a></li>
+                                        </ul>
+                                    </div>
+                                </th>
+                                <th>
+                                    <toggle-sort id="sortDomain"
+                                        onsort="selectPage(1)"
+                                        sort-meta="meta"
+                                        sort-field="vhost">
+                                        [% locale.maketext('Domain') %]
+                                    </toggle-sort>
+                                </th>
+                                <th>
+                                    <toggle-sort id="sortVersion"
+                                        onsort="selectPage(1)"
+                                        sort-meta="meta"
+                                        sort-field="version">
+                                        [% locale.maketext('[asis,PHP] Version') %]
+                                    </toggle-sort>
+                                </th>
+                                <th>
+                                    <toggle-sort id="sortVersion"
+                                        onsort="selectPage(1)"
+                                        sort-meta="meta"
+                                        sort-field="php_fpm">
+                                        [% locale.maketext('[asis,PHP-FPM]') %]
+                                    </toggle-sort>
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody ng-class="{ processing: loadingVhostList }">
+                            <tr id="acctRow{{$index}}"
+                                ng-repeat-start="vhostInfo in phpVhostList track by $index"
+                                ng-class="rowClass(vhostInfo)">
+                                <td class="checkColumn">
+                                    <input type="checkbox" id="rowSelector_{{ vhostInfo.vhost }}"
+                                        title="[% locale.maketext('Select this domain.') %]"
+                                        ng-model="vhostInfo.rowSelected"
+                                        ng-change="selectVhost(vhostInfo)"
+                                        ng-disabled="loadingVhostList">
+                                    </input>
+                                    <i id="linkShowImpactedDomains_{{ vhostInfo.vhost }}"
+                                        href="javascript:void(0)"
+                                        class="fas fa-small fa-info-circle fa-btn"
+                                        title="[% locale.maketext('Toggle show/hide impacted domains.') %]"
+                                        ng-show="vhostInfo.impactedDomains.warn"
+                                        ng-click="vhostInfo.impactedDomains.show=!vhostInfo.impactedDomains.show"
+                                        aria-hidden="true">
+                                    </i>
+                                </td>
+                                <td id="vhost_{{ vhostInfo.vhost }}"
+                                    data-title="[% locale.maketext('Domain') %]">
+                                    {{ vhostInfo.vhost }}
+                                </td>
+                                <td id="php_{{ vhostInfo.vhost }}"
+                                    data-title="[% locale.maketext('[asis,PHP] Version') %]">
+                                    <span>
+                                        {{ vhostInfo.displayPhpVersion }}
+                                    </span>
+                                    <button id="php_inherit_{{ vhostInfo.vhost }}"
+                                        ng-show="vhostInfo.inherited"
+                                        class="btn btn-xs btn-default"
+                                        ng-click="vhostInfo.showInheritInfo = !vhostInfo.showInheritInfo">
+                                        <i class="fas fa-info-circle"></i>
+                                        [% locale.maketext("Inherited") %]
+                                    </button>
+                                </td>
+                                <td id="phpfpm_{{ vhostInfo.vhost }}"
+                                    data-title="[% locale.maketext('[asis,PHP-FPM]') %]">
+                                    <span ng-show="vhostInfo.php_fpm === 1">
+                                        <i class="fas fa-check"></i>
+                                    </span>
+                                    <span ng-show="vhostInfo.php_fpm === 0" class="ng-hide">
+                                        <i class="fas fa-ban fa-lg"></i>
+                                    </span>
+                                </td>
+                            </tr>
+                            <tr id="impactedDomainsRow_{{ vhostInfo.vhost }}"
+                                ng-show="vhostInfo.impactedDomains.show"
+                                class="warning empty-row dismissable">
+                                <td id="inheritInfo_{{ vhostInfo.vhost }}" colspan="5">
+                                    <button id="linkHideImpactedDomains_{{ vhostInfo.vhost }}"
+                                        type="button"
+                                        class="close"
+                                        ng-click="vhostInfo.impactedDomains.show=false"
+                                        aria-hidden="true"
+                                        title="[% locale.maketext('Hide impacted domains.') %]">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <div ng-bind-html="vhostInfo.impactedDomains.text"></div>
+                                    <ul id="domainList" class="list-unstyled row">
+                                        <li ng-repeat="domain in vhostInfo.impactedDomains.domains|limitTo:20 track by $index"
+                                            class="col-xs-6 col-sm-4 domain-list-item">
+                                            {{ domain }}
+                                        </li>
+                                    </ul>
+                                    <div class="text-right">
+                                        <a href="javascript:void(0)"
+                                            style="padding-left: 5px;"
+                                            ng-show="vhostInfo.impactedDomains.showMore"
+                                            ng-click="showAllImpactedDomains(vhostInfo)">
+                                            [% locale.maketext("[comment,link text]Show all impacted domains[comment,link text]") -%]
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr id="alertRow_{{ vhostInfo.vhost }}"
+                                ng-repeat-end
+                                ng-show="vhostInfo.showInheritInfo"
+                                class="info">
+                                <td id="inheritInfo_{{ vhostInfo.vhost }}" colspan="5">
+                                    <button id="linkHideInheritInfo_{{ vhostInfo.vhost }}"
+                                        type="button"
+                                        class="close"
+                                        ng-click="vhostInfo.showInheritInfo=false"
+                                        aria-hidden="true"
+                                        title="[% locale.maketext('Hide inherit information.') %]">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <div ng-bind-html="vhostInfo.inheritedInfo"></div>
+                                </td>
+                            </tr>
+                            <tr id="listEmpty" ng-hide="phpVhostList.length" class="info empty-row">
+                                <td colspan="4">[% locale.maketext("The domain list is empty.") %]</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- View Profile Modal box -->
+<script type="text/ng-template" id="impactedDomainsPopup.ptt">
+    [% PROCESS 'multiphp_manager/views/impactedDomainsPopup.ptt' %]
+</script>

@@ -1,0 +1,31 @@
+[% IF !data.notices.has() %]
+<p>
+    [% locale.maketext('The system successfully performed the custom action on the [asis,cPAddon].') %]
+</p>
+[% ELSE %]
+    [% PROCESS 'addoncgi/views/notices.tt' notices => data.notices %]
+[% END %]
+
+[%
+IF !environment.called_from_root;
+    IF data.notices.has('critical_error', 'error');
+        IF form.oneclick == '1';
+            SET fix_url = to_uri(environment, 'addon=' _ module.name _ '&oneclick=1');
+        ELSE;
+            SET fix_url = to_uri(environment, actionlessuri);
+        END;
+%]
+<p align="center" id="fix">
+    [<a href="[% fix_url | url %]">[% locale.maketext('Back') %]</a>]
+</p>
+[% ELSE %]
+<p align="center" id="back">
+    [% SET back_url = to_uri(environment, 'addon=' _ module.name _ '&oneclick=' _ form.oneclick) %]
+    [<a href="[% back_url | url %]">[% locale.maketext('Back') %]</a>]
+</p>
+[% END %]
+<p align="center" id="home">
+    [% SET home_url = to_uri(environment) %]
+    [<a href="[% home_url | url %]">[% locale.maketext('Home') %]</a>]
+</p>
+[% END %]

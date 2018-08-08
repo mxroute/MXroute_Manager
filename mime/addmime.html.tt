@@ -1,0 +1,32 @@
+
+[% CPANEL.CPVAR.dprefix = '../' %]
+[% add_mime = execute('Mime', 'add_mime', { type=RAW_FORM('mimet'), extension=RAW_FORM('ext') }) %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mime_types'
+-%]
+
+<div class="body-content">
+    [% IF add_mime.status %]
+    <div id="mimeTypeAddSuccess" class="alert alert-success">
+        <span id="mimeTypeAddSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="mimeTypeAddMsg" class="alert-message">
+            <strong>[% locale.maketext("[output,acronym,MIME,Multipurpose Internet Mail Extensions] Type Added") %]</strong>
+            [% locale.maketext("You assigned the [output,acronym,MIME,Multipurpose Internet Mail Extensions] type “[output,inline,_1,class,status]” to the following extension(s): [output,inline,_2,class,status]", FORM.mimet, FORM.ext) %]
+        </div>
+    </div>
+    [% ELSE %]
+    <div id="mimeTypeAddError" class="alert alert-danger">
+        <span id="mimeTypeAddErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+          <span id="mimeTypeAddErrorMsg" class="alert-message">
+              [% FOREACH q = add_mime.errors -%]
+                [% q FILTER html %]
+              [% END -%]
+          </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='mime.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END %]

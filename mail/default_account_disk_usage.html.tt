@@ -1,0 +1,5 @@
+[%
+Api1.pre_exec("Email", "mainacctdiskused");
+Api1.exec("Email", "mainacctdiskused", [undef]);
+Api1.post_exec("Email", "mainacctdiskused")
+%]

@@ -1,0 +1,31 @@
+<div style="display:none;" id="extract">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Extract") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="extract-filecontent">
+            <form>
+                <div class="form-group">
+                    <label for="extractfilepath">[% locale.maketext("Files to extract:") %]
+                        <div id="extract-filelist"></div>
+                    </label>
+                </div>
+                <div class="form-group">
+                    <label>
+                        [% locale.maketext("Enter the path you wish to extract the files to (if you enter a directory that does not exist it will be created, and the archive extracted in the new directory) and click [output,em,Extract]:") %]
+                    </label>
+                    <div class="input-group">
+                          <span class="input-group-addon">
+                              <span class="fas fa-home"></span>
+                          </span>
+                          <input  type="text" class="form-control" name="extractfilepath" id="extractfilepath" value="/path/to/location/" />
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>
+

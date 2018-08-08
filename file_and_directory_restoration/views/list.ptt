@@ -1,0 +1,134 @@
+<!-- Documentation -->
+<div class="callout callout-info">
+    [% locale.maketext("Click a filename or directory to retrieve its backups. Click [output,em,Restore This Version] to use that backup to restore the file or directory.") %]
+</div>
+
+<!-- Notification of initially loading backups data -->
+<div cp-loading-panel class="initial-loading-panel" ng-show="!initialDataLoaded">
+[% locale.maketext("Loading …") %]
+</div>
+
+<!-- Backup restoring indicator -->
+<div cp-loading-panel class="restore-loading-panel" ng-show="dataRestoring">
+[% locale.maketext("Restoring …") %]
+</div>
+
+<div ng-if="noMetadataError" class="callout callout-danger">
+    <p>{{noMetadataError}}</p>
+</div>
+
+<div class="row col-xs-12" ng-show="initialDataLoaded && !noMetadataError">
+
+    <!-- Directory restore -->
+    <button class="btn btn-primary" id="restoreDirectory" ng-click="getBackupListForDirectory()">[% locale.maketext("Restore This Directory") %]</button>
+
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+        <a href="" id="rootDirectoryIcon" ng-click="goHome()"><i class="fa fa-home" aria-hidden="false"></i></a>
+        <li ng-repeat="item in directoryBreadcrumb" ng-class="{'active': $index === directoryBreadcrumb.length - 2}">
+            <a href="" ng-click="changeDirectory(item.path)" ng-if="$index !== directoryBreadcrumb.length - 1">{{ item.displayPath }}</a>
+            <span ng-if="$index === directoryBreadcrumb.length - 1">{{ item.displayPath }}</span>
+        </li>
+    </ol>
+</div>
+
+<div class="row" ng-if="!noMetadataError">
+    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <div class="pagination-container">
+            <page-size id="pageSize"
+                allowed-sizes="meta.pageSizes"
+                total-items="meta.totalItems"
+                ng-model="meta.pageSize"
+                show-all="false"
+                ng-change="changePageSize()">
+            </page-size>
+            <uib-pagination id="paginateItems"
+                total-items="meta.totalItems"
+                ng-model="meta.currentPage"
+                max-size="meta.maxPages"
+                boundary-links="true"
+                rotate="false"
+                previous-text="<"
+                next-text=">"
+                first-text="<<"
+                last-text=">>"
+                items-per-page="meta.pageSize"
+                ng-change="changeDirectory(currentPath)">
+            </uib-pagination>
+        </div>
+    </div>
+    <div id="goToPageContainer" class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+        <p for="goToPage">
+            [% locale.maketext("Go to Page:") %]
+        </p>
+        <input
+            id="goToPage"
+            class="form-control"
+            positive-integer
+            type="number"
+            name="goToPage"
+            ng-change="goToPage(meta.currentPage, currentPath)"
+            ng-model="meta.currentPage"
+            ng-model-options="{debounce: 500}" />
+            <p>{{paginationMessage}}</p>
+    </div>
+    <!-- API loading indicator -->
+    <div class="pull-right" ng-show="loadingData">
+        <span><i class="fa fa-spin fa-spinner fa-3x"></i></span>
+    </div>
+
+    <div class="col-xs-12 col-sm-12 col-md-6" ng-if="backupList.length > 0" ng-show="selectedItemName">
+        <h3>{{ selectedItemName }}</h3>
+        <p>[% locale.maketext("Backup Count: [_1]", "{{ backupList.length }}") %]</p>
+    </div>
+</div>
+
+<!-- List of items in the current directory -->
+<div class="row">
+    <div class="col-xs-12 scrollContainer">
+        <div class="col-xs-12 col-sm-4 leftPanel">
+            <ul class="list-unstyled">
+                <li ng-if="directoryBreadcrumb.length > 1">
+                    <button id="parentDirectoryButton" class="btn btn-link" ng-click="changeDirectory()">..</button>
+                </li>
+                <li ng-repeat="item in currentDirectoryContent | orderBy:'parsedName'">
+                    <button class="btn btn-link selectItemButton" ng-click="selectItem(item)">
+                        <span ng-show="item.type === 'dir'"><i class="fas fa-folder"></i></span>
+                        <span ng-show="item.type === 'file'"><i class="far fa-file"></i></span>
+                        <span ng-show="item.type === 'symlink'"><i class="fas fa-link"></i></span>
+                        {{ item.parsedName }}
+                    </button>
+                </li>
+            </ul>
+        </div>
+        <!-- List of backups for a selected file -->
+        <div class="col-xs-12 col-sm-6 rightPanel" ng-if="backupList.length > 0" ng-show="selectedItemName">
+            <!-- Loop through the backup list -->
+            <h4 ng-repeat-start="backup in backupList | orderBy:'backupDate':true">{{ backup.backupPath }}</h4>
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <dl class="dl-horizontal">
+                        <dt>[% locale.maketext("Backup Date") %]</dt>
+                        <dd>{{ backup.backupDate }}</dd>
+                        <dt>[% locale.maketext("Type") %]</dt>
+                        <dd>{{ backup.type }}</dd>
+                        <dt>[% locale.maketext("Backup Type") %]</dt>
+                        <dd >{{ backup.backupType}}</dd>
+                        <dt class="ng-hide" ng-show="backup.type === 'file'">[% locale.maketext("Last Modified Time") %]</dt>
+                        <dd class="ng-hide" ng-show="backup.type === 'file'">{{backup.lastModifiedTime}}</dd>
+                        <dt class="ng-hide" ng-show="backup.type === 'file'">[% locale.maketext("File Size") %]</dt>
+                        <dd class="ng-hide" ng-show="backup.type === 'file'">{{ backup.fileSize }} bytes</dd>
+                    </dl>
+                    <p class="text-right">
+                        <button class="restoreButton btn btn-primary" ng-click="restore(backup)">[% locale.maketext("Restore This Version") %]</button>
+                    </p>
+                </div>
+            </div>
+            <hr ng-repeat-end ng-show="$index < backupList.length - 1">
+        </div>
+    </div>
+</div>
+
+<script type="text/ng-template" id="restoreModalContent.tmpl">
+    [% PROCESS "file_and_directory_restoration/views/restoreConfirmation.ptt" %]
+</script>

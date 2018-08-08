@@ -1,0 +1,397 @@
+[%  Api2.pre_exec("NVData", "get");
+    SET nvdata_info = Api2.exec("NVData" , "get" , {"names" =>"ignorecharencoding|showhiddenfiles|defaultdir|defaultdirtype|defaultdirdomain" , "html_encoded" =>"1" });
+    Api2.post_exec("NVData", "get");
+    USE CacheBuster;
+%]
+
+[%
+    Api2.pre_exec("Email", "fetchcharmaps");
+    SET fetch_char_maps = Api2.exec("Email" , "fetchcharmaps" , {});
+    Api2.post_exec("Email", "fetchcharmaps");
+
+    SET brand_information = execute( "Brand", "read", {} ).data;
+%]
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    [% INCLUDE "_assets/charset.html.tt" %]
+    <title>
+        [% locale.maketext("cPanel File Manager v3") %]
+    </title>
+    [% SET CPANEL.CPVAR.dprefix = "../" %]
+    [% SET CPANEL.CPVAR.debug = "0" %]
+    <meta name="apple-itunes-app" content="app-id=593289722">
+    <link type="text/css" rel="stylesheet" href="[% theme_magic_url("/yui/container/assets/container.css") %]" />
+    <link type="text/css" rel="stylesheet" href="[% theme_magic_url("/yui/menu/assets/menu.css") %]" />
+    <link type="text/css" rel="stylesheet" href="[% theme_magic_url("/yui/datatable/assets/skins/sam/datatable.css") %]" />
+    <link type="text/css" rel="stylesheet" href="[% theme_magic_url("/yui/treeview/assets/skins/sam/treeview.css") %]" />
+
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap/optimized/css/bootstrap.min.css') %]" />
+    [% IF locale_attributes.direction == 'rtl' %]
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/bootstrap-rtl/optimized/dist/css/bootstrap-rtl.min.css') %]" />
+    [% END %]
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/ui-fonts/open_sans/optimized/open_sans.min.css') %]" />
+    <link rel="stylesheet" type="text/css" href="[% theme_magic_url('libraries/fontawesome/web-fonts-with-css/css/fontawesome-all.min.css') %]" />
+
+    <link type="text/css" rel="stylesheet" href="[% theme_magic_url("filemanager/css/tree_styles2_optimized.css") %]" />
+
+    <script type="text/javascript" src="[% theme_magic_url("/yui-gen/utilities_container/utilities_container.js") %]"></script>
+    <script type="text/javascript" src="[% CPANEL.get_cjt_url() %]"></script>
+
+    [% INCLUDE _assets/_calendar.html.tt %]
+
+    <script type="text/javascript">
+        if (!self['NVData']) {
+            NVData={};
+        }
+
+        [% IF nvdata_info.size; %]
+            [% FOREACH nvdata IN nvdata_info; %]
+                NVData.[% nvdata.name.html() %] = unescape('[% nvdata.value.uri() %]');
+            [% END %]
+        [% END %]
+
+        var LANG = {
+            today: "[% locale.maketext("Today") %]",
+            yesterday: "[% locale.maketext("Yesterday") %]",
+            dir_empty : "[% locale.maketext("This directory is empty.") %]",
+            confirm_download: "[% locale.maketext("You are about to download multiple items at once. Are you sure you want to do this?") %]",
+            auto_detect : "[% locale.maketext("[boolean,_1,(]auto-detect[boolean,_1,)]", 1) %]",
+            detecting_encoding: "[% SET file = '{file_html}'; locale.maketext('Detecting character encoding for “[_1]” …', file) %]",
+            loading   : "[% locale.maketext("Fetching directory contents …") %]"
+        };
+        var cpversion = '[% Api1.exec("version", [undef]) %]';
+        var homedir = [% ExpVar.expand('$abshomedir').json() || "null" %];
+        var workingdir = [% RAW_FORM.dir.json() || "null" %] || NVData.defaultdir;
+
+        var showhidden = NVData.showhiddenfiles || null;
+
+        var webprotect_feature =
+            [% IF CPANEL.feature('webprotect') %]
+                true;
+            [% ELSE %]
+                false;
+            [% END %]
+
+        var thisTheme = [% CPANEL.CPDATA.RS.html.json() || "null" %];
+        var maindomain = [% CPANEL.CPDATA.DNS.html.json() || "null" %];
+        var current_charset = '[% Api1.exec("getcharset", [undef]) %]';
+        var charmaps = [
+            [% IF fetch_char_maps.size; %]
+                [% FOREACH hashref IN fetch_char_maps; %]
+                '[% hashref.map.html() %]',
+                [% END; %]
+            [% END %]
+            ''
+        ];
+        charmaps.pop();
+        globalhtmledit=1;
+
+        var HAS_UNZIP = !!+[% ExpVar.expand('$hasunzip').json() || 'null' %];
+    </script>
+
+</head>
+<body class="yui-skin-sam" id="index">
+            <div id="logger" style="z-index: 9999; position: absolute;"></div>
+<div id="top">
+    <div id="topbar" class="navbar navbar-inverse navbar-cpanel clear" role="navigation">
+        <span id="branding" class="navbar-brand">
+            <a id="lnkHeaderHome" href="[% CPANEL.CPVAR.dprefix %]index.html">
+                <img id="imgLogo" class="navbar-brand-logo" src="/brand/[% brand_information.cpanel_logo_small %]?[% CacheBuster.id %]" alt="[% brand_information.company_name | html %]"  />
+            </a>
+            <span class="brand-name">
+            [% locale.maketext("File Manager") %]
+            </span>
+        </span>
+        <div id="rightNavArea" class="pull-right">
+            <form class="form-inline search" onsubmit="return false;">
+                <div class="form-group form-group-sm">
+                    <label id="lblSearch" for="searchdir">
+                        [% locale.maketext("Search") %]
+                    </label>
+                    <select name="searchdir" id="searchdir" class="form-control input-sm">
+                        <option value="">[% locale.maketext("All Your Files") %]</option>
+                        <option value="public_html">[% locale.maketext("Only [asis,public_html]") %]</option>
+                        <option value="$cwd">[% locale.maketext("Current Directory") %]</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label id="lblFor" for="searchbox">
+                        [% locale.maketext("for[comment,this is meant to be a horizontal separator of 2 side by side things]") %]
+                    </label>
+                    <input id="searchbox" type="text" class="form-control input-sm" name="searchbox"/>
+                </div>
+                <div class="form-group">
+                    <input id="btnSearch" type="submit" value="[% locale.maketext("Go") %]" class="btn btn-sm btn-primary" onclick="dosearch('searchdir','searchbox')" />
+                </div>
+            </form>
+            <span id="settings" class="topbar-settings">
+                <a id="btnSettings" class="btn btn-sm btn-default" onclick="showPrefs(); return false;" href="javascript:void(0)">
+                    <span class="glyphicon glyphicon-cog"></span>
+                    [% locale.maketext("Settings") %]
+                </a>
+            </span>
+        </div>
+    </div>
+    <div id="topnav" class="clear">
+        <ul>
+            <li id="action-newfile" onclick="return actionHandler('newfile');">
+                <a href="javascript:void(0)" title="[% locale.maketext("New File") %]" class="btn btn-link">
+                    <span class="glyphicon glyphicon-plus"></span>
+                    [% locale.maketext("File") %]
+                </a>
+            </li>
+            <li id="action-newfolder" onclick="return actionHandler('newfolder');">
+                <a href="javascript:void(0)" title="[% locale.maketext("New Folder") %]" class="btn btn-link">
+                    <span class="glyphicon glyphicon-plus"></span>
+                    [% locale.maketext("Folder") %]
+                </a>
+            </li>
+            <li id="action-copy" onclick="return actionHandler('copy');">
+                <a href="copymove.html.tt" title="[% locale.maketext("Copy") %]" target="_blank" id="actionCopy" class="btn btn-link">
+                    <i class="far fa-copy"></i>
+                    [% locale.maketext("Copy") %]
+                </a>
+            </li>
+            <li id="action-move" onclick="return actionHandler('move');">
+                <a href="copymove.html.tt" title="[% locale.maketext("Move File") %]" target="_blank" id="actionMove" class="btn btn-link">
+                    <span class="glyphicon glyphicon-move"></span>
+                    [% locale.maketext("Move") %]
+                </a>
+            </li>
+            <li id="action-upload" onclick="return actionHandler('upload');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Upload") %]" class="btn btn-link">
+                    <i class="fas fa-upload"></i>
+                    [% locale.maketext("Upload") %]
+                </a>
+            </li>
+            <li id="action-download" onclick="return actionHandler('download');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Download") %]" class="btn btn-link">
+                    <i class="fas fa-download"></i>
+                    [% locale.maketext("Download") %]
+                </a>
+            </li>
+            <li id="action-delete" onclick="return actionHandler('delete');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Delete") %]" class="btn btn-link">
+                    <span class="glyphicon glyphicon-remove"></span>
+                    [% locale.maketext("Delete") %]
+                </a>
+            </li>
+            <li id="action-restore" onclick="return actionHandler('restore');" class="divider">
+                <a href="javascript:void(0)" title="[% locale.maketext("Restore") %]" class="btn btn-link">
+                    <span class="fas fa-undo"></span>
+                    [% locale.maketext("Restore") %]
+                </a>
+            </li>
+            <li id="action-rename" onclick="return actionHandler('rename');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Rename") %]" class="btn btn-link">
+                    <i class="fas fa-file"></i>
+                    [% locale.maketext("Rename") %]
+                </a>
+            </li>
+            <li id="action-edit" onclick="return actionHandler('edit');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Edit") %]" class="btn btn-link">
+                    <i class="fas fa-pencil-alt"></i>
+                    [% locale.maketext("Edit") %]
+                </a>
+            </li>
+            <li id="action-htmledit" onclick="return actionHandler('htmledit');">
+                <a href="javascript:void(0)" title="[% locale.maketext("HTML Editor") %]" class="btn btn-link">
+                    <i class="far fa-edit"></i>
+                    [% locale.maketext("HTML Editor") %]
+                </a>
+            </li>
+            <li id="action-chmod" onclick="return actionHandler('chmod');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Change Permissions") %]" class="btn btn-link">
+                    <i class="fas fa-key"></i>
+                    [% locale.maketext("Permissions") %]
+                </a>
+            </li>
+            <li class="divider" id="action-view" onclick="return actionHandler('view');">
+                <a href="javascript:void(0)" title="[% locale.maketext("View") %]" class="btn btn-link">
+                    <i class="fas fa-eye"></i>
+                    [% locale.maketext("View") %]
+                </a>
+            </li>
+            <li id="action-extract" onclick="return actionHandler('extract');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Extract") %]" class="btn btn-link">
+                    <i class="glyphicon glyphicon-resize-full"></i>
+                    [% locale.maketext("Extract") %]
+                </a>
+            </li>
+            <li id="action-compress" onclick="return actionHandler('compress');">
+                <a href="javascript:void(0)" title="[% locale.maketext("Compress") %]" class="btn btn-link">
+                    <i class="glyphicon glyphicon-resize-small"></i>
+                    [% locale.maketext("Compress") %]
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    </div>
+</div>
+
+<div id="subleft">
+    <div class="path">
+        <div class="input-group">
+              <span class="input-group-addon">
+                  <span id="imgHome" class="fas fa-home"></span>
+              </span>
+              <input id="location" type="text" class="form-control">
+              <span class="input-group-btn">
+                <button id="btnGo" class="btn btn-default" type="button" onclick="dirnav();">[% locale.maketext("Go") %]</button>
+              </span>
+        </div>
+    </div>
+
+    <div id="main">
+        <div id="content">
+            <form name="mainForm" action="javascript:;">
+                <div class="newsItem">
+                    <div id="expandcontractdiv" class="clear">
+                        <button type="button" onclick="RootFileTree.collapseAll()" id="collapseAll" class="btn btn-default btn-block">
+                            [% locale.maketext("Collapse All") %]
+                        </button>
+                    </div>
+                    <div id="treeScroller">
+                        <div style="text-decoration: none;" id="treeContainer">
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div id="footerContainer">
+            <div id="footer">
+                <p>&nbsp;</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="subright">
+   <div id="midtoolbar" class="clear">
+        <div id="srtoolbar">
+           <ul>
+               <li id="action-home" onclick="return actionHandler('home');">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <span class="fas fa-home"></span>
+                       [% locale.maketext("Home") %]
+                   </a>
+               </li>
+               <li id="action-navup" onclick="return actionHandler('navup');">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <i class="fas fa-level-up-alt"></i>
+                       [% locale.maketext("Up One Level") %]
+                   </a>
+               </li>
+               <li id="action-navback" onclick="return actionHandler('navback');">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <i class="fas fa-arrow-left"></i>
+                       [% locale.maketext("Back") %]
+                   </a>
+               </li>
+               <li id="action-navnext" onclick="return actionHandler('navnext');">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <i class="fas fa-arrow-right"></i>
+                       [% locale.maketext("Forward") %]
+                   </a>
+               </li>
+               <li id="action-refresh" onclick="return actionHandler('refresh');">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <i class="fas fa-sync"></i>
+                       [% locale.maketext("Reload") %]
+                   </a>
+               </li>
+               <li id="action-selectall" onclick="return actionHandler('selectall');">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <i class="far fa-check-square"></i>
+                       [% locale.maketext("Select All") %]
+                   </a>
+               </li>
+               <li id="action-unselectall" onclick="return actionHandler('unselectall');" class="divider">
+                   <a href="javascript:void(0)" class="btn btn-link">
+                       <i class="far fa-square"></i>
+                       [% locale.maketext("Unselect All") %]
+                   </a>
+               </li>
+               <li id="action-viewtrash" onclick="return actionHandler('viewtrash');">
+                   <a href="javascript:void(0)" title="[% locale.maketext("View Trash") %]" class="btn btn-link">
+                       <span class="glyphicon glyphicon-trash"></span>
+                       [% locale.maketext("View Trash") %]
+                   </a>
+               </li>
+               <li id="action-emptytrash" onclick="return actionHandler('emptytrash');">
+                   <a href="javascript:void(0)" title="[% locale.maketext("Empty Trash") %]" class="btn btn-link">
+                       <span class="glyphicon glyphicon-trash"></span>
+                       [% locale.maketext("Empty Trash") %]
+                   </a>
+               </li>
+           </ul>
+        </div>
+    </div>
+    <div id="filesarea">
+    </div>
+</div>
+
+[% INCLUDE "popups/changeperms.html.tt" %]
+[% INCLUDE "popups/edit.html.tt" %]
+[% INCLUDE "popups/compress.html.tt" %]
+[% INCLUDE "popups/copy.html.tt" %]
+[% INCLUDE "popups/delete.html.tt" %]
+[% INCLUDE "popups/emptytrash.html.tt" %]
+[% INCLUDE "popups/encodingsdisabled.html.tt" %]
+[% INCLUDE "popups/extract.html.tt" %]
+[% INCLUDE "popups/htmledit.html.tt" %]
+[% INCLUDE "popups/move.html.tt" %]
+[% INCLUDE "popups/newfile.html.tt" %]
+[% INCLUDE "popups/newfolder.html.tt" %]
+[% INCLUDE "popups/prefs.html.tt" %]
+[% INCLUDE "popups/rename.html.tt" %]
+[% INCLUDE "popups/restore.html.tt" %]
+[% INCLUDE "popups/search.html.tt" %]
+[% INCLUDE "popups/trash.html.tt" %]
+
+<div id="copyi" class="zOverlay">
+    <img src="../images/symbol-add.gif">
+</div>
+
+<div id="filesi" class="zOverlay">
+    [% locale.maketext("[quant,_1,file,files,No files]", "1") %]
+</div>
+
+<iframe id="downloadbox" name="downloadbox" src="" style="width:0px;height:0px;border:0">
+</iframe>
+
+<div class="zOverlay">
+    <form id="actionform" action="" target="_blank" method="get">
+        <input type="hidden" name="file" id="actionform_file" />
+        <input type="hidden" name="fileop" id="actionform_fileop" />
+        <input type="hidden" name="dir" id="actionform_dir" />
+        <input type="hidden" name="dirop" id="actionform_dirop" />
+        <input type="hidden" name="charset" id="actionform_charset" />
+        <input type="hidden" name="file_charset" id="actionform_temp_charset" />
+        <input type="hidden" name="baseurl" id="actionform_baseurl" />
+        <input type="hidden" name="basedir" id="actionform_basedir" />
+    </form>
+</div>
+<div id="select" style="padding:0px;margin:0px;opacity:0.4;filter:progid:DXImageTransform.Microsoft.Alpha(opacity=40);filter=alpha(opacity=40);position:absolute;float:left;z-index:3000;left:1px;top:1px;background-color:#aaf;border: solid 2px #33c;display:none;">&nbsp;</div>
+
+<script type="text/javascript">
+    if (typeof LANG === "undefined") {
+        LANG = {};
+    }
+
+    LANG.tooMany = "[% locale.maketext("You may only edit one file at a time.") %]";
+    LANG.tooFew  = "[% locale.maketext("You must first select a file to edit.") %]";
+    LANG.notValid= "[% locale.maketext("You cannot open this file because it is either a directory or a file larger than one megabyte (1 MB). To edit the file, download it and use a local editor.") %]";
+    LANG.notValidHTML = "[% locale.maketext("The HTML editor cannot open the selected file because it is not saved as a .html or .htm file, or because the file is larger than one megabyte (1 MB).") %]";
+    LANG.notValidType= "[% locale.maketext("This file is an invalid file type. Do you still wish to edit this file?") %]";
+    LANG.rename_conflict = "[% SET file_name = '{file}'; locale.maketext('File “[_1]” already exists. You must delete or rename the existing file before you can save the current file. You may also specify a different name for the current file.', file_name) %]";
+    LANG.chmod_error= "[% locale.maketext("Invalid permission mask. You must enter four digits and each digit must have a value from zero to seven.") %]";
+</script>
+<script type="text/javascript" src="[% theme_magic_url("/yui-gen/data/data.js") %]"></script>
+<script type="text/javascript" src="[% theme_magic_url("js/filemanager_optimized.js") %]"></script>
+
+</body>
+</html>

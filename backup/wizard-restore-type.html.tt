@@ -1,0 +1,92 @@
+[%
+SET CPANEL.CPVAR.headerimg = "../images/tools.gif";
+SET CPANEL.CPVAR.dprefix = "../";
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'backup_wizard'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    page_stylesheets = ["css2-min/backup.css"]
+-%]
+<div class="body-content">
+    [% IF !CPANEL.feature('backup') %]
+        <meta http-equiv="refresh" content="0;url=../index.html" />
+    [% ELSE %]
+
+        <div id="backup-nav" class="row">
+            <div class="col-xs-12">
+                <h2 id="hdrSteps">[% locale.maketext('Steps:') %]</h2>
+                <ol>
+                    <li id="tabBackupRestore" class="one"><a href="wizard.html" id="backupRestore"><span>[% locale.maketext("Back Up or Restore") %]</span></a></li>
+                    <li id="tabFullPartial" class="two"><a href="wizard-restore.html" id="restoreType"><span>[% locale.maketext("Select Restore Type") %]</span></a></li>
+                    <li id="tabRestore" class="three"><span class="current">[% locale.maketext("Restore") %]</span></li>
+                </ol>
+            </div>
+        </div>
+
+        <div id="br-wrap" class="row">
+
+            <div class="col-xs-12">
+                <h2 id="hdrFinalStep">[% locale.maketext("Final Step") %]</h2>
+                <p id="descFinalStep">[% locale.maketext("Restore your backup.") %]</p>
+
+                <div id="br-content-wide">
+                    [% IF (FORM.type=="homedir") %]
+                    <h4 id="hdrRestoreHomeDir">[% locale.maketext("Restore a Home Directory Backup") %]</h4>
+                    <form id="formDoHomeDir" action="doupload.html" name="homeform" target="_blank" method="post" enctype="multipart/form-data">
+                        [% PROCESS form %]
+                    </form>
+                    [% ELSIF (FORM.type=="mysql") %]
+                    <h4 id="hdrRestoreMysqlDb">[% locale.maketext("Restore a MySQL Database Backup") %]</h4>
+                    <form id="formDoMysqlDb" action="dosqlupload.html" name="sqlform" target="_blank" method="post" enctype="multipart/form-data">
+                        [% PROCESS form %]
+                    </form>
+                    [% ELSIF (FORM.type=="email") %]
+                    <h4 id="hdrRestoreEmail">[% locale.maketext("Restore an Email Forwarders/Filters Backup") %]</h4>
+                    <form id="formDoEmail" action="doafupload.html" name="filterform" target="_blank" method="post" enctype="multipart/form-data">
+                        [% PROCESS form %]
+                    </form>
+                    [% END %]
+                </div>
+            </div>
+        </div>
+
+        [% INCLUDE _assets/return_link.html.tt return_location="wizard-restore.html" return_link_text=locale.maketext("Go Back") %]
+
+    [% END %]
+</div>
+[% END %]
+
+[% BLOCK form %]
+<div class="form-group">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+            <input type="hidden" value="[% CPANEL.homedir %]" name="dir" />
+            <input type="file" id="file1_id" name="file1" />
+        </div>
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"><div id="file1_id_error"></div></div>
+    </div>
+</div>
+<div class="form-group">
+    <input type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" id="file1-submit-button" />
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var restore_upload_validator = new CPANEL.validate.validator("[% locale.maketext("Restore") %]");
+
+    var init = function() {
+        restore_upload_validator.add("file1_id", 'min_length(%input%, 1)', '[% locale.maketext("Sorry, you must select a file to restore.") %]');
+        restore_upload_validator.attach();
+        CPANEL.validate.attach_to_form("file1-submit-button", restore_upload_validator);
+    };
+
+    YAHOO.util.Event.onDOMReady(init);
+</script>
+[% END %]

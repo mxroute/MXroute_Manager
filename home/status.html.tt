@@ -1,0 +1,49 @@
+[%
+SET service_status = "";
+SET CPANEL.CPVAR.dprefix = "../";
+IF CPANEL.feature('serverstatus');
+    Api1.pre_exec("Serverinfo", "servicestatus");
+    SET service_status = Api1.exec("Serverinfo", "servicestatus", [undef]);
+    Api1.post_exec("Serverinfo", "servicestatus");
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext('Server Information')
+-%]
+<div class="body-content">
+
+    <div class="section">
+        <h3>
+            [% locale.maketext("Server Information")  %]
+        </h3>
+        <div id="cPanel_information">
+            [% PROCESS _assets/cpanel_info.html.tt %]
+        </div>
+    </div>
+
+    [% IF CPANEL.feature('serverstatus') %]
+    <div id="serviceInfoSection" class="section">
+        <h3>
+            [% locale.maketext("Service Information")  %]
+        </h3>
+        <table id="serviceInfoTable" class="table table-striped sortable">
+            <thead>
+                <tr id="serverstatus_tableheader">
+                   <th>[% locale.maketext("Service") %]</th>
+                   <th>[% locale.maketext("Details") %]</th>
+                   <th>[% locale.maketext("Status") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+                [% service_status %]
+            </tbody>
+        </table>
+    </div>
+    [% END %]
+
+    [% SET return_link = CPANEL.CPVAR.dprefix _ 'index.html';
+    PROCESS _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
+

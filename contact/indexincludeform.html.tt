@@ -1,0 +1,171 @@
+[%
+    Api2.pre_exec("CustInfo", "contactemails");
+    SET contactemails=Api2.exec("CustInfo" , "contactemails" , {});
+    Api2.post_exec("CustInfo", "contactemails");
+
+    Api2.pre_exec("CustInfo", "contactprefs");
+    SET contactprefs=Api2.exec("CustInfo" , "contactprefs" , {});
+    Api2.post_exec("CustInfo", "contactprefs");
+
+    SET autossl_notification_preset = 'disable';
+
+    SET cert_failures = [ "notify_autossl_expiry", "notify_autossl_expiry_coverage", "notify_autossl_renewal_coverage", "notify_autossl_renewal_coverage_reduced" ];
+
+    # If we notify on regular renewals, then we notify on all events.
+    # Otherwise, if we notify when a renewal lacks domains, then we renew
+    # on warnings. Otherwise, if we notify on anything, we notify on failures.
+    # Otherwise, no notifications.
+    #
+    # ^^ The above logic replaces the “sea of checkboxes” that we presented
+    # prior to v74. It allowed for generally-undesirable configurations like
+    # notifications on successes but not on failures. To simplify the UI,
+    # then, we now allow only four levels: disabled, failures only, failures
+    # plus warnings, and notify-on-all.
+    #
+    # The simplification means that users who did have the “undesirable”
+    # configurations will lose them.
+    #
+    # Note that the backend still stores these settings the same way as before.
+    #
+    FOREACH pref IN contactprefs;
+        IF pref.name == 'notify_autossl_renewal';
+            SET can_set_all_autossl_notification = 1;
+            IF pref.enabled == 1;
+                SET autossl_notification_preset = 'all';
+            END;
+        ELSIF pref.name == 'notify_autossl_renewal_uncovered_domains';
+            SET can_set_fail_warn_defer_autossl_notification = 1;
+            IF pref.enabled == 1 && autossl_notification_preset != 'all';
+                SET autossl_notification_preset = 'failWarnDefer';
+            END;
+        ELSIF cert_failures.grep('^' _ pref.name _ '$').size;
+            SET can_set_cert_failures_autossl_notification = 1;
+            IF pref.enabled == 1 && autossl_notification_preset != 'all' && autossl_notification_preset != 'failWarnDefer';
+                SET autossl_notification_preset = 'certFailures';
+            END;
+        END;
+    END;
+
+    SET can_set_any_autossl_notification = can_set_all_autossl_notification || can_set_fail_warn_defer_autossl_notification || can_set_cert_failures_autossl_notification;
+
+%]
+<div class="section" id="contactprefs">
+    [% IF contactemails.size() %]
+        <h2> [% locale.maketext("Edit Contact Information and Preferences") %]</h2>
+        <div class="callout callout-warning">
+           [% locale.maketext("You may use an email address on a domain that this server hosts. However, we do not recommend this, because you may fail to receive messages when the server encounters problems. For example, if your mailbox exceeds its quota, you will not receive any new email, including notices.") %]
+        </div>
+        [% FOREACH contactemail IN contactemails %]
+            <div class="form-group">
+                <label>[% contactemail.descp %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="[% contactemail.name %]"
+                            name="[% contactemail.name %]"
+                            type="[% "boolean" == contactemail.type ? "checkbox" : "text" %]"
+                            [% (contactemail.enabled && ( "boolean" == contactemail.type )) ? 'checked="checked"' : '' %]
+                            value="[% contactemail.value %]" size="40"  class="form-control" />
+                        <img src="/cPanel_magic_revision_0/cjt/images/1px_transparent.gif" id="[% contactemail.name %]_error" />
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+        [% END %]
+    [% END %]
+
+    [% IF CPANEL.feature("updatenotificationprefs") && contactprefs.size()  %]
+        <div class="form-group contact-prefs" ng-app>
+            <label id="contact_prefs_header">[% locale.maketext("Contact Preferences") %]</label>
+            <div class="contact-prefs-subtitle">[% locale.maketext("Notify me when:") %]</div>
+                [% FOREACH pref IN contactprefs %]
+                    [% IF pref.onchangeparent == '' %]
+                        <div class="checkbox contact-pref">
+                            <label>
+                                <input id="[% pref.name %]"
+                                    name="[% pref.name %]"
+                                    type="[% "boolean" == pref.type ? "checkbox" : "text" %]"
+                                    [% (pref.enabled && ("boolean" == pref.type)) ? 'checked="checked"' : '' %]
+                                    value="[% pref.value %]"
+                                    size="40"
+                                    ng-model="[% pref.name %]"
+                                    ng-init="[% pref.name %] = [% pref.enabled %] ? true : false"/>
+                                [% pref.descp %]
+                            </label>
+                            [% IF pref.infotext %]
+                            <span class="info-block">
+                                [% pref.infotext %]
+                            </span>
+                            [% END %]
+                            <div class="contact-pref-children">
+                                [% FOREACH child_pref IN contactprefs %]
+                                    [% IF child_pref.onchangeparent == pref.name %]
+                                        <div class="checkbox contact-pref-child">
+                                            <label>
+                                                <input id="[% child_pref.name %]"
+                                                    name="[% child_pref.name %]"
+                                                    type="[% "boolean" == child_pref.type ? "checkbox" : "text" %]"
+                                                    [% (child_pref.enabled && ("boolean" == child_pref.type)) ? 'checked="checked"' : '' %]
+                                                    value="[% child_pref.value %]"
+                                                    size="40"
+                                                    ng-disabled="![% pref.name %]"/>
+                                                [% child_pref.is_disabler ? locale.maketext("If the above option is disabled, notify me.") : child_pref.descp %]
+                                            </label>
+                                        </div>
+                                    [% END %]
+                                [% END %]
+                            </div>
+                        </div>
+                    [% END %]
+                [% END %]
+            [% IF can_set_any_autossl_notification %]
+            <div class="form-group" ng-init="autosslNotifications = '[% autossl_notification_preset %]'">
+                <label id="autossl_prefs_header">[% locale.maketext('[asis,AutoSSL] Notifications') %]</label>
+                <div class="contact-prefs-subtitle">[% locale.maketext("Notify me for:") %]</div>
+                <div>
+                    [% IF can_set_all_autossl_notification %]
+                    <div class="radio">
+                        <label>
+                            <input type="radio" name="autosslNotifications" id="autosslNotificationsAll" ng-model="autosslNotifications" value="all"
+                                [% IF autossl_notification_preset == 'all' %]checked[% END %]>
+                                [% locale.maketext('All [asis,AutoSSL] events: failures, deferrals, and successful installations.') %]
+                        </label>
+                    </div>
+                    [% END %]
+                    [% IF can_set_fail_warn_defer_autossl_notification %]
+                    <div class="radio">
+                        <label>
+                            <input type="radio" name="autosslNotifications" id="autosslNotificationsAll" ng-model="autosslNotifications" value="failWarnDefer"
+                                [% IF autossl_notification_preset == 'failWarnDefer' %]checked[% END %]>
+                            [% locale.maketext('[asis,AutoSSL] failures and deferrals only. (default)') %]
+                        </label>
+                    </div>
+                    [% END %]
+                    [% IF can_set_cert_failures_autossl_notification %]
+                    <div class="radio">
+                        <label>
+                            <input type="radio" name="autosslNotifications" id="autosslNotificationsAll" ng-model="autosslNotifications" value="certFailures"
+                                [% IF autossl_notification_preset == 'certFailures' %]checked[% END %]>
+                            [% locale.maketext('[asis,AutoSSL] failures only.') %]
+                        </label>
+                    </div>
+                    [% END %]
+                    <div class="radio">
+                        <label>
+                            <input type="radio" name="autosslNotifications" id="autosslNotificationsAll" ng-model="autosslNotifications" value="disable"
+                                [% IF autossl_notification_preset == 'disable' %]checked[% END %]>
+                            [% locale.maketext('Disable [asis,AutoSSL] event notifications.') %]
+                        </label>
+                    </div>
+                </div>
+            </div>
+            [% ELSE %]
+            <input type="hidden" name="autosslNotifications" id="autosslNotificationsHidden" ng-model="autosslNotifications" value="disable">
+            [% END %]
+        </div>
+    [% END %]
+    <div class="form-group">
+        <input type="submit" id="submit-button" class="btn btn-primary" value="[% locale.maketext("Save") %]">
+    </div>
+
+</div>
+

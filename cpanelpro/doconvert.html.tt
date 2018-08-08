@@ -1,0 +1,27 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+
+    Api1.pre_exec("ImageManager", "convert");
+    SET conversion_result = Api1.exec("ImageManager", "convert", [RAW_FORM.target, RAW_FORM.newtype]);
+    Api1.post_exec("ImageManager", "convert");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Converter")
+-%]
+    <div class="body-content">
+
+        <div id="alertConvertSuccess" class="alert alert-success">
+            <span id="alertConvertSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <span id="alertConvertSuccessMsg">
+            [% locale.maketext("Your images have been converted.") %]
+            </span>
+        </div>
+
+        <textarea id="errtext" wrap="off" nowrap name="imgconvert" class="form-control output" cols="80" rows="15" readonly>[% conversion_result.html() %]</textarea>
+
+
+        [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+    </div>
+[% END #wrapper -%]

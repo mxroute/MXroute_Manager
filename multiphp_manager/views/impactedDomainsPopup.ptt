@@ -1,0 +1,16 @@
+<div class="modal-header">
+    <h4 class="modal-title" id="impactedDomainsModalLabel">[% locale.maketext("View Impacted Domains") %]</h4>
+</div>
+<div class="modal-body">
+    <div ng-bind-html="modalData.impactedDomains.text"></div>
+    <!-- List missing profiles -->
+    <div id="impactedDomainList" class="list-group">
+        <div id="item_{{domain}}" class="list-group-item"
+            ng-repeat="domain in modalData.impactedDomains.domains track by $index">
+            {{ domain }}
+        </div>
+    </div>
+</div>
+<div class="modal-footer">
+    <button class="btn btn-primary" ng-click="closeModal()">[% locale.maketext("Close") %]</button>
+</div>

@@ -1,0 +1,127 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    Api2.pre_exec("MysqlFE", "listhosts");
+    SET hosts =  Api2.exec("MysqlFE", "listhosts", {} );
+    Api2.post_exec("MysqlFE", "listhosts");
+
+    SET host_notes_call = execute("Mysql", "get_host_notes", {});
+    SET host_notes = host_notes_call.data;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'remote_mysql'
+    include_legacy_stylesheets = 1
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_scripts = ['js2-min/sql/managehost.js']
+-%]
+<div class="body-content">
+
+    [% IF !CPANEL.CPERROR.item('mysqlfe') && host_notes_call.status %]
+    <p id="descIntro" class="description">
+        [% locale.maketext("Add a specific domain name to allow visitors to connect to your MySQL databases. Applications like bulletin boards, online shopping carts, and content management systems require databases to operate. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/RemoteMySql", "_blank", "lnkRemoteMySqlDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2 id="hdrAddHost">[% locale.maketext("Add Access Host") %]</h2>
+        <form action="addhost.html" name="mainform" id="mainform" method="post">
+            <div class="form-group">
+                <label id="lblHost" for="host">
+                    [% locale.maketext("Host (% wildcard is allowed)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="host" id="host">
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <span id="host_error"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblComment" for="comment">
+                    [% locale.maketext("Comment (optional)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="comment" id="comment" maxlength="255">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="submit-button" type="submit" value="[% locale.maketext("Add Host") %]" class="btn btn-primary">
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrManageAccessHosts">[% locale.maketext("Manage Access Hosts") %]</h2>
+        <table id="sqltbl" class="sortable table table-striped responsive-table">
+            <thead>
+                <tr>
+                    <th scope="col">[% locale.maketext("Access Hosts") %]</th>
+                    <th scope="col" id="commentLabel">[% locale.maketext("Comment") %]</th>
+                    <th nonsortable="true" scope="col">[% locale.maketext("Remove") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF hosts.size() %]
+                [% FOREACH host IN hosts;
+                    SET host_comment = host_notes_call.data.${host.host};
+                    SET delete_url = 'delhostconfirm.html?host=' _ host.host.uri();
+                %]
+                <tr class="row-[%  loop.index % 2 == 0 ? 'even' : 'odd' %]">
+                    <td data-title="[% locale.maketext('Access Hosts') %]">
+                        [% host.host.html() %]
+                    </td>
+                    <td data-title="[% locale.maketext('Comment') %]">
+                        <form action="updatehostnotes.html" name="updateCommentForm" id="[% host.host %]_updateCommentForm" method="post">
+                            <input type="hidden" name="host" value="[% host.host %]">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="comment" value="[% host_comment.html() %]" id="[% host.host %]_comment" maxlength="255" aria-label="Comment for [% host.host.html() %]">
+                                <span class="input-group-btn">
+                                    <button type="submit" class="btn btn-default" id="[% host.host %]_updateCommentButton"><i class="fas fa-pencil-alt"></i> [% locale.maketext("Update") %]</button>
+                                </span>
+                            </div>
+                        </form>
+                    </td>
+                    <td data-title="[% locale.maketext('Remove') %]">
+                        [%# A form was used here for the following reasons:
+                               - avoid sending data via url parameters
+                               - avoid a URI encoding issue with unicode characters, especially the poo emoji
+                        %]
+                        <form action="delhostconfirm.html" name="delHostForm" id="[% host.host %]_deleteForm" method="post">
+                            <input type="hidden" name="host" value="[% host.host.html() %]">
+                            <input type="hidden" name="comment" value="[% host_comment.html() %]">
+                            <button type="submit" class="btn btn-link" id="[% host.host %]_deleteButton">
+                                <span class="glyphicon glyphicon-trash"></span>
+                                [% locale.maketext("Delete") %]
+                            </button>
+                        </form>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td colspan="3" class="errors">
+                        [% locale.maketext("There are no additional [asis, MySQL] access hosts configured.") %]
+                    </td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+    </div>
+
+    [% ELSE %]
+    <div id="delhostError" class="alert alert-danger">
+        <span id="delhostErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <div id="delhostErrorMsg" class="alert-message">
+            [% CPANEL.CPERROR.item('mysqlfe').html() %]
+            [% FOREACH hostnotesError = host_notes_call.errors %]
+                [% hostnotesError %]
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,61 @@
+[%
+    USE JSON;
+
+    SET form = CPANEL.FORM;
+
+    SET fileName = "";
+    FOREACH u IN form;
+        IF u.value == "upload";
+            USE String u.key;
+            SET name = String.remove("file-");
+            fileName = name.remove("-key");
+        END;
+    END;
+
+    SET error = "";
+    SET warning = "";
+
+    SET file_content = execute ('Fileman', 'upload_files', { 'overwrite' => 1 });
+    IF file_content && file_content.status && file_content.data.uploads && file_content.data.uploads.0.status == 1;
+        SET fileName = file_content.data.uploads.0.file;
+    ELSE;
+        SET error = file_content.errors_as_string();
+    END;
+%]
+    [% IF !error %]
+    <script>
+
+        (function() {
+            window.onload = function() {
+                var funcNum = getUrlParam("CKEditorFuncNum");
+
+                var url = "/" + "[% fileName %]";
+
+                var fileURL = decodeURIComponent(url);
+
+                // call back to fill the url in the textbox
+                window.parent.CKEDITOR.tools.callFunction(funcNum, fileURL);
+            }
+
+            /**
+            * Helper method to get URL parameters
+            *
+            * @method getUrlParam
+            * @param String paramName name of the parameter
+            * @return string
+            */
+            function getUrlParam(paramName)
+            {
+                var reParam = new RegExp("(?:[\?&]|&amp;)" + paramName + "=([^&]+)", "i") ;
+                var match = window.location.search.match(reParam) ;
+
+                return (match && match.length > 1) ? match[1] : "" ;
+            }
+        })();
+
+    </script>
+    [% ELSE %]
+    <div>
+        [% error FILTER html %]
+    </div>
+    [% END %]

@@ -1,0 +1,78 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'authentication'
+%]
+
+<div class="body-content">
+    <div class="section">
+        <h2 id="hdrSenderPolicyFramework">
+            <abbr title="Sender Policy Framework">SPF</abbr>
+        </h2>
+        [% IF (FORM.item('faction') == "install" || FORM.item('update')) %]
+            [%
+                Api2.pre_exec("SPFUI", "install");
+
+                SET api2_result_SPFUI_install =  Api2.exec("SPFUI", "install", {
+                    "include_hosts"=>(FORM.item('spf_include_hosts')),
+                    "a_hosts"=>(FORM.item('spf_a_hosts')),
+                    "overwrite"=>FORM.item('overwrite'),
+                    "entries_complete"=>(FORM.item('entries_complete')),
+                    "mx_hosts"=>(FORM.item('spf_mx_hosts')),
+                    "update"=>FORM.item('update'),
+                    "ip4_hosts"=>(FORM.item('spf_ip4_hosts'))} );
+
+                Api2.post_exec("SPFUI", "install");
+
+                IF api2_result_SPFUI_install.size;
+                    FOREACH hashref IN api2_result_SPFUI_install;
+                        hashref.installed.html() ;
+                    END;
+                END;
+            %]
+
+            [%
+                Api2.pre_exec("SPFUI", "load_current_values");
+                api2_result_SPFUI_load_current_values =  Api2.exec("SPFUI", "load_current_values", {} );
+                Api2.post_exec("SPFUI", "load_current_values");
+
+                IF api2_result_SPFUI_load_current_values.size;
+                    FOREACH hashref IN api2_result_SPFUI_load_current_values;
+                        SET status = hashref.status.html() ;
+                    END;
+                END;
+            %]
+
+            [% locale.maketext("Your raw SPF record is:") %]
+            <strong>
+            [%
+                Api2.pre_exec("SPFUI", "get_raw_record");
+                SET api2_result_SPFUI_get_raw_record =  Api2.exec("SPFUI", "get_raw_record", {} );
+                Api2.post_exec("SPFUI", "get_raw_record");
+
+                IF api2_result_SPFUI_get_raw_record.size;
+                    FOREACH hashref IN api2_result_SPFUI_get_raw_record;
+                        hashref.record.html();
+                    END;
+                END;%]
+            </strong>
+        [% END %]
+
+        [% IF (FORM.item('faction') == "uninstall" && !( FORM.item('update'))) %]
+            [%
+                Api2.pre_exec("SPFUI", "uninstall");
+                SET api2_result_SPFUI_uninstall =  Api2.exec("SPFUI", "uninstall", {} );
+                Api2.post_exec("SPFUI", "uninstall");
+
+                IF api2_result_SPFUI_uninstall.size;
+                    FOREACH hashref IN api2_result_SPFUI_uninstall;
+                        hashref.uninstalled.html() ;
+                    END;
+                END;
+            %]
+        [% END %]
+    </div>
+    [% INCLUDE _assets/return_link.html.tt return_location='auth.html?domain=' _ FORM.item('domain') _ '' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]

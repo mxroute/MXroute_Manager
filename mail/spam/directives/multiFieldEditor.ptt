@@ -1,0 +1,17 @@
+<div id="{{ :: parentID }}_multiFieldEditor">
+	<div class="form-group">
+		<div class="row">
+			<div class="col-xs-12 col-md-12">
+				<div id="{{ :: parentID }}_multiFieldEditor_valueItems" class="mfe-items" ng-transclude></div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-xs-12 col-md-12">
+				<a href class="btn btn-link" ng-click="addRow()" id="{{ :: parentID }}_multiFieldEditor_addNewButton">
+					<span class='glyphicon glyphicon-plus'></span>
+					{{ :: addNewLabel }}
+				</a>
+			</div>
+		</div>
+	</div>
+</div>

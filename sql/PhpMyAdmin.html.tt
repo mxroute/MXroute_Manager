@@ -1,0 +1,17 @@
+[% SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("Cgi", "phpmyadminlink");
+    SET phpMyadmin_url = Api1.exec("Cgi", "phpmyadminlink", [undef]);
+    Api1.post_exec("Cgi", "phpmyadminlink");
+-%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'php_my_admin'
+ -%]
+
+<div class="body-content" id="divRedirect">
+    [% locale.maketext("The system will redirect you in a moment.") %]
+    [% update_privs %]
+    <meta http-equiv="refresh" content="0;url=[% phpMyadmin_url %]" />
+</div>
+[% END #wrapper -%]
+

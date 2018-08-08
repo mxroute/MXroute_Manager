@@ -1,0 +1,63 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET listwebalizer =  Api2.exec("Stats", "listwebalizer", {} ); %]
+[% SET rowCount = 0 %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'webalizer'
+-%]
+
+<div class="body-content">
+    <p id="descWebalizer" class="description">
+        [% locale.maketext("Webalizer is a complex stats program that produces a variety of charts and graphs about who has visited your site.") %]
+    </p>
+    <div class="section">
+        <h2 id="hdrSelectDomain">
+            [% locale.maketext("Select a Domain") %]
+        </h2>
+        <table id="tblDomainList" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th id="theadDomain">
+                        [% locale.maketext("Domain") %]
+                    </th>
+                    <th id="theadView" nowrap nonsortable="true">
+                        [% locale.maketext("Actions") %]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                [% IF listwebalizer.size() %]
+                    [% FOREACH hashref IN listwebalizer; %]
+                    [% SET rowCount = rowCount + 1 %]
+                    [% SET rowID = "rowDomain" _ rowCount %]
+                    <tr id="[% rowID %]">
+                        <td id="domain_[% rowID %]">[%  hashref.txt.html() %]</td>
+                        <td>
+                            [% SET href_string = CPANEL.ENV.cp_security_token -%]
+                            [% SET href_string = href_string _ '/tmp/' _ hashref.user.uri() _ '/webalizer/' -%]
+                            [% IF hashref.dir %]
+                                [% SET href_string = href_string _ hashref.dir.uri() _ '/index.html' -%]
+                            [% ELSE %]
+                                [% SET href_string =  href_string _ "index.html" %]
+                            [% END %]
+                            <a target="_blank" id="lnkViewStats[% rowID %]"
+                                href="[% href_string %]"
+                                class="btn btn-link">
+                                <span id="imgViewStats[% rowID %]" class="glyphicon glyphicon-search" title="[% locale.maketext('view stats') %]"></span>
+                                [% locale.maketext("View") %]
+                            </a>
+                        </td>
+                    </tr>
+                    [% END %]
+                [% ELSE %]
+                <tr id="tblrowErrors">
+                    <td class="errors" colspan="2">
+                        [% locale.maketext("There are no domains which have [asis,Webalizer] stats to display.") %].
+                    </td>
+                </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </div>
+</div>
+[% END #wrapper -%]

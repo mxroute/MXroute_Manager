@@ -1,0 +1,45 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+    page_js = js_code
+%]
+[%
+    Api1.pre_exec("Gpg", "exportkey");
+    SET export_key = Api1.exec("Gpg", "exportkey", [RAW_FORM.key]);
+    Api1.post_exec("Gpg", "exportkey");
+%]
+<div class="body-content">
+    <div class="section">
+        <div class="form-group">
+            <label id="lblPublicKey" for="errtext">
+            [% locale.maketext("Public Key") %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-lg-6">
+                    <textarea id="errtext" name="GnuPGKey" class="form-control" cols="80" rows="15" readonly>[% export_key %]</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div><!-- end body-content -->
+
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function(event) {
+        var txtarea = document.getElementById("errtext");
+        if (txtarea) {
+            txtarea.addEventListener("click", function (e) {
+                e.target.select();
+            });
+        }
+    });
+</script>
+[% END %]

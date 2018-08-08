@@ -1,0 +1,24 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    Api1.pre_exec("Email", "delfilter");
+    SET del_filter = Api1.exec("Email", "delfilter", [RAW_FORM.item("email"), RAW_FORM.item("dest")]);
+    Api1.post_exec("Email", "delfilter")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'filtering'
+%]
+<div class="body-content">
+
+    <div class="alert alert-success" id="delFilterSuccess">
+        <span class="glyphicon glyphicon-info-sign" id="delFilterSuccessImg"></span>
+        <div class="alert-message" id="delFilterSuccessMsg">
+            [% locale.maketext("The filter for the email account “[_1]” has been deleted.", FORM.item("email")) %]
+            [% del_filter %]
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='blocks.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,8 @@
+To: [% admincontactemail %]
+From: [% form.email %]
+Subject: Moderated Site Software Installation Request on [% hostname %]
+
+[% user %] on [% hostname %] has just requested permission to install [% module.name %].
+Please login to WHM and handle this pending moderation request.
+
+WHM Site Software Manager: [% url %]

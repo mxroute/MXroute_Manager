@@ -1,0 +1,59 @@
+[%
+# Arguments
+# data   - hash -
+#    sorted_instances - array of instances
+# meta   - hash -
+#    version - string
+# environment - hash
+#    script_name   - string - name of the script
+# module - hash -
+#    name - string
+#    meta - hash
+#       version - string
+#    supports_action - hash
+#
+
+%]
+
+[% # Upgrade %]
+[% IF module.supports_action.upgrade && data.action_has_prerequisites.upgrade && module.is_approved %]
+    [% IF has_upgradable_instances %]
+    <form id="cpaddonsform_upgrade"
+          action="[% environment.script_name | url %]"
+          method="post" class="form-inline">
+        <input type="hidden" name="debug" value="[% environment.debug | html %]" />
+        <input type="hidden" name="verbose" value="[% environment.verbose | html %]" />
+        <input type="hidden" name="oneclick" value="[% form.oneclick | html %]" />
+        <input type="hidden" name="addon" value="[% module.name | html %]"
+               id="hidUpgradeModuleName" />
+        <input type="hidden" name="action" value="upgrade" />
+        <select name="workinginstall" id="selInstanceToUpgrade" class="form-control">
+        [% FOREACH instance IN data.sorted_instances;
+            IF instance.version != module.meta.version %]
+            <option value="[% instance.install_filename | html %]">
+                [% instance.no_protocol_url_to_install | html %]
+                [% IF module.meta.display.versions %]
+                  (v[% instance.version | html %])
+                [% END %]
+            </option>
+            [% END %]
+        [% END %]
+        </select>
+        <button type="submit" class="btn btn-primary" id="btnUpgrade">
+            [% locale.maketext('Upgrade') %]
+        </button>
+    </form>
+    [% ELSE %]
+    <span id="nothing_to_upgrade">
+        [% locale.maketext('No upgradeable instances exist of this [asis,cPAddon].') %]
+    </span>
+    [% END %]
+[% ELSE %]
+    <span id="upgrade_not_supported">
+    [% IF !module.is_approved %]
+    [% locale.maketext('You cannot upgrade unapproved [asis,cPAddons].') %]
+    [% ELSE %]
+    [% locale.maketext('Upgrade is not supported.') %]
+    [% END %]
+    </span>
+[% END %]

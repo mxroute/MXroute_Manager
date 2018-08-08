@@ -1,0 +1,12 @@
+
+    <div id="module-output" class="panel panel-default">
+        <div class="panel-heading">
+          <h3 class="panel-title" id="module-output-spinner"><span class="fas fa-sync fa-spin"></span> [% locale.maketext('Processing …') %]</h3>
+        </div>
+        <div class="panel-body">
+          <div class="pre-scrollable" id="module-output-formatted"></div>
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+

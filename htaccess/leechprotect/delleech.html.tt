@@ -1,0 +1,34 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../../";
+
+Api1.pre_exec("LeechProtect", "disable");
+SET results = Api1.exec("LeechProtect", "disable", [RAW_FORM.dir]) ;
+SET error = CPANEL.CPERROR.leechprotect;
+Api1.post_exec("LeechProtect", "disable");
+
+SET return_url = 'dohtaccess.html?dir=' _ FORM.dir.uri();
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'leech_protection'
+-%]
+<div class="body-content">
+    [% IF !error %]
+        <div id="leechDisabledSuccess" class="alert alert-success">
+            <span id="leechDisabledImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="leechDisabledMsg" class="alert-message">
+               [% locale.maketext("Leech Protection Disabled!") %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="leechDisabledError" class="alert alert-danger">
+            <span id="leechDisabledErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="leechDisabledErrorMsg" class="alert-message">
+                [% locale.maketext("Failed to disable [asis,Leech Protection] with the following error: [_1]", error.html()) %]
+            </div>
+        </div>
+    [% END%]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_url return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

@@ -1,0 +1,94 @@
+<tr id="envarForm" class="inline-form info">
+    <td id="keyInlineEditor" class="key-name-editor-container">
+        <div class="record_elements">
+            <div class="record_element">
+                <div class="record_subelement" ng-class="{ 'has-error' : details.add_app['envarName'].$invalid && details.add_app['envarName'].$dirty }">
+                    <label for="envarName" class="table-form-label">
+                    [% locale.maketext('Name') %]
+                    </label>
+                    <input type="text"
+                        class="form-control"
+                        ng-model="envarName"
+                        id="envarName"
+                        name="envarName"
+                        ng-trim="false"
+                        required
+                        ng-pattern="/^[A-Za-z\-_][A-Za-z0-9\-_]{0,255}$/"
+                        maxLength="256"
+                        autoFocus
+                        placeholder="[% locale.maketext('Environment Variable Name') %]">
+                </div>
+            </div>
+            <div class="record_element">
+                <div class="record_subelement">
+                    <ul validation-container field-name="envarName">
+                        <li validation-item
+                            field-name="envarName"
+                            validation-name="required">[% locale.maketext("This field is required.") %]
+                        </li>
+                        <li validation-item
+                            field-name="envarName"
+                            validation-name="pattern">[% locale.maketext("This field must not start with a number and may only contain numbers, letters, hyphens and underscores.") %]
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </td>
+    <td id="valueInlineEditor" class="key-value-editor-container">
+        <div class="record_elements">
+            <div class="record_element">
+                <div class="record_subelement">
+                    <label for="envarValue" class="table-form-label">
+                    [% locale.maketext('Value') %]
+                    </label>
+                    <input type="text"
+                        class="form-control"
+                        ng-model="envarValue"
+                        id="envarValue"
+                        name="envarValue"
+                        ng-trim="false"
+                        required
+                        maxLength="1024"
+                        no-apache-literals
+                        ng-pattern="/^[\u0020-\u007e]{1,1024}$/"
+                        placeholder="[% locale.maketext('Environment Variable Value') %]">
+                </div>
+            </div>
+            <div class="record_element">
+                <div class="record_subelement">
+                    <ul validation-container field-name="envarValue">
+                        <li validation-item
+                            field-name="envarValue"
+                            validation-name="required">[% locale.maketext("This field is required.") %]
+                        </li>
+                        <li validation-item
+                            field-name="envarValue"
+                            validation-name="pattern">[% locale.maketext("This field must contain only printable [asis,ASCII] characters.") %]
+                        </li>
+                        <li validation-item
+                            field-name="applPath"
+                            validation-name="noApacheLiterals">[% locale.maketext("Environment variable values must not contain [asis,Apache] variable substitution literals: [_1]", "\${") %]
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </td>
+    <td>
+        <button class="btn btn-primary btn-sm"
+            id="save_btn"
+            name="save_btn"
+            type="submit"
+            ng-disabled="checkSaveDisabledStatus()"
+            ng-click="handleSave()">[% locale.maketext('Save') %]
+        </button>
+        <button class="btn btn-link btn-sm"
+            type="button"
+            id="cancel_btn"
+            name="cancel_btn"
+            ng-click="handleCancel()">[% locale.maketext('Cancel') %]
+        </button>
+    </td>
+</tr>
+

@@ -1,0 +1,449 @@
+<div class="list-container" >
+    <div ng-if="show_introduction_block()">
+        [% PROCESS "security/tls_wizard/views/introduction.ptt" %]
+    </div>
+
+    <h3>[% locale.maketext("Purchase a certificate") %]</h3>
+
+    <div class="row global-actions-row">
+        <div class="col-md-12">
+            <button
+                class="btn btn-default btn-primary"
+                id="create_advanced_btn"
+                ng-click="go_to_advanced()"
+                title="[% locale.maketext('Create Advanced. This interface does not support wildcard certificates.') %]">
+                <span class='glyphicon glyphicon-plus'></span>
+                [% locale.maketext('Create Advanced (No Wildcard Support)') %]
+            </button>
+            <button
+                ng-if="pending_certificates.length"
+                class="btn btn-default btn-primary"
+                id="pending_certificates_btn"
+                ng-click="go_to_pending()"
+                title="[% locale.maketext('View Pending [numerate,_1,Certificate,Certificates].',pending_certificates.length) %]">
+                <span class='fas fa-eye fa-lg'></span>
+                [% locale.maketext('View Pending [numerate,_1,Certificate,Certificates]',pending_certificates.length) %]
+            </button>
+        </div>
+    </div>
+    <div class="row search-page-container global-actions-row">
+        <div class="col-md-12 text-right">
+            <span ng-if="prices = get_cart_strings()">
+                <span class="cart-price" ng-if="prices.min" ng-bind="prices.min"></span>
+                <span ng-if="prices.max">
+                    &dash;
+                    <span class="cart-price" ng-bind="prices.max"></span>
+                </span>
+
+            </span>
+            <span ng-if="!get_cart_strings()">&nbsp;</span>
+        </div>
+    </div>
+    <form name="cert_form" ng-submit="cert_form.$valid && purchase()">
+        <div uib-accordion>
+            <div uib-accordion-group id="domains"  is-open="panels.domains" >
+                <div uib-accordion-heading>
+                    [% locale.maketext("Add the domains that you want to secure with this certificate.") %]
+                    <span class="pull-right" ng-if="!panels.domains">
+                        <span class="label label-sm" ng-class="{'label-success':!has_failed_dcv_domains(),'label-danger':has_failed_dcv_domains()}">
+                            [% locale.maketext("[_1] selected", "{{ selected_domains.length }}") %]
+                        </span>
+                    </span>
+                </div>
+                <div>
+                    <div class="row">
+                        <div class="form-group col-xs-12 col-sm-12 col-md-4 col-lg-4">
+                            <div class="input-group filter-controls">
+                                <div class="btn-group">
+                                    <search id="domainSearchFilter" ng-model="meta.filterValue" placeholder="my.domain.com" ng-change="fetch()" class="pull-left" title="[% locale.maketext('Type in your search filter.') %]"></search>
+                                    <button id="btnToggleSettings" type="button" class="btn btn-default" ng-click="showAdvancedSettings = !showAdvancedSettings" title="[% locale.maketext('Toggle Advanced Settings') %]">
+                                        <span class="fas fa-cogs"></span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+                            <div class="pagination-container hidden-xs hidden-sm">
+                                <page-size id="pageSize" allowed-sizes="meta.pageSizes" total-items="meta.totalItems" ng-model="meta.pageSize" ng-show="showPager" ng-change="fetch()"></page-size>
+                                <uib-pagination id="paginateItems" total-items="meta.totalItems" ng-model="meta.currentPage" max-size="3" boundary-links="true" rotate="false" previous-text="<" next-text=">" first-text="<<" last-text=">>" items-per-page="meta.pageSize" ng-show="showPager" ng-change="fetch()"></uib-pagination>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <div
+                            id="DomainSearchSettings"
+                            search-settings-panel
+                            ng-model="searchFilterOptions"
+                            ng-change="fetch()"
+                            class="col-xs-12 ng-cloak"
+                            display-settings-panel="showAdvancedSettings"
+                            display-set-values="!showAdvancedSettings"
+                            ng-cloak>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-12">
+                            <table class="table table-striped responsive-table purchase-simple-domains">
+                                <tbody>
+                                    <tr ng-repeat="domain in filteredList">
+                                        <td>
+                                            <input id="{{ :: domain.domain }}_Checkbox" type="checkbox" ng-disabled="(domain_disabled = is_domain_disabled(domain))" ng-model="domain.selected" ng-change="select_domain(domain);">
+                                        </td>
+                                        <td class="domain-contaner">
+                                            <div class="cutoff_with_ellipses" title="{{ :: domain.domain}}">
+                                                <span
+                                                title="[% locale.maketext('This website’s current [asis,SSL] certificate includes this domain.') %]"
+                                                ng-if="get_domain_certificate(domain.domain)"
+                                                class="fa-stack fa-xs"
+                                                style="width: 1em;">
+                                                <i class="fas fa-lock fa-lg fa-stack-1x" ng-class="get_domain_lock_classes(domain)"></i>
+                                                <i ng-if="get_virtual_host_certificate(domain).certificate.is_self_signed || domain.certificate_status === 'expired'" class="fas fa-times fa-stack-1x text-danger" style="margin-top: 2px; font-size: 7px;"></i>
+                                                </span>
+                                                <label for="{{ :: domain.domain }}_Checkbox">{{ domain.domain }}</label>
+                                            </div>
+                                        </td>
+                                        <td >
+                                            <div>
+                                                <div class="row" ng-switch="get_domain_msg_state(domain)">
+                                                    <div ng-switch-when="cert-pending-other-domains" class="col-xs-8 col-md-9">
+                                                        <span class="badge badge-warning domain-message">
+                                                            [% locale.maketext("A pending certificate order already exists for the website ([_1]) of this domain. That certificate will not secure this domain. The order must complete (or you must cancel it) before you can order a new certificate that includes this domain.", '{{domain.virtual_host}}') %]
+                                                        </span>
+                                                    </div>
+                                                    <div ng-switch-when="cert-pending" class="col-xs-8 col-md-9">
+                                                        <span class="badge badge-info domain-message">
+                                                            [% locale.maketext("A pending certificate already will secure this website.") %]
+                                                        </span>
+                                                    </div>
+                                                    <div ng-switch-when="cert-pending" class="col-xs-4 col-md-3">
+                                                        <a class="btn btn-default btn-sm" ng-click="view_pending_certificate(domain)">View</a>
+                                                    </div>
+                                                    <div ng-switch-when="cert-pending-other-domains" class="col-xs-4 col-md-3">
+                                                        <a class="btn btn-default btn-sm" ng-click="view_pending_certificate(domain)">View</a>
+                                                    </div>
+
+
+                                                    <div ng-switch-when="covered-by-wildcard" class="col-md-12">
+                                                        <span class="badge badge-info domain-message">
+                                                            {{ get_covered_by_wildcard_message(domain) }}
+                                                        </span>
+                                                    </div>
+                                                    <div ng-switch-when="ssl-exists" class="col-md-12">
+                                                        <a ng-href="{{ build_csr_url(domain) }}" target="_blank"
+                                                            class="badge badge-info domain-message {{ get_cert_status_color(domain) }}">
+                                                            <span class='fas fa-eye fa-sm'></span>
+                                                            <span ng-bind-html="get_domain_cert_msg(domain)"></span>
+                                                        </a>
+                                                    </div>
+                                                    <div ng-if="get_resolution_text(domain)" ng-switch-default class="col-md-12">
+                                                        <span class="badge badge-{{get_domain_badge_color(domain)}} domain-message">
+                                                            {{ get_resolution_text(domain) }}
+                                                            <span ng-class="get_dcv_class(domain)"></span>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4"></div>
+                        <div class="form-group col-xs-12 col-sm-12 col-md-8 col-lg-8">
+                            <div class="pagination-container hidden-xs hidden-sm">
+                                <page-size id="mobilePageSize" allowed-sizes="meta.pageSizes" total-items="meta.totalItems" ng-model="meta.pageSize" ng-show="showPager" ng-change="fetch()"></page-size>
+                                <uib-pagination id="mobilePaginateItems" total-items="meta.totalItems" ng-model="meta.currentPage" max-size="3" boundary-links="true" rotate="false" previous-text="<" next-text=">" first-text="<<" last-text=">>" items-per-page="meta.pageSize" ng-show="showPager" ng-change="fetch()"></uib-pagination>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group row">
+                        <div class="col-md-12">
+                            <div class="panel panel-default collapse" ng-class="{in:selected_domains.length}">
+                                <div class="panel-body">
+                                    <span class="selected-domains-title">[% locale.maketext('Selected Domains:') %]</span>
+                                    <div src="'/domain-cloud.html'" ng-include></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row" >
+                        <div class="col-md-12">
+                            <button
+                                id="domainsContinueBtn"
+                                type="button"
+                                class="btn btn-primary"
+                                ng-disabled="!selected_domains.length"
+                                ng-click="goto('products')">[% locale.maketext('Continue') %]</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div uib-accordion-group id="products" is-disabled="!selected_domains.length" is-open="panels.products">
+                <div uib-accordion-heading>
+                    [% locale.maketext("Select the product that you would like for this certificate.") %]
+                    <span class="pull-right" ng-if="!panels.products">
+                        <span class="label label-success label-sm" ng-bind="get_product_name(get_product())"></span>
+                    </span>
+                </div>
+                <div>
+                    <div class="row">
+                        <div class="form-group col-xs-12 col-sm-12 col-md-4 col-lg-4">
+                            <div class="input-group filter-controls">
+                                <input  id="productSearchFilter"
+                                        name="productSearchFilter"
+                                        class="form-control"
+                                        placeholder=""
+                                        title="[% locale.maketext('Type in your search filter.') %]"
+                                        ng-model="meta.productFilterValue"
+                                        ng-model-options="{ debounce: 350 }"
+                                        ng-keyup="triggerClearSearch($event)"
+                                        ng-change="fetch_products()"
+                                        autocomplete="off"
+                                        auto-focus>
+                                <span class="input-group-btn">
+                                    <button id="btnSearch"
+                                            type="button"
+                                            class="btn btn-default hidden-xs"
+                                            ng-click="clearSearch()">
+                                        <span class="glyphicon" ng-class="{ 'glyphicon-search': !meta.productFilterValue, 'glyphicon-remove': meta.productFilterValue }"></span>
+                                    </button>
+                                    <button id="btnToggleAdvancedProductSettings" type="button" class="btn btn-default" ng-click="showAdvancedProductSettings = !showAdvancedProductSettings" title="[% locale.maketext('Toggle Advanced Settings') %]">
+                                        <span class="fas fa-cogs"></span>
+                                    </button>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row form-group">
+                        <div
+                            id="ProductSearchSettings"
+                            search-settings-panel
+                            ng-model="productSearchFilterOptions"
+                            ng-change="fetch_products()"
+                            class="col-xs-12 ng-cloak"
+                            display-settings-panel="showAdvancedProductSettings"
+                            display-set-values="!showAdvancedProductSettings"
+                            ng-cloak>
+                        </div>
+                    </div>
+                    <div class="row" >
+                        <div class="col-md-12">
+                            <div class="simple-product-blocks">
+                                <div
+                                    class="simple-product-block"
+                                    ng-repeat="product in filteredProductList"
+                                    ng-class="{'selected':check_product_match(product)}"
+                                    id="productBlock_{{::product.provider + '_' + product.id | qaSafeID}}"
+                                    ng-click="set_product(product);">
+                                        <div>
+                                            <div class="simple-product-block-inner">
+                                                <div>
+                                                    <div class="text-center sp-radio-button">
+                                                        <input
+                                                            type="radio"
+                                                            name="selected_product"
+                                                            class="product-radio-button"
+                                                            ng-checked="check_product_match(product)">
+                                                    </div>
+                                                    <div class="simple-product-details-block">
+                                                        <div ng-bind="product.display_name"></div>
+                                                        <div class="product-details" ng-if="product.recommended">
+                                                            <span class="badge badge-success"><span class='fas fa-star fa-sm'></span> [% locale.maketext("Recommended") %]</span>
+                                                        </div>
+                                                        <div class="info-block" ng-if="product.description" ng-bind="product.description"></div>
+                                                        <div class="info-block" ng-if="!product.description">
+                                                            <em>([% locale.maketext('No product description is available.') %])</em>
+                                                        </div>
+
+                                                        <div class="info-block" ng-switch="product.x_payment_trigger">
+                                                            <span ng-switch-when="issuance">[% locale.maketext('“[_1]” will not complete the charge to your credit card until the certificate is available.', '{{product.provider_display_name}}') %]</span>
+                                                            <span ng-switch-when="checkout">[% locale.maketext('“[_1]” will charge your credit card immediately upon checkout.', '{{product.provider_display_name}}') %]</span>
+                                                            <span ng-switch-default>hahashhasdha</span>
+                                                        </div>
+
+                                                        <div class="info-block" ng-if="product.wildcard_parent_domain_included">
+                                                            <strong ng-bind="get_wildcard_base_domain_msg()"></strong>
+                                                        </div>
+                                                        <div class="product-details" ng-bind="get_per_price_string(product)"></div>
+                                                        <div class="product-details" ng-bind="get_product_estimate_string(product)"></div>
+                                                    </div>
+                                                </div>
+                                        </div>
+                                        <div style="position:absolute;bottom:5px;right:5px;display:inline-block;">
+                                            <img ng-if="product.icon" ng-src="data:{{ product.icon_mime_type }};base64,{{ product.icon }}" width="30" height="30">
+                                            <span ng-if="!product.icon"  class='fas fa-lock fa-3x' width="30" height="30"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row" ng-if="filteredProductList.length">
+                                <div class="col-md-12" ng-if="selected_domains.length">
+                                    <button
+                                        id="productContinueButton"
+                                        type="button"
+                                        ng-disabled="!get_product()"
+                                        class="btn btn-primary {{ check_unresolved_issues() ? 'product-continue-btn-issues' : 'product-continue-btn-no-issues' }}"
+                                        ng-click="check_unresolved_issues() ? goto('resolve') : goto('review')">[% locale.maketext('Continue') %]</button>
+                                </div>
+                            </div>
+                            <div class="row" ng-if="filteredProductList.length == 0">
+                                <div class="col-md-12">
+                                    <div class="alert alert-info">
+                                        <span class="glyphicon glyphicon-info-sign"></span>
+                                        <div class="alert-message">
+                                            <strong>Info:</strong>
+                                            [% locale.maketext('No products match your current domain and/or filter selections.') %]
+                                        </div>
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <a
+                                                id="modifyDomainsBtn"
+                                                href="javascript:void(0)"
+                                                class="btn btn-primary"
+                                                ng-click="goto('domains')">[% locale.maketext('Modify Domain Selection') %]</a>
+
+                                            <a
+                                                ng-if="!showAdvancedProductSettings"
+                                                id="modifyProductFiltersBtn"
+                                                href="javascript:void(0)"
+                                                class="btn btn-default"
+                                                ng-click="showAdvancedProductSettings = true">[% locale.maketext('Modify Filter Selection') %]</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div uib-accordion-group id="resolve"  heading="[% locale.maketext("Resolve Issues.") %]" class="panel-{{ get_resolve_panel_color() }}" ng-if="check_unresolved_issues()" is-open="panels.resolve">
+                <div class="form-group row" >
+                    <div class="col-md-12">
+
+                        <div class="alert alert-danger" ng-if="has_failed_dcv_domains() && (failed_dcv_domains = get_failed_dcv_domains()).length">
+                            <span class="glyphicon glyphicon-remove-sign"></span>
+                            <div class="alert-message">
+                                <span ng-bind-html="get_failed_dcv_message(failed_dcv_domains)"></span>
+                                <a
+                                    id="clearFailedDomainsBtn"
+                                    href="javascript:void(0)"
+                                    ng-click="clear_failed_domains(failed_dcv_domains)"
+                                    class="btn btn-link">[% locale.maketext('Remove the domains that failed') %]
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="alert alert-warning" ng-if="(partial_vhost_domains = get_partial_vhost_domains()).length">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                            <div class="alert-message">
+                                <span ng-bind-html="get_undercovered_vhost_message(partial_vhost_domains)"></span>
+                                <a
+                                    id="addUncoveredDomainsBtn"
+                                    href="javascript:void(0)"
+                                    ng-click="add_partial_vhost_domains(partial_vhost_domains)"
+                                    class="btn btn-link">[% locale.maketext('Secure these domains') %]
+                                </a>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <button
+                            id="resolveContinueBtn"
+                            type="button"
+                            ng-disabled="blocker_issues_exist()"
+                            class="btn btn-primary"
+                            ng-click="goto('review')">[% locale.maketext('Continue') %]</button>
+                    </div>
+                </div>
+            </div>
+            <div uib-accordion-group id="review" heading="[% locale.maketext("Confirm your selections.") %]" is-disabled="!selected_domains.length || !get_product() || blocker_issues_exist()" is-open="panels.review" >
+                <div class="form-group row" >
+                    <div class="col-md-12">
+                        <!-- Selected Domains -->
+                        <h4>[% locale.maketext('Selected Domains:') %]</h4>
+                        <div class="form-group row">
+                            <div class="col-md-12">
+                                <div class="panel panel-default collapse" ng-class="{in:selected_domains.length}">
+                                    <div class="panel-body">
+                                        <div src="'/domain-cloud.html'" ng-include></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- Selected Product -->
+                        <h4>[% locale.maketext('Selected Product:') %]</h4>
+                        <div class="form-group row" ng-if="product = get_product().provider && get_product_by_id(get_product().provider, get_product().id) ">
+                            <div class="col-md-12">
+                                <div class="panel panel-default collapse" ng-class="{in:selected_domains.length}">
+                                    <div class="panel-body">
+                                        <div class="row">
+                                        <div class="col-xs-1 text-center">
+                                            <img ng-if="product.icon" ng-src="data:{{ product.icon_mime_type }};base64,{{ product.icon }}" width="60" height="60">
+                                            <span ng-if="!product.icon"  class='fas fa-lock fa-3x' width="60" height="60"></span>
+                                        </div>
+                                        <div class="col-xs-11">
+                                            <span ng-bind="product.display_name"></span>
+                                            <div class="product-details" ng-if="product.recommended">
+                                                <span class="badge badge-success"><span class='fas fa-star fa-sm'></span> [% locale.maketext("Recommended") %]</span>
+                                            </div>
+
+                                            <div ng-if="check_product_match(product)">
+                                                <div class="info-block" ng-if="product.description" ng-bind="product.description"></div>
+                                                <div class="info-block" ng-if="!product.description">
+                                                    <em>([% locale.maketext('No product description is available.') %])</em>
+                                                </div>
+
+                                                <div class="info-block" ng-switch="product.x_payment_trigger">
+                                                    <span ng-switch-when="issuance">[% locale.maketext('“[_1]” will not complete the charge to your credit card until the certificate is available.', '{{product.provider_display_name}}') %]</span>
+                                                    <span ng-switch-when="checkout">[% locale.maketext('“[_1]” will charge your credit card immediately upon checkout.', '{{product.provider_display_name}}') %]</span>
+                                                    <span ng-switch-default>hahashhasdha</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="info-block">
+                                                <div class="product-details" ng-bind="get_per_price_string(product)"></div>
+                                                <div class="product-details" ng-bind="get_product_estimate_string(product)"></div>
+                                            </div>
+
+                                            <identity-verification ng-if="product.x_identity_verification" items="product.x_identity_verification" models="identity_verification" countries="COUNTRIES" virtual_host="" />
+                                        </div>
+                                    </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <button
+                            id="checkoutBtn"
+                            type="submit"
+                            ng-disabled="!cert_form.$valid"
+                            class="btn btn-default btn-primary"
+                            ng-hide="get_cart_items().length == 0"
+                            title="{{ cert_form.$valid ? '[% locale.maketext('Proceed to the checkout process to complete your order.') %]' : '[% locale.maketext('Fill out the above form to proceed with your order.') %]' }}">
+                            <span class='fas fa-shopping-cart fa-lg'></span>
+                            [% locale.maketext('Check Out') %]
+                            <span> ({{ get_currency_string(get_cart_price(), 'USD') }}) </span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+    </form>
+</div>
+
+<script type="text/ng-template" id="/domain-cloud.html">
+    <div ng-repeat="domain in selected_domains" class="domain-cloud-domain">
+        <div class="label label-{{get_domain_badge_color(domain)}} ">
+            <a class='fas fa-times fa-sm' ng-click="clear_cloud_domain(domain)" title="[% locale.maketext("Remove from certificate"); %]">&nbsp;</a> <span class="domain-cloud-domain-label" ng-bind="domain.domain"></span>
+        </div>
+    </div>
+</script>

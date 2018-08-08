@@ -1,0 +1,145 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[%
+# Fetch the required strength
+Api2.pre_exec("PasswdStrength", "get_required_strength");
+SET required_strength_resp = Api2.exec("PasswdStrength", "get_required_strength", {"app"=>"sshkey"} );
+Api2.post_exec("PasswdStrength", "get_required_strength");
+
+IF required_strength_resp.size();
+    SET required_strength = required_strength_resp.0.strength;
+END;
+
+%]
+
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+    page_js = js_code
+    feature = 'ssh'
+-%]
+<div class="body-content">
+    <h2 id="hdrGenerateKey">[% locale.maketext("Generating a Public Key") %]</h2>
+    <p id="descGenerateKey">
+        [% locale.maketext("RSA vs DSA: RSA and DSA are encryption algorithms used to encrypt your key. DSA is faster for Key Generation and Signing and RSA is faster for Verification.") %]
+    </p>
+
+    <div class="section">
+        <form method="post" action="doaddkey.html" name="passform" id="passform">
+            <div class="form-group">
+                <label id="lblKeyName" for="name">
+                    [% locale.maketext("Key Name (This value defaults to “[asis,id_rsa]”.):") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="name" id="name" value="id_rsa" />
+                    </div>
+                    <div id="name_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblKeyPass" for="password">
+                    [% locale.maketext("Key Password:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" name="password" id="password" class="form-control"/>
+                    </div>
+                    <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPassAgain" for="password2">
+                    [% locale.maketext("Reenter Password:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" name="password2" id="password2" class="form-control"/>
+                    </div>
+                    <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblStrength">
+                    [% locale.maketext("Strength") %]
+                    <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                </label>
+                [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="password_strength" class="password_strength"></div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="button" id="create_strong_password" class="btn btn-default" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblKeyType" for="ddlType">
+                    [% locale.maketext("Key Type:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="ddlType" name="type" class="form-control">
+                            <option value="dsa">[% locale.maketext("[output,acronym,DSA,Digital Signature Algorithm]") %]</option>
+                            <option value="rsa" selected>[% locale.maketext("[asis,RSA]") %]</option>
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblKeySize" for="ddlKeySize">
+                    [% locale.maketext("Key Size:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="ddlKeySize" name="keysize" class="form-control">
+                            <option value="1024">1024</option>
+                            <option value="2048" selected>2048</option>
+                            <option value="4096">4096</option>
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" value="[% locale.maketext("Generate Key") %]" id="submit" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var REQUIRED_PASSWORD_STRENGTH = parseInt('[% required_strength %]', 10);
+
+    var init_page = function() {
+        var name_validator = new CPANEL.validate.validator("[% locale.maketext("Key Name") %]");
+        name_validator.add("name", "filename", "[% locale.maketext("Key Name")  %]");
+        name_validator.attach();
+
+        var requiredStrength = (REQUIRED_PASSWORD_STRENGTH > 0) ? REQUIRED_PASSWORD_STRENGTH : -1;
+        var enforceMinLength = (REQUIRED_PASSWORD_STRENGTH > 0) ? void 0 : 0;
+
+        var password_validators = CPANEL.password.setup("password", "password2", "password_strength", requiredStrength, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text", enforceMinLength);
+
+        password_validators.push(name_validator);
+        CPANEL.validate.attach_to_form("submit", password_validators);
+
+        YAHOO.util.Dom.get("password").focus();
+        name_validator.verify();
+    };
+    YAHOO.util.Event.onDOMReady(init_page);
+</script>
+[% END %]

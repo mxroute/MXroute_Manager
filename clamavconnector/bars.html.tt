@@ -1,0 +1,7 @@
+<html>
+[%
+Api1.pre_exec("ClamScanner", "bars");
+Api1.exec("ClamScanner", "bars", [RAW_FORM.item("bars")]);
+Api1.post_exec("ClamScanner", "bars")
+%]
+</html>

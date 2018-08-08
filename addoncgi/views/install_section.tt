@@ -1,0 +1,575 @@
+[%
+# Arguments
+# form   - hash -
+# data   - hash -
+# vendor - hash -
+#    name - string - vendor name
+# environment - hash
+#    mysql_version - string
+#    contactemail  - string
+#    script_name   - string - name of the script
+# module - hash -
+#    name - string
+#    version - string
+#    meta - hash -
+#    supports_action - hash - with booleans for each action name
+# settings - hash -
+#    no_modified_cpanel - boolean
+#    no_3rd_party       - boolean
+#    min_password_strength - number
+#
+SET module_name = module.name;
+IF module.meta.capabilities.install.oneclick;
+    IF !form.oneclick.defined;
+        SET form.oneclick = '1'; # Defaults to showing oneclick if supported.
+    END;
+END;
+
+# Build a list of the used paths
+SET used_paths = {};
+FOR instance IN data.sorted_instances;
+    SET domain = instance.installed_on_domain;
+    SET domain_path = data.domain_to_docroot_map.$domain;
+    SET sub_path = instance.installpath.replace('[.][/]', '');
+    SET domain_path = domain_path _ '/' _ sub_path IF sub_path;
+    SET used_paths.$domain_path = 1;
+END;
+
+# Build a list of the root domains available for installs
+SET domains_without_root_install = [];
+
+FOREACH domain IN environment.domains.list;
+    SET domain_path = data.domain_to_docroot_map.$domain;
+    IF !used_paths.$domain_path;
+        domains_without_root_install.push(domain);
+    END;
+END;
+
+SET install_class = data.sorted_instances.size > 0 ? "" : "active ";
+
+SET can_hide_advanced_configuration =
+        module.meta.capabilities.install.oneclick &&
+        domains_without_root_install.size > 0 &&
+        module.meta.capabilities.install.standard &&
+        module.can_be_installed_in_root_of_domain;
+%]
+
+[% #Install %]
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+
+    [% IF module.is_approved &&
+        module.supports_action.install &&
+        can_hide_advanced_configuration &&
+        data.action_has_prerequisites.install %]
+        <div class="row">
+            <button id="btnAdvanced" class="btn btn-link">
+                [% locale.maketext('Show Advanced Configuration') %]
+            </button>
+        </div>
+    [% END %]
+
+    [% IF !environment.contactemail && module.meta.capabilities.install.oneclick %]
+            <div class="alert alert-warning">
+                <span class="glyphicon glyphicon-exclamation-sign"></span>
+                <div class="alert-message" id="contact-email-not-configured">
+                    <strong>[% locale.maketext('Warning:') %]</strong>
+                    [% locale.maketext('To use the one-click installation feature, you must [output,url,_1,configure a contact email address,target,_2,id,_3] for your [asis,cPanel] account.', '../contact/index.html', '_blank', 'link-configure-contact-email') %]
+                </div>
+            </div>
+    [% END %]
+
+    [%
+    IF !module.is_approved || !module.supports_action.install || !data.action_has_prerequisites.install %]
+        <span id="install_not_supported">
+        [% IF !module.is_approved %]
+        [% locale.maketext('You cannot install unapproved [asis,cPAddons].') %]
+        [% ELSE %]
+        [% locale.maketext('Install is not supported.') %]
+        [% END %]
+        </span>
+        </div>
+    </div>
+    [% ELSE %]
+    [% IF !environment.script_run_as_user && module.meta.security_policies;
+        FOREACH policy IN module.meta.security_policies;
+            IF policy.name == 'process_config_file_permissions' %]
+            <div class="alert alert-warning">
+                <span class="glyphicon glyphicon-exclamation-sign"></span>
+                <div class="alert-message" id="addon-may-be-insecure-without-run-as-owner">
+                    <strong>[% locale.maketext('Warning:') %]</strong>
+                    [% locale.maketext('The web server does not run scripts as the script owner. With this configuration, we must set the file permission on this application more permissively. This can result in security issues with this application on shared servers. Only use this [asis,cPAddon] with this configuration if you use a dedicated server. To enable the more secure mode, contact your hosting provider and request that they install ruid2 or itk on the web server. After your administrator enables the module, they can run the [asis,/usr/local/cpanel/scripts/fix_addon_permissions] script to adjust the security of any [asis,cPAddons] with this security policy.') %]
+                </div>
+            </div>
+    [%      END;
+        END;
+    END %]
+        </div>
+    </div>
+
+    [% IF module.meta.capabilities.install.oneclick &&
+        module.can_be_installed_in_root_of_domain &&
+        domains_without_root_install.size == 0 %]
+        <div class="row">
+            <div class="col-xs-12 col-sm-6">
+                <div class="alert alert-info">
+                    <span class="glyphicon glyphicon-info-sign"></span>
+                    <div class="alert-message" id="one-click-disabled-no-root-domains-free">
+                        <strong>[% locale.maketext('Information:') %]</strong>
+                        [% locale.maketext('You cannot use the one-click installer. However, you can install additional “[_1]” instances into a sub-folder of one of your domains or add additional domains.', module.display_app_name) %]
+                    </div>
+                </div>
+            </div>
+        </div>
+    [% END %]
+
+    <form id="cpaddonsform_install"
+        action="[% environment.script_name %]"
+        class="layout-medium"
+        method="post">
+        <input type="hidden" name="addon" value="[% module.name | html %]" />
+        <input type="hidden" name="action" value="install" />
+        <input type="hidden" name="debug" value="[% environment.debug | html %]" />
+        <input type="hidden" name="verbose" value="[% environment.verbose | html %]" />
+        [% IF module.meta.capabilities.install.oneclick &&
+            module.can_be_installed_in_root_of_domain &&
+            domains_without_root_install.size > 0 %]
+        <input type="hidden" id="hidOneClick" name="oneclick" value="[% form.oneclick | html %]" />
+        <div id="oneclick">
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6">
+                        <label for="oneclick-subdomain">[% locale.maketext('Installation Domain:') %]</label>
+                        [% IF environment.can_add_subdomains %]
+                        <a id="oneclick-add-subdomain-lnk" class="pull-right"
+                            href="../subdomain/index.html?from_cpaddon=[% module.name %]">
+                            [% locale.maketext('Add a subdomain') %]
+                        </a>
+                        [% END %]
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6">
+                        <select id="oneclick-subdomain" name="subdomain" class="form-control">
+                            [% FOR domain IN domains_without_root_install;
+                                SET selected = form.subdomain == domain ||
+                                            !form.subdomain && domain == environment.domains.primary ? ' selected' : '' %]
+                                <option value="[% domain | html %]"[% selected %]>
+                                    http://[% domain | html %]
+                                </option>
+                            [% END %]
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6">
+                    <div class="alert alert-info">
+                        <span class="glyphicon glyphicon-info-sign"></span>
+                        <div class="alert-message" id="one-click-destructive-warning">
+                            <strong>[% locale.maketext('Important:') %]</strong>
+                            [% locale.maketext('The one-click installer will write files in to the selected domain’s document root. The installer will overwrite any files that exist whose names match a file name that is part of the [asis,cPAddon] installation.') %]
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        [% END %]
+
+        [% IF can_hide_advanced_configuration %]
+        <div id="advanced" style="visibility: hidden">
+        [% END %]
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="advanced-subdomain">[% locale.maketext('Installation URL:') %]</label>
+                    [% IF environment.can_add_subdomains %]
+                    <a id="advanced-add-subdomain-lnk" class="pull-right"
+                        href="../subdomain/index.html?from_cpaddon=[% module.name %]">
+                        [% locale.maketext('Add a subdomain') %]
+                    </a>
+                    [% END %]
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div class="form-group">
+                        <div class="input-group form-inline">
+                            <select id="advanced-subdomain"
+                                    name="subdomain"
+                                    class="form-control"
+                                [% IF module.meta.capabilities.install.oneclick &&
+                                    domains_without_root_install.size > 0 %]
+                                    disabled="disabled"
+                                [% END %]
+                            >
+                                [% FOR domain IN environment.domains.list;
+                                    SET selected = (form.subdomain == domain) ||
+                                                (!form.subdomain && domain == environment.domains.primary) ? ' selected' : '' %]
+                                    <option value="[% domain | html %]"[% selected %]>
+                                        http://[% domain | html %]
+                                    </option>
+                                [% END %]
+                            </select>
+                            <span class="input-group-addon">/</span>
+                        [% SET initial_path = form.installdir || module.meta.installdir || '' %]
+                            <input id="installdir" type="text"
+                            class="form-control"
+                            name="installdir"
+                            value="[% initial_path | html %]" />
+                        </div>
+                    </div>
+                    [% IF module.can_be_installed_in_root_of_domain %]
+                    <span class="help-block">[% locale.maketext('To install directly into a domain’s document root, leave the installation URL’s path blank.') %]</span>
+                    [% END %]
+                </div>
+            </div>
+            [% IF module.can_be_installed_in_root_of_domain %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-6">
+                    <div class="alert alert-info">
+                        <span class="glyphicon glyphicon-info-sign"></span>
+                        <div class="alert-message" id="advanced-config-destructive-warning">
+                            <strong>[% locale.maketext('Important:') %]</strong>
+                            [% locale.maketext('The system will overwrite any files that exist whose name matches a file name that is part of the [asis,cPAddon] installation.') %]
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+                [% SET version = module.meta.version;
+                IF module.meta.$version.public_html_install_note %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-6">
+                    <p>
+                        [% module.meta.$version.public_html_install_note %]
+                    </p>
+                </div>
+            </div>
+                [% END %]
+            [% END %]
+        </div>
+
+        [% IF module.meta.adminuser_pass %]
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="auser">[% locale.maketext('Admin User') %]</label>
+                    <span>
+                        [% IF module.meta.admin_user_pass_length_max > 0 %]
+                            [% locale.maketext('([_1] - [_2] characters)', module.meta.admin_user_pass_length.html(), module.meta.admin_user_pass_length_max.html()) %]
+                        [% ELSE %]
+                            [% locale.maketext('(Minimum [_1] characters)', module.meta.admin_user_pass_length.html()) %]
+                        [% END %]
+                    </span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="text" name="auser" id="auser"
+                            value="[% form.auser | html %]"
+                            class="form-control" />
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="password">[% locale.maketext('Admin Password') %]</label>
+                    <span>
+                        [% IF module.meta.admin_user_pass_length_max > 0 %]
+                            [% locale.maketext('([_1] - [_2] characters)', module.meta.admin_user_pass_length.html(), module.meta.admin_user_pass_length_max.html()) %]
+                        [% ELSE %]
+                            [% locale.maketext('(Minimum [_1] characters)', module.meta.admin_user_pass_length.html()) %]
+                        [% END %]
+                    </span>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="password" autocomplete='off' maxLength="128" name="apass" id="password" value="[% form.apass | html %]" class="form-control" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="password_error"></div>
+            </div>
+
+            <label id="lblPasswordAgain" for="password2">
+                [% locale.maketext('Admin Password (Again)') %]
+            </label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="password" autocomplete='off' name="apass2" id="password2" class="form-control" />
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="password2_error"></div>
+            </div>
+            <label id="lblStrength">
+                [% locale.maketext('Password Strength:') %] <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+            </label>
+            [% INCLUDE _assets/why_strong_passwords.html.tt %]
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div id="password_strength" class="password_strength"></div>
+                </div>
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input type="button" id="create_strong_password" class="btn btn-default" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                </div>
+            </div>
+        </div>
+        [% END %]
+
+        [% IF module.meta.admin_email %]
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="admin_email">[% locale.maketext('Email') %]</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <input id="admin_email" type="text"
+                            name="email"
+                            class="form-control"
+                            value="[% environment.contactemail | html %]" />
+                </div>
+            </div>
+        </div>
+        [% END %]
+
+        [%# TODO: Think this should be hidden if there
+                    are no additional properties. %]
+        <h4>[% locale.maketext('Additional installation options:') %]</h4>
+
+        [%
+            # TODO: Auto-update
+            module.meta.noautoupdate = 1; # disabled for now.
+        %]
+        [% IF !module.meta.noautoupdate %]
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="">[% locale.maketext('Automatic Updates') %]</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <div class="checkbox">
+                        <label for="autoupdate">[% locale.maketext('Update this installation automatically') %]
+                            <input type="checkbox" value="1" name="autoupdate" checked id="autoupdate" />
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+        [% END %]
+
+        [% IF module.meta.install_fields;
+            FOREACH field IN module.meta.install_fields;
+                SET field_name = field.name;
+                # Ignore any custom fields that have the same name
+                # as the standard install fields above.
+                NEXT IF data.standard_install_fields.$field_name; %]
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [% IF field.type == 'hidden'; %]
+                    <!--[% field.label %]-->
+                    [% ELSE %]
+                    <label for="">[% field.label | html %]</label>
+                    [% END %]
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [%# Build the text based fields %]
+                    [% IF field.type.match('^text$|^hidden$|^textarea$|^password$') %]
+                        [% SET value = form.$field_name || field.value || '';
+                        IF field.type == 'textarea' %]
+                        <textarea name="[% field_name | html %]"
+                                id="[% field_name | html %]"
+                                class="form-control"
+                                [% field.attr %]>[% value | html %]</textarea>
+                        [% ELSE %]
+                        <input type="[% field.type %]"
+                                name="[% field_name | html %]"
+                                id="[% field_name | html %]"
+                                value="[% value | html %]"
+                                class="form-control"
+                                [% field.attr %]/>
+                        [% END %]
+                    [% ELSIF field.type == 'select' %]
+                    <select name="[% field_name | html %]"
+                            id="[% field_name | html %]"
+                            class="form-control" [% field.attr %]>
+                        [% FOREACH option_value IN field.value %]
+                            [% IF option_value == field.defvalue %]
+                            <option value="[% option_value | html %]" selected>
+                                [% field.value.$option_value | html %]
+                            </option>
+                            [% ELSE %]
+                            <option value="[% option_value | html %]">
+                                [% SET value = form.$field_name || field.defvalue %]
+                                [% value | html %]
+                            </option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                    [% ELSIF field.type == 'multi' %]
+                    <select name="[% field_name | html %]"
+                            id="[% field_name | html %]"
+                            class="form-control"
+                            multiple [% field.attr %]>
+                        [% FOREACH option_value IN field.value %]
+                            [% IF field.defvalue == option_value %]
+                            <option value="[% option_value | html %]" selected>
+                                [% field.value.$option_value | html %]
+                            </option>
+                            [% ELSE %]
+                            <option value="[% option_value | html %]">
+                                [% field.value.$option_value | html %]
+                            </option>
+                            [% END %]
+                        [% END %]
+                    </select>
+                    [% ELSIF  field.type == 'checkbox' %]
+                        [% FOREACH checkbox_value IN field.value %]
+                            <div class="checkbox">
+                            [% SET label = field.value.$checkbox_value;
+                            IF field.defvalue == $checkbox_value; %]
+                                <label>
+                                    <input type="checkbox"
+                                    id="[% field_name | html %]"
+                                    name="[% field_name | html %]"
+                                    value="[% checkbox_value | html %]" checked
+                                    [% field.attr %]/>
+                                    [% label | html %]
+                                </label>
+                                [% ELSE %]
+                                <label>
+                                    <input type="checkbox"
+                                    id="[% field_name | html %]"
+                                    name="[% field_name | html %]"
+                                    value="[% checkbox_value | html %]"
+                                    [% field.attr %]/>
+                                    [% label | html %]
+                                </label>
+                            [% END %]
+                            </div>
+                        [% END %]
+                    [% ELSIF field.type == 'radio' %]
+                        [% FOREACH radio_value IN field.value %]
+                        <div class="radio">
+                        [% SET value = form.field_name || field.defvalue;
+                            SET label = field.value.$radio_value;
+                            IF radio_value == field.defvalue; %]
+                            <label>
+                                <input type="radio"
+                                    name="[% field_name | html %]"
+                                    id="[% field_name | html %]"
+                                    value="[% radio_value | html %]"
+                                    [% field.attr %] checked />
+                                [% label | html %]
+                            </label>
+                            [% ELSE %]
+                            <label>
+                                <input type="radio"
+                                    name="[% field_name | html %]"
+                                    id="[% field_name | html %]"
+                                    value="[% radio_value | html %]" [% field.attr %]/>
+                            [% label | html %]
+                            </label>
+                            [% END %]
+                        </div>
+                        [% END  %]
+                    [% END %]
+                </div>
+            </div>
+        </div>
+            [% END %]
+        [% END %]
+
+        [% IF data.table_prefix %]
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="table_prefix">[% locale.maketext('Table Prefix') %]</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [% SET prefix = form.table_prefix || data.table_prefix %]
+                    <input type="text"
+                        id="table_prefix"
+                        name="table_prefix"
+                        class="form-control"
+                        value="[% prefix | html %]" />
+                </div>
+                <div class="col-xs-12 col-sm-6">
+                    <ul id="invalid-prefix-characters-container" class="validation-container" style="display: none">
+                        <li class="validation validation-error">
+                            <span class="glyphicon glyphicon-exclamation-sign"></span>
+                            <span id="invalid-table-prefix-characters" class="validation-message">
+                                <span>[% locale.maketext('The database table prefix should only contain the letters [asis,a-z] and [asis,A-Z] and the numbers [asis,0-9]. The system will remove all other characters.') %]</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <label for="lstDatabase">[% locale.maketext('[asis,MySQL] Database') %]</label>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <select name="existing_mysql" id="lstDatabase" class="form-control">
+                        <option [% IF !form.existing_mysql %]selected[% END %] value="">
+                            [% locale.maketext('Create New Database') %]
+                        </option>
+                        [% FOREACH database IN data.databases;
+                            IF form.existing_mysql == database %]
+                        <option value="[% database | html %]" selected>
+                            [% ELSE %]
+                        <option value="[% database | html %]">
+                            [% END %]
+                            [% database | html %]
+                        </option>
+                        [% END %]
+                    </select>
+                </div>
+            </div>
+        </div>
+        [% END %]
+
+
+        [% IF can_hide_advanced_configuration %]
+        </div>
+        [% END %]
+
+        <div class="form-group">
+        [% IF environment.moderated.$module_name %]
+            <button type="submit" class="btn btn-primary" id="btnSubmitModeration">
+                <i id="spinner-install" style="display: none" class="fas fa-sync fa-spin"></i>
+                [% locale.maketext('Submit Install Request') %]
+            </button>
+        [% ELSE %]
+            <button type="submit" class="btn btn-primary" id="btnSubmitInstall">
+                <i id="spinner-install" style="display: none" class="fas fa-sync fa-spin"></i>
+                [% locale.maketext('Install') %]
+            </button>
+        [% END %]
+        </div>
+    </form>
+    [% END %]
+
+    [% IF module.meta.adminuser_pass %]
+    <script type="text/javascript">
+        window.pwminstrength = parseInt([% settings.min_password_strength %]) || 0;
+        PAGE.oneclick = [% (form.oneclick == '1' && environment.contactemail) ? 'true' : 'false' %];
+        PAGE.has_contactemail = [% environment.contactemail ? 'true' : 'false' %];
+    </script>
+    [% END %]

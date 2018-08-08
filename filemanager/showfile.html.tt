@@ -1,0 +1,35 @@
+<html>
+    <head>
+        <title>[% FORM.file.remove("\n").remove("\r") %] - [% locale.maketext("cPanel File Manager v3") %]</title>
+        [% Api1.exec("relinclude", ["filemanager/files_head.html"]) %]
+        <style> body { background: #fff; margin: 0 ; } </style>
+    </head>
+    <body>
+        <div style="margin: 0; padding: 0; float:right;" align="right">
+            <a href="javascript:top.window.close()" id="close">
+                <img src="close.jpg" border="0">
+            </a>
+        </div>
+        [%
+            Api2.pre_exec("Fileman", "viewfile");
+            api2_result_Fileman_viewfile=Api2.exec("Fileman" , "viewfile" , {"no_expvar" =>"1" , "file" =>FORM.item("file" ), "dir" =>FORM.item("dir" )});
+            Api2.post_exec("Fileman", "viewfile"); %]
+
+        [% IF api2_result_Fileman_viewfile.size; %]
+            [% FOREACH hashref IN api2_result_Fileman_viewfile; %]
+                <div id="file_info" style="padding: 0; margin: 0; border: 2px solid #ccc; background: #333333; color: #FFFFFF;font-weight:bold;">
+                    <h1>
+                        <img src="../mimeicons/[% hashref.mimename %].png" align="absmiddle" alt="[% hashref.mimetype %]">
+                        <span>[% hashref.file %] </span>
+                        <span style="font-size:14px;">( [% hashref.fileinfo %] )<span>
+                    </h1>
+                </div>
+                [%
+                    hashref.formatting_before;
+                    hashref.contents;
+                    hashref.formatting_after;
+                %]
+            [% END %]
+        [% END %]
+    </body>
+</html>

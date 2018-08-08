@@ -1,0 +1,42 @@
+.userlist {
+    width: 315px;
+}
+.extrapad {
+    padding: 15px;
+}
+
+.controlContainer > div {
+    display: table-cell;
+}
+
+#delegateWrapper > button {
+    margin: 10px 0 0;
+}
+
+.selectWrapper p {
+    text-align: center;
+    font-weight: bold;
+    font-size: 14px;
+    margin: 5px 0;
+}
+
+.controls {
+    vertical-align: middle;
+    padding: 28px 0 0;
+}
+
+.controls button {
+    float: left;
+    margin: 0 5px 5px;
+    vertical-align: middle;
+    width: 40px;
+}
+
+.arrow-button {
+    font-size: 18px;
+}
+
+.needs-save {
+    font-weight: 900; /* a "bolder bold" */
+    color: blue;
+}

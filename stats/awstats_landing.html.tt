@@ -1,0 +1,54 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[% SET awstats_list =  Api2.exec("Stats", "listawstats", {} ); %]
+[% SET rowCount = 0 %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'awstats'
+-%]
+
+<div class="body-content">
+    <p id="descAwstats" class="description">
+        [% locale.maketext("Awstats produces visual statistics about visitors of your site.") %]
+    </p>
+    <div class="section">
+        <h2 id="hdrSelectDomain">
+            [% locale.maketext("Select a Domain") %]
+        </h2>
+        <table id="tblDomainList" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th id="theadDomain">
+                        [% locale.maketext("Domain") %]
+                    </th>
+                    <th id="theadView" nonsortable="true">
+                        [% locale.maketext("Actions") %]
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                [%  IF awstats_list.size; %]
+                    [% FOREACH stats IN awstats_list; %]
+                        [% rowCount = rowCount +1 %]
+                        [% SET rowID = "row" _ rowCount %]
+                    <tr id="[% rowID %]">
+                        <td id="domain_[% rowID %]">[%  stats.txt.html() %]</td>
+                        <td>
+                            <a id="lnkViewStats[% rowID %]" class="btn btn-link" target="_blank" href="[% CPANEL.ENV.cp_security_token.html %]/awstats.pl?config=[%  stats.domain | url %]&ssl=[%  stats.ssl | url %]&lang=[%  stats.lang | url %]">
+                                <span id="imgViewStats[% rowID %]" class="glyphicon glyphicon-search" title="[% locale.maketext('view stats') %]"></span>
+                                [% locale.maketext("View") %]
+                            </a>
+                        </td>
+                    </tr>
+                    [% END %]
+                [% ELSE %]
+                    <tr id="emptyRow">
+                        <td id="errorText" class="errors" colspan="2">
+                            [% locale.maketext("There are no domains which have awstats stats to display.") %]
+                        </td>
+                    </tr>
+                [% END %]
+            </tbody>
+        </table>
+    </div>
+</div>
+[% END #wrapper -%]

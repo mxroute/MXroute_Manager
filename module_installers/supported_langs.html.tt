@@ -1,0 +1,13 @@
+[%
+USE Api2;
+
+SET supported_list = Api2.exec("LangMods", "langlist", {});
+SET supported_langs = [];
+FOREACH supported_lang = supported_list;
+    # we do not allow php-pecl to be used from within cPanel, only WHM
+    IF supported_lang.item('lang') != 'php-pecl';
+        supported_langs.push(supported_lang.item('lang'));
+    END;
+END;
+%]
+

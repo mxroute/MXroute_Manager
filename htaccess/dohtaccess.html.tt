@@ -1,0 +1,214 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_url = 'index.html?dir=' _ FORM.dir;
+
+
+Api1.pre_exec("Htaccess", "checkprotected");
+SET check_protected = Api1.exec("Htaccess", "checkprotected", [RAW_FORM.dir]);
+Api1.post_exec("Htaccess", "checkprotected");
+
+Api1.pre_exec("Htaccess", "resname");
+SET protected_dir = Api1.exec("Htaccess", "resname", [RAW_FORM.dir]);
+Api1.post_exec("Htaccess", "resname");
+
+Api1.pre_exec("Htaccess", "number_of_users");
+SET number_of_users = Api1.exec("Htaccess", "number_of_users", [RAW_FORM.dir]);
+Api1.post_exec("Htaccess", "number_of_users");
+
+IF !(CPANEL.CPVAR.htaccess_number_of_users == "0");
+    Api1.pre_exec("Htaccess", "showusers");
+    SET users = Api1.exec("Htaccess", "showusers", [RAW_FORM.dir]);
+    Api1.post_exec("Htaccess", "showusers");
+END;
+
+
+SET required_strength_resp = execute('PasswdStrength', 'get_required_strength', { app => 'htaccess' });
+IF required_strength_resp;
+    SET required_strength = required_strength_resp.data.strength;
+END
+
+%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'directory_privacy'
+    page_js = js_code
+-%]
+<div class="body-content">
+
+
+    <div class="section">
+        <h2 id="hdrSetPerms">
+            [% locale.maketext("Set permissions for “[output,strong,_1]”.", FORM.dir) %]
+        </h2>
+
+        <h3 id="hdrSecuritySettings">
+            [% locale.maketext("Security Settings") %]
+        </h3>
+        <p class="description" id="descSecuritySettings">
+            [% locale.maketext("When a user attempts to access the protected directory through a browser, the site will prompt them to enter a username and password. The name that you choose for the protected directory will also display.") %]
+        </p>
+        <form action="changepro.html" method="get">
+            <input type="hidden" id="dir" name="dir" value="[% FORM.dir %]" />
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="checkbox">
+                            <label id="lblProtectDir">
+                                <input type="checkbox" name="protected" [% check_protected %] value="1" id="protect_dir_checkbox" />
+                                [% locale.maketext("Password protect this directory.") %]
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblResName" for="resname">
+                    [% locale.maketext("Enter a name for the protected directory:") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="resname" value="[% protected_dir %]" id="resname" />
+                    </div>
+                    <div id="resname_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input name="action2" type="submit" id="submit_dir_name" class="btn btn-primary" value="[% locale.maketext("Save") %]" />
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrCreateUser">[% locale.maketext("Create User") %]</h2>
+        <form method="post" name="mainform" id="mainform" action="newuser.html">
+            <!-- prevent password autofill -->
+            <input type="text" style="display:none">
+            <input type="password" autocomplete='off' style="display:none">
+            <input type="hidden" name="dir" id="hidDir" value="[% FORM.dir %]" />
+            <div class="form-group">
+                <label id="lblUsername" for="user">
+                    [% locale.maketext("Username") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" class="form-control" name="user" id="user" />
+                    </div>
+                    <div id="user_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPassword" for="password">
+                    [% locale.maketext("New Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' name="pass" id="password" class="form-control"/>
+                    </div>
+                    <div id="password_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPassword2" for="password2">
+                    [% locale.maketext("Confirm Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' name="pass2" id="password2" class="form-control" />
+                    </div>
+                    <div id="password2_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblPasswordStrength">
+                    [% locale.maketext("Password Strength") %]
+                    <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                </label>
+                [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="password_strength" class="password_strength"></div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="button" id="create_strong_password" class="btn btn-default" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input name="action" type="submit" id="submit_user" class="btn btn-primary" value="[% locale.maketext("Save") %]">
+            </div>
+        </form>
+    </div>
+
+    [% IF !(CPANEL.CPVAR.htaccess_number_of_users == "0") %]
+    <div class="section">
+        <h2 id="hdrAuthUsers">
+            [% locale.maketext("Authorized Users") %]
+        </h2>
+        <p class="description" id="descAuthUsers">
+            [% locale.maketext("To change a user’s password, add that user above with the new password.")  %]
+        </p>
+        <form action="deluser.html" method="get">
+            <input type="hidden" name="dir" id="hidAuthUserDir" value="[% FORM.dir %]" />
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="user" size="8" id="ddlUser" class="form-control">
+                            [% users %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input name="action" type="submit" id="btnDelete" class="btn btn-primary" value="[% locale.maketext("Delete User") %]" />
+            </div>
+        </form>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_url return_link_text=locale.maketext("Back") %]
+
+</div>
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    /**
+     * [init_security_validation description]
+     * @return {[type]} [description]
+     */
+    var init_security_validation = function() {
+        var dir_validator = new CPANEL.validate.validator("[% locale.maketext("Directory Name") %]");
+        dir_validator.add("resname", "min_length(%input%, 1)", "[% locale.maketext("Directory name cannot be empty.")  %]");
+        dir_validator.attach();
+
+        CPANEL.validate.attach_to_form("submit_dir_name", dir_validator);
+    };
+    YAHOO.util.Event.onDOMReady(init_security_validation);
+
+    var REQUIRED_PASSWORD_STRENGTH = parseInt('[% required_strength %]', 10) || 0;
+
+    /**
+     * [init_page description]
+     * @return {[type]} [description]
+     */
+    var init_page = function() {
+        var user_validator = new CPANEL.validate.validator("[% locale.maketext('Username') %]");
+        user_validator.add("user", "min_length(%input%, 1)", "[% locale.maketext('Username cannot be empty.') %]");
+        user_validator.add("user", "filename", "[% locale.maketext('Username cannot contain special characters: / [output,chr,92][output,chr,92] ? % * : | “” [output,lt] [output,gt]') %]");
+        user_validator.add("user", "no_chars(%input%, ' ')", "[% locale.maketext('Username cannot have spaces.') %]");
+        user_validator.add("user", "alphanumeric_bookends", "[% locale.maketext('Username must be begin and end with an alphanumeric character.') %]");
+        user_validator.attach();
+
+        var password_validators = CPANEL.password.setup("password", "password2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+
+        password_validators.push(user_validator);
+        CPANEL.validate.attach_to_form("submit_user", password_validators);
+    };
+    YAHOO.util.Event.onDOMReady(init_page);
+</script>
+[% END %]

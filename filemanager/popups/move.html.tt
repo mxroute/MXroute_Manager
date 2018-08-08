@@ -1,0 +1,33 @@
+<div style="display:none;" id="move">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Move") %]</span>
+        <div class="rt"></div>
+    </div>
+    <div class="bd">
+        <div class="filecontent" id="move-filecontent">
+            <div id="move-hasfilelist" style="display: none;">
+                <form action="javascript:void(0)">
+                <div class="form-group">
+                    <label for="move-file-path">
+                        [% locale.maketext("Current Path:") %]
+                    </label>
+                    <div id="move-filelist"></div>
+                </div>
+                <div class="form-group">
+                    <label>
+                        [% locale.maketext("Enter the file path that you want to move this file to:") %]
+                    </label>
+                    <div class="input-group">
+                          <span class="input-group-addon">
+                              <span class="fas fa-home"></span>
+                          </span>
+                          <input type="text" class="form-control" name="movefilepath" id="move-file-path" value="/path/to/location/" />
+                    </div>
+                </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <div class="ft"></div>
+</div>

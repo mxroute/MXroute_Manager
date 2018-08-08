@@ -1,0 +1,52 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+[%
+    Api2.pre_exec("SSH", "converttoppk");
+    SET convert_ppk =  Api2.exec("SSH", "converttoppk", {"pass"=>FORM.pass, "name"=>FORM.key} ).0;
+    Api2.post_exec("SSH", "converttoppk");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssh_access'
+-%]
+<div class="body-content">
+    [% IF CPANEL.CPERROR.item('ssh') %]
+    <div id="sshError" class="alert alert-danger">
+        <span id="sshErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="sshErrorMsg" class="alert-message">
+            [% CPANEL.CPERROR.item('ssh').html() %]
+        </div>
+    </div>
+    [% ELSE %]
+    <div class="section">
+        <h2 id="hdrViewKeys"> [% locale.maketext("View/Download SSH Keys “[_1]”", FORM.key) %]</h2>
+
+        <div class="form-group">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <strong>
+                        <span id="descPpkConvert">
+                            [% locale.maketext("Convert the “[_1]” key to [output,acronym,PPK,Public Private Key] format:", FORM.key) %]
+                        </span>
+                    </strong>
+                    <pre id="puttykey">[% convert_ppk.key.html() %]</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <a id="lnkDownloadKey" class="btn btn-primary" href="[% CPANEL.ENV.cp_security_token | url %]/download/.ssh/putty/[% FORM.key | uri %].ppk">[% locale.maketext("Download Key") %]</a>
+        </div>
+    </div>
+    [% END %]
+
+    <ul class="list-inline text-center">
+        <li>
+            [% SET return_url = 'editkey.html?key=' _ FORM.key;
+                INCLUDE _assets/return_link.html.tt id_prefix='lnkEditKey', return_location=return_url  return_link_text=locale.maketext('Go Back') %]
+        </li>
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkHome', return_location='index.html' return_link_text=locale.maketext('Back to Manage Keys') %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]

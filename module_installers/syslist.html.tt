@@ -1,0 +1,57 @@
+[%
+USE Api2;
+USE CPScalar;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = "main.html?lang=" _ FORM.lang.uri();
+
+PROCESS 'supported_langs.html.tt';
+SET is_supported = FORM.defined('lang') AND supported_langs.grep('^' _ CPScalar.quotemeta(FORM.lang) _ '$').size;
+IF is_supported;
+    SET lang_mods_get_key_names = Api2.exec("LangMods", "getkey", {"lang" => FORM.lang, "key" => "names"} ).0;
+    SET lang_mods_list_installed = Api2.exec("LangMods", "list_installed", {"sys" => "1", "lang" => FORM.lang});
+END;
+%]
+
+[% IF NOT is_supported %]
+    [% PROCESS 'not_supported.html.tt' lang=FORM.lang %]
+[% ELSE %]
+
+[% PROCESS installer_app_key.html.tt %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = installer_app_key
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrSystemKey">[% locale.maketext("System “[_1]”[comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_names.key.html()) %]</h2>
+
+    <div class="section">
+        <h2 id="hdrInstalledKey">[% locale.maketext("Installed [_1][comment,## no extract maketext (will be done via case 119361)]", lang_mods_get_key_names.key.html()) %]</h2>
+
+        <table id="systbllist" class="sortable table table-striped">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext("Installed") %]</th>
+                    <th>[% locale.maketext("Version") %]</th>
+                    <th nonsortable="true">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            [% FOREACH hashref IN lang_mods_list_installed %]
+            <tr>
+                <td>[% hashref.module.html() %]</td>
+                <td>[% hashref.latest.html() %]</td>
+                <td>
+                    <a href="[% hashref.docurl | url %]" id="showDocs_[% loop.count %]" target="_blank" class="btn btn-link">
+                    <span class="fas fa-search"></span> [% locale.maketext("Show Docs") %]
+                    </a>
+                </td>
+            </tr>
+            [% END %]
+        </table>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper -%]
+[% END %]

@@ -1,0 +1,19 @@
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext('Trademarks')
+-%]
+<div class="body-content">
+    <h1>[% locale.maketext("Trademarks") %]</h1>
+    <div class="section">
+        [% # Please DO NOT LOCALIZE the content of this file as translations for this text would not offer the same coverage in those languages. %]
+        <p>cPanel, Inc's trademarks and service marks include, without limitation, cPanel&#8482;, WebHost Manager&#8482; and WHM&#8482;, and any associated trademarks, service marks, and logos, which may not be used or reproduced in any form without express written authorization from cPanel, Inc.</p>
+        <p>Apple, Mac, and Mac OS are trademarks of Apple, Inc.</p>
+        <p>The camel image is a registered trademark of O’Reilly Media, Inc.</p>
+        <p>ClamAV is a trademark of Sourcefire, Inc.</p>
+        <p>Git and the Git logo are either registered trademarks or trademarks of Software Freedom Conservancy, Inc., corporate home of the Git Project, in the United States and/or other countries.</p>
+        <p>Linux is a trademark of Linus Torvalds.</p>
+        <p>MySQL and the MySQL Logo are registered trademarks of MySQL AB in the United States, the European Union and other countries.</p>
+        <p>SpamAssassin and the SpamAssassin Arrow are trademarks of the Apache Software Foundation.</p>
+        <p>All other trademarks and service marks not owned by cPanel, Inc. are the property of their respective owners.</p>
+    </div>
+</div>
+[% END #wrapper %]

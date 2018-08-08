@@ -1,0 +1,10 @@
+[%
+SWITCH FORM.lang;
+CASE 'perl';
+    SET installer_app_key = 'perl_modules';
+CASE 'php-pear';
+    SET installer_app_key = 'php_pear_packages';
+CASE 'ruby';
+    SET installer_app_key = 'ruby_gems';
+END;
+%]

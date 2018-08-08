@@ -1,0 +1,74 @@
+<!-- start autodir/dirbox.tmpl -->
+<style type="text/css">
+#dirmod {position:relative;padding:0em;display:inline;}
+#dirautocomplete {position:relative;margin:0;width:100%;}/* set width of widget here*/
+#dirinput {position:absolute;width:100%;height:1.6em;}
+#dircontainer .yui-ac-content {position:absolute;width:100%;border:1px solid #404040;background:#fff;overflow:hidden;z-index:9050;}
+#dircontainer .yui-ac-shadow {position:absolute;margin:.3em;width:100%;background:#a0a0a0;z-index:9049;}
+#dircontainer ul {margin: 2px; padding:1px 0;width:100%;}
+#dircontainer li {padding:0 5px;cursor:default;white-space:nowrap;}
+#dircontainer li.yui-ac-highlight {background:#ff0;}
+</style>
+<script type="text/javascript" src="[% theme_magic_url("/yui/datasource/datasource.js") %]"></script>
+<script type="text/javascript" src="[% theme_magic_url("/yui/autocomplete/autocomplete.js") %]"></script>
+<script type="text/javascript">
+var dirCompleter = function() {
+    var oDir;
+    var oAutoComp;
+    var PUBLICHTML_REGEX = /^\/?public_html\//;
+
+    return {
+        init: function() {
+            oDir = new YAHOO.widget.DS_XHR(CPANEL.security_token + "/frontend/[% CPANEL.CPDATA.RS %]/autodir/autocomplete.xml",
+            ["file","name"]);
+            oDir.responseType = YAHOO.widget.DS_XHR.TYPE_XML;
+            oDir.maxCacheEntries = 256;
+
+            // Instantiate AutoComplete
+            oAutoComp = new YAHOO.widget.AutoComplete('[% CPANEL.CPVAR.autoinput %]','dircontainer', oDir);
+            oAutoComp.doBeforeExpandContainer = function(oTextbox, oContainer, sQuery, aResults) {
+                var pos = YAHOO.util.Dom.getXY(oTextbox);
+                pos[1] += YAHOO.util.Dom.get(oTextbox).offsetHeight;
+                YAHOO.util.Dom.setXY(oContainer,pos);
+                return true;
+            };
+
+            [% IF restrict_autodir_to_docroot %]
+            oDir.doBeforeCallback = function( oRequest , oFullResponse , oParsedResponse , oCallback ) {
+                if (oParsedResponse) {
+                    for (var i = 0, data = oParsedResponse.results, len = data.length; i < len; i++) {
+                        data[i].name = data[i].name.replace(PUBLICHTML_REGEX, "");
+                    }
+                }
+                return oParsedResponse;
+            };
+            [% END %]
+
+            oAutoComp.generateRequest = function(sQuery) {
+                [% IF restrict_autodir_to_docroot %]
+                return "?path=public_html%2F" + sQuery + "&dirsonly=[% CPANEL.CPVAR.autodirsonly %]&skipreserved=[% CPANEL.CPVAR.autoskipreserved %]";
+                [% ELSE %]
+                return "?path=" + sQuery + "&dirsonly=[% CPANEL.CPVAR.autodirsonly %]&skipreserved=[% CPANEL.CPVAR.autoskipreserved %]";
+                [% END %]
+            };
+        }
+    };
+}();
+
+YAHOO.util.Event.onDOMReady(dirCompleter.init);
+</script>
+<div class="row">
+    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+    [% IF input_group_addon_text.defined %]
+        <div class="input-group">
+            <span class="input-group-addon">[% input_group_addon_text %]</span>
+    [% END %]
+    <input type="text" class="form-control" size="30" name="[% CPANEL.CPVAR.autoinput.html() %]" id="[% CPANEL.CPVAR.autoinput.html() %]" onchange="[% CPANEL.CPVAR.autofunc %](this)" />
+    [% IF input_group_addon_text.defined %]
+        </div>
+    [% END %]
+    </div>
+    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="[% CPANEL.CPVAR.autoinput.html() %]_error"></div>
+</div>
+<div id="dircontainer"></div>
+<!-- end autodir/dirbox.tmpl -->

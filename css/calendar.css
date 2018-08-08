@@ -1,0 +1,49 @@
+/* cPanel Calendar Skinning */
+
+.calweekdayrow th {
+    font-size: 13px;
+}
+
+.yui-skin-sam .yui-calcontainer {
+    border: 1px solid #d0d0d0;
+    border-radius: 5px;
+}
+
+.yui-skin-sam .yui-calendar .calweekdaycell {
+    color: #666666 !important;
+}
+
+.yui-skin-sam .yui-calendar .calheader {
+    color: #666666 !important;
+    font-size: 13px !important;
+}
+
+.yui-skin-sam .yui-calendar td.calcell a {
+    color: #006666;
+}
+
+.yui-skin-sam .yui-calendar td.calcell.selected a {
+    background-color: #a6caca;
+}
+
+.yui-skin-sam .yui-calendar td.calcell.calcellhover a {
+    background-color: #006666;
+    color: #fff;
+    cursor: pointer;
+}
+
+.yui-skin-sam .yui-calendar td.calcell.today {
+    background-color: #006666;
+}
+
+.yui-skin-sam .yui-calcontainer .title {
+    display: none;
+}
+
+.yui-skin-sam .yui-calcontainer .calclose {
+    display: none;
+}
+
+.yui-skin-sam .yui-calcontainer.withtitle {
+    padding-top: 10px;
+}

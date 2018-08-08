@@ -1,0 +1,334 @@
+<ol class="breadcrumb">
+    <li><a href="" ng-click="loadView('list/rows', { loadFromCache: true }, { clearAlerts: true })">[% locale.maketext('User Manager') %]</a></li>
+    <li class="active">[% locale.maketext('Add User') %]</li>
+</ol>
+
+<br/>
+
+<cp-alert-list></cp-alert-list>
+
+<div class="section">
+<form novalidate name="form" prevent-navigation-on-backspace>
+    <!-- prevent password autofill -->
+    <input type="text" style="display:none">
+    <input type="password" autocomplete='off' style="display:none">
+    <h4 class="section-heading">
+        [% locale.maketext('Basic Information') %]
+    </h4>
+    <div class="section-body" username-with-domain-wrapper lookup-callback="useCandidateServices(ui.user, responseData.accounts)">
+        <div class="row form-group">
+            <div class="col-xs-12">
+                <label for="full-name">
+                    [% locale.maketext('Full Name') %]
+                </label>
+            </div>
+            <div class="col-xs-12">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-8 col-md-6">
+                        <input  id="full-name"
+                                name="full-name"
+                                class="form-control"
+                                placeholder="John S. Doe"
+                                title="[% locale.maketext('The user’s full name.') %]"
+                                ng-model="ui.user.fullName"
+                                ng-maxlength="256"
+                                pattern="[^<>&]*"
+                                auto-focus>
+                    </div>
+                    <div class="col-xs-12 col-sm-4 col-md-6">
+                       <ul validation-container field-name="full-name">
+                           <li validation-item field-name="full-name" validation-name="pattern" id="val-full-name-invalid-pattern">
+                               [% locale.maketext('The full name cannot include the following special characters: [list_or_quoted,_1].', ['<','>','&']) %]
+                           </li>
+                           <li validation-item field-name="full-name" validation-name="maxlength" id="val-full-name-max-length">
+                               [% locale.maketext('The full name cannot exceed 256 characters.') %]
+                           </li>
+                       </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row form-group">
+            <div class="col-xs-12">
+                <label for="username">
+                    [% locale.maketext('Username') %]
+                    <label-suffix for="username" show-validation-status></label-suffix>
+                </label>
+            </div>
+            <div class="col-xs-12">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-8 col-md-6">
+                        <div class="input-group">
+                            <input  id="username"
+                                    name="username"
+                                    required
+                                    username="cpanel"
+                                    username-with-domain="username"
+                                    class="form-control"
+                                    title="[% locale.maketext('The user’s username.') %]"
+                                    ng-model="ui.user.username">
+                            <span class="input-group-addon">@</span>
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-4 col-md-6">
+                       <ul validation-container field-name="username">
+                           <li validation-item field-name="username" validation-name="required" id="val-username-required">
+                               [% locale.maketext('You must complete this field.') %]
+                           </li>
+                       </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row form-group">
+            <div class="col-xs-12">
+                <label for="domain">
+                    [% locale.maketext('Domain') %]
+                </label>
+            </div>
+            <div class="col-xs-12">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-8 col-md-6">
+                        <select id="domain"
+                                name="domain"
+                                class="form-control"
+                                title="[% locale.maketext('The user’s domain.') %]"
+                                username-with-domain="domain"
+                                ng-model="ui.user.domain">
+                            <option ng-repeat="domain in ui.domainList track by domain"
+                                    value="{{ domain }}"
+                                    ng-selected="domain === ui.user.domain">
+                                {{ domain }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-4 col-md-6">
+                       <ul validation-container field-name="domain">
+                           <li validation-item field-name="domain" validation-name="required"  id="val-domain-required">
+                               [% locale.maketext('You must complete this field.') %]
+                           </li>
+                       </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row form-group">
+            <div class="col-xs-10 col-sm-8 col-md-6">
+                <toggle-label-info
+                     for="recovery-email"
+                     label-text="[% locale.maketext('Contact Email Address') %]"
+                     label-id="lblRecoveryEmail"
+                     info-icon-id="icoRecoveryEmail"
+                     info-block-id="txtRecoverEmailInfo"
+                     show-info-block="false"
+                     include-label-suffix>
+                     [% locale.maketext('The system sends account notifications and password reset confirmations to this email address.') %]
+                </toggle-label-info>
+            </div>
+            <div class="col-xs-12">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-8 col-md-6">
+                        <input  id="recovery-email"
+                                name="recovery-email"
+                                email="rfc"
+                                restricted-email-domains="{{ ui.user.domain }}"
+                                class="form-control"
+                                placeholder="alt.email@another.domain.tld"
+                                title="[% locale.maketext('Enter an alternate email address for the user.') %]"
+                                ng-model="ui.user.recoveryEmail"
+                                ng-required="ui.user.sendInvite">
+                    </div>
+                    <div class="col-xs-12 col-sm-4 col-md-6">
+                       <ul validation-container field-name="recovery-email">
+                           <li validation-item field-name="recovery-email" validation-name="required" id="val-recovery-email-required">
+                               [% locale.maketext('You must complete this field.') %]
+                           </li>
+                       </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="section-heading">
+        [% locale.maketext('Security Information') %]
+    </h4>
+    <div class="section-body">
+        <div class="form-group" ng-if="ui.isInviteSubEnabled">
+            <div class="row">
+                <div class="col-xs-10 col-sm-8 col-md-6">
+                    <div class="radio">
+                        <label for="send-invite-on">
+                            <input type="radio"
+                                   id="send-invite-on"
+                                   name="send-invite"
+                                   ng-model="ui.user.sendInvite"
+                                   ng-value="true">
+                            <span>[% locale.maketext('The user will set the account password.') %]</span>
+                            <span class="info-block">[% locale.maketext('The system will send an email with instructions to the user’s Contact Email Address.') %]</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="col-xs-12 col-sm-4 col-md-6">
+                   <ul class="validation-container" ng-show="form['recovery-email'].$dirty && form['recovery-email'].$error.required">
+                       <li validation-item field-name="recovery-email" validation-name="required" id="val-send-invite-recovery-email-required-">
+                           [% locale.maketext('You must provide a Contact Email Address to use this feature.') %]
+                       </li>
+                   </ul>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-10 col-sm-8 col-md-6">
+                    <div class="radio">
+                        <label for="send-invite-off">
+                            <input type="radio"
+                                   id="send-invite-off"
+                                   name="send-invite"
+                                   ng-model="ui.user.sendInvite"
+                                   ng-value="false">
+                            <span>[% locale.maketext('Set the user’s password.') %]</span>
+                            <span class="info-block">[% locale.maketext('You must select this option if you cannot provide a Contact Email Address.') %]</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row form-group" ng-if="!ui.user.sendInvite || !ui.isInviteSubEnabled">
+            <div class="col-xs-12">
+                <label for="password">
+                    [% locale.maketext('Password') %]
+                    <label-suffix for="password"></label-suffix>
+                </label>
+            </div>
+            <div class="form-group col-xs-12">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-8 col-md-6">
+                        <password name="password"
+                                  title="[% locale.maketext('The user’s password.') %]"
+                                  minimum-strength="{{minimumPasswordStrength}}"
+                                  placeholder="[% locale.maketext('Enter Password') %]"
+                                  password="ui.user.password"
+                                  show-meter="true"
+                                  show-strength="true"
+                                  show-generator="true"
+                                  minimum-length="5"
+                                  generate-minimum-length="5"
+                                  generate-maximum-length="18"
+                                  required
+                                  generate-button-tab-index="-1"
+                                  toggle-view-button-tab-index="-1"
+                                  generate-settings-tab-index="-1"
+                                  strength-meets-template="[% locale.lextext('This password has a strength of [numf,_1], which meets or exceeds the system requirement of [numf,_2].') %]"
+                                  strength-does-not-meet-template="[% locale.lextext('The password has a strength of [numf,_1], but your system requires a strength of [numf,_2].') %]"
+                                  password-strength="passwordStrength">
+                    </div>
+                    <div class="col-xs-12 col-sm-4 col-md-6">
+                       <ul validation-container field-name="password">
+                           <li validation-item field-name="password" validation-name="required" id="val-password-required">
+                               [% locale.maketext('You must complete this field.') %]
+                           </li>
+                           <li validation-item field-name="password" validation-name="minlength" id="val-password-minlength">
+                               [% locale.maketext('You must provide a password with at least 5 characters.') %]
+                           </li>
+                           <li validation-item field-name="password" validation-name="minimumPasswordStrength" id="val-password-minimum-strength">
+                               [% locale.maketext('You must provide a stronger password.') %]
+                           </li>
+                       </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row form-group" ng-if="!ui.user.sendInvite || !ui.isInviteSubEnabled">
+            <div class="col-xs-12">
+                <label for="password-confirm">
+                    [% locale.maketext('Confirm Password') %]
+                    <label-suffix for="password-confirm"></label-suffix>
+                </label>
+            </div>
+            <div class="col-xs-12 col-sm-8 col-md-6">
+                <input  id="password-confirm"
+                        name="password-confirm"
+                        type="password"
+                        autocomplete='new-password'
+                        class="form-control"
+                        required
+                        validate-equals="form.password"
+                        title="[% locale.maketext('Confirm the user’s password.') %]"
+                        ng-model="ui.user.passwordConfirm">
+            </div>
+            <div class="col-xs-12 col-sm-4 col-md-6">
+               <ul validation-container field-name="password-confirm">
+                   <li validation-item field-name="password-confirm" validation-name="required" id="val-password-confirm-required">
+                       [% locale.maketext('You must confirm the password.') %]
+                   </li>
+                   <li validation-item field-name="password-confirm" validation-name="validateEquals" id="val-password-confirm-match">
+                       [% locale.maketext('The passwords do not match.') %]
+                   </li>
+               </ul>
+            </div>
+        </div>
+    </div>
+
+    <h4 id="servicesSectionHeader" class="section-heading"
+        ng-if="ui.user.services.email.supports.allowed || ui.user.services.ftp.supports.allowed || ui.user.services.webdisk.supports.allowed">
+            [% locale.maketext('Services') %]
+    </h4>
+    <div id="servicesSection" class="section-body"
+         ng-if="(emailDaemon.enabled && features.email) || (ftpDaemon.enabled && features.ftp) || (webdiskDaemon.enabled && features.webdisk)">
+        <div class="row">
+            <div id="emailServiceSection" class="col-xs-12 col-sm-6 col-md-4" ng-if="emailDaemon.enabled && features.email">
+                <div email-config
+                     name="email-config"
+                     ng-model="ui.user.services.email"
+                     conflict-resolution-required="true"
+                     show-conflict-dismiss="true"
+                     toggle-service="toggleService(ui.user.services.email)">
+                </div>
+            </div>
+            <div id="ftpServiceSection" class="col-xs-12 col-sm-6 col-md-4" ng-if="ftpDaemon.enabled && features.ftp">
+                <div ftp-config
+                     name="ftp-config"
+                     ng-model="ui.user.services.ftp"
+                     conflict-resolution-required="true"
+                     show-conflict-dismiss="true"
+                     toggle-service="toggleService(ui.user.services.ftp)">
+                </div>
+            </div>
+            <div id="webdiskServiceSection" class="col-xs-12 col-sm-6 col-md-4" ng-if="webdiskDaemon.enabled && features.webdisk">
+                <div webdisk-config
+                     name="webdisk-config"
+                     ng-model="ui.user.services.webdisk"
+                     conflict-resolution-required="true"
+                     show-conflict-dismiss="true"
+                     toggle-service="toggleService(ui.user.services.webdisk)">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <button id="btn-create"
+            type="submit"
+            class="btn btn-primary"
+            cp-action="create(ui.user, true)"
+            ng-disabled="isOverQuota || !form.$valid || form.$pending || inProgress">
+            [% locale.maketext('Create') %]
+    </button>
+    <button id="btn-create-another"
+            class="btn btn-default"
+            cp-action="create(ui.user, false)"
+            ng-disabled="isOverQuota || !form.$valid || form.$pending || inProgress">
+            [% locale.maketext('Create and Add Another User') %]
+    </button>
+    <button id="btn-cancel-create"
+            class="btn btn-link"
+            ng-click="loadView('list/rows', { loadFromCache: true }, { clearAlerts: true })">
+            [% locale.maketext('Cancel') %]
+    </button>
+
+</form>
+</div>

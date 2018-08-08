@@ -1,0 +1,153 @@
+[%
+USE Api2;
+USE Email;
+USE Uapi;
+USE JSON;
+USE ExpVar;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET has_feature = CPANEL.feature('user_manager');
+
+SET users = Uapi.exec('UserManager', 'list_users', {
+    'api.sort_column' => 'full_username',
+    'api.normalize'   => 1,
+    #'flat'            => 1,
+}) || [];
+
+SET ftp_daemon_info = Uapi.exec('Ftp', 'get_ftp_daemon_info', {}).data;
+
+Api2.pre_exec("DomainLookup", "getdocroots");
+SET domains_and_docroots = Api2.exec("DomainLookup", "getdocroots", {});
+Api2.post_exec("DomainLookup", "getdocroots");
+
+SET docrootByDomain = {};
+FOREACH item IN domains_and_docroots;
+    SET domain = item.domain;
+    SET remove_pattern = '^' _ CPANEL.homedir _ '/';
+    SET relative_docroot = item.docroot.remove(remove_pattern);
+    IF relative_docroot.length == item.docroot.length - CPANEL.homedir.length - 1;
+        docrootByDomain.$domain = relative_docroot;
+    END;
+END;
+
+SET minimum_password_strength = Uapi.exec('PasswdStrength', 'get_required_strength', { app='virtual' }).data.strength;
+IF !minimum_password_strength.defined;
+     minimum_password_strength = 0;
+END;
+
+SET ssl_info = Uapi.exec('SSL', 'get_cn_name', { domain => CPANEL.CPDATA.DNS, service => 'dav' }).data;
+SET cpanel_quota_info = Uapi.exec('Quota', 'get_quota_info', {}).data;
+
+SET is_email_running = ExpVar.expand('$hasexim') ? 1 : 0;
+SET is_webdav_running = ExpVar.expand('$hascpdavd') ? 1 : 0;
+SET is_invite_sub_enabled = ExpVar.expand('$is_invite_sub_enabled') ? 1 : 0;
+
+# CONSIDER: Moving the default structure generation to a specific API
+SET has_max_emailacct_quota = CPANEL.CPDATA.MAX_EMAILACCT_QUOTA && CPANEL.CPDATA.MAX_EMAILACCT_QUOTA != "unlimited";
+SET default_email_quota = Email.get_user_default_email_quota().html();
+SET max_email_quota = execute("Email", "get_max_email_quota_mib").data;
+
+SET service_defaults = {
+    email => {
+        default_quota    => default_email_quota,
+        default_quota_unit => "MB",
+        select_unlimited => CPANEL.CPCONF.email_account_quota_default_selected == "unlimited" ? 1 : 0,
+        default_value    => CPANEL.CPCONF.email_account_quota_default_selected == "unlimited" ? (has_max_emailacct_quota ? max_email_quota : 0) : default_email_quota,
+        max_quota        => max_email_quota,
+        unlimitedValue   => has_max_emailacct_quota ? max_email_quota : 0,
+        unlimitedLabel   => has_max_emailacct_quota ? locale.maketext("Maximum ([format_bytes,_1])", max_email_quota * 1048576) : locale.maketext("Unlimited")
+    },
+    ftp => {
+        default_quota    => 100,
+        default_quota_unit => "MB",
+        select_unlimited => 1,
+        default_value    => 0, # Unlimited
+        max_quota        => 0, # Unlimited  for now
+    },
+    webdisk => { # Not used yet...
+        default_quota    => 0,
+        select_unlimited => 0,
+        default_value    => 0, # Unlimited
+        max_quota        => 0, # Unlimited for now
+    },
+};
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'user_manager'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    embed_stylesheets = CPANEL.is_debug_mode_enabled() ?
+        [ "user_manager/index.css" ] :
+        [ "user_manager/index.min.css" ]
+-%]
+
+[% IF has_feature %]
+    <div class="body-content">
+        <div ng-controller="applicationController" id="top">
+            <div id="viewContent"
+                 class="ng-cloak"
+                 ng-view
+                 ng-cloak>
+            </div>
+        </div>
+    </div>
+
+    <script type="text/ng-template" id="pathSuggester.html">
+        <a>
+            <span ng-bind-html="match.label | encodeHtml | uibTypeaheadHighlight:query"></span>
+        </a>
+    </script>
+
+    <script id="directives/issueList.phtml" type="text/ng-template">
+    [% PROCESS "user_manager/directives/issueList.phtml" %]
+    </script>
+
+    <script id="user_manager/views/listRowsView.ptt" type="text/ng-template">
+    [% PROCESS "user_manager/views/listRowsView.ptt" %]
+    </script>
+
+
+    <script id="user_manager/views/addEditView.ptt" type="text/ng-template">
+    [% PROCESS "user_manager/views/addEditView.ptt" %]
+    </script>
+
+    <script id="user_manager/views/editView.ptt" type="text/ng-template">
+    [% PROCESS "user_manager/views/editView.ptt" %]
+    </script>
+
+    <script type="text/javascript">
+        PAGE.userList = [% users.json() %];
+        PAGE.hasFeature = [% has_feature ? 'true' : 'false' %];
+        PAGE.serviceDefaults = [% service_defaults.json() %];
+        PAGE.isEmailRunning = [% is_email_running ? 'true' : 'false' %];
+        PAGE.ftpDaemonInfo = [% ftp_daemon_info.json() %];
+        PAGE.isWebdavRunning = [% is_webdav_running ? 'true' : 'false' %];
+        PAGE.isInviteSubEnabled = [% is_invite_sub_enabled ? 'true' : 'false' %];
+        PAGE.features = {
+            email:   [% CPANEL.feature('popaccts') ? 'true' : 'false' %],
+            ftp:     [% CPANEL.feature('ftpaccts') ? 'true' : 'false' %],
+            webdisk: [% CPANEL.feature('webdisk') ? 'true' : 'false' %],
+        };
+        PAGE.sslInfo = [% ssl_info.json() %];
+        PAGE.quotaInfo = [% cpanel_quota_info.json() %];
+        PAGE.docrootByDomain = [% docrootByDomain.json() %];
+        PAGE.primaryDomain = [% CPANEL.CPDATA.DNS.json() %];
+        PAGE.minimumPasswordStrength = [% minimum_password_strength.json() %];
+    </script>
+
+    [% PROCESS '_assets/cjt2_header_include.tt' %]
+[% ELSE -%]
+
+    <div class="body-content">
+        <div class="alert alert-danger">
+            [% locale.maketext('You do not have access to this feature. You must have the User Manager feature enabled for your account to use this interface.') %]
+        </div>
+    </div>
+
+[% END -%]
+
+[% END #wrapper -%]

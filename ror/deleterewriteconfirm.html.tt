@@ -1,0 +1,20 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+-%]
+<div class="body-content">
+    <h2>[% locale.maketext("Remove the [asis,Ruby on Rails] Application’s Rewrite") %]</h2>
+    <p>
+        [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the rewrite to [output,url,_2] for the Ruby on Rails application “[_1]”?", FORM.appname, 'http://' _ FORM.rewritedomain _ '/' _ FORM.rewriteurl) %]
+    </p>
+    <a class="btn btn-primary" href="deleterewrite.html?appname=[% FORM.appname | url %]&rewritedomain=[% FORM.rewritedomain | url %]&rewriteurl=[% FORM.rewriteurl | url %]">
+        [% locale.maketext("Remove Rewrite") %]
+    </a>
+    <a class="btn btn-link" href="index.html">
+        [% locale.maketext("Cancel") %]
+    </a>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

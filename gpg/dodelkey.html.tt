@@ -1,0 +1,19 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    Api1.pre_exec("Gpg", "deletekey");
+    SET del_key = Api1.exec("Gpg", "deletekey", [FORM.key]);
+    Api1.post_exec("Gpg", "deletekey")
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'encryption'
+%]
+<div class="body-content">
+    <p id="delKeyOutput">[% del_key %]</p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+[% END %]

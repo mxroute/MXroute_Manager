@@ -1,0 +1,77 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    IF CPANEL.CPDATA.item('DEMO');
+        SET boxtrapper_config = locale.maketext("This feature is disabled in demo mode.");
+    ELSE;
+        Api1.pre_exec("BoxTrapper", "fetchcfgfile");
+        SET boxtrapper_config = Api1.exec("BoxTrapper", "fetchcfgfile", [RAW_FORM.account,"list","white-list.txt"]);
+        Api1.post_exec("BoxTrapper", "fetchcfgfile");
+    END;
+
+%]
+
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+    page_js = js_code
+%]
+
+
+<div class="body-content">
+
+    [% IF (ExpVar.expand('$appname') == "webmail" && !( FORM.account == CPANEL.authuser)) %]
+    <div id="allowedChangeSettingsError" class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+        [% locale.maketext("You are not allowed to change settings for the user “[_1]”.",FORM.account) %]
+        </div>
+    </div>
+
+    [% ELSE %]
+    <div class="section">
+        <h2 id="hdrWhiteList">[% locale.maketext("[asis,BoxTrapper] Whitelist for the account “[output,strong,_1]”.",FORM.account) %]</h2>
+        <div id="descWhitelist">
+            <p>[% locale.maketext("The whitelist is a list of content that will be allowed into your inbox after confirmation.") %]</p>
+            <p>[% locale.maketext("The list should contain one entry per line. Each entry should be formatted as a Perl regular expression.") %]</p>
+            <p>[% locale.maketext("For example: [asis,john@example.com] would be john[output,chr,92][asis,@example][output,chr,92][asis,.com] and all addresses at [asis,example.com] would be [asis,.+][output,chr,92][asis,@example][output,chr,92][asis,.com]") %]</p>
+        </div>
+        <div class="row">
+            <div class="col-xs-12 col-sm-8">
+                <form action="savefile.html" method="post">
+                    <input id="hidAccount" type="hidden" name="account" value="[% FORM.account %]" />
+                    <input id="hidDir" type="hidden" name="dir" value="[% FORM.emaildir %]" />
+                    <input id="hidFileType" type="hidden" name="filetype" value="list" />
+                    <input id="hidWhiteList" type="hidden" value="white-list.txt" name="file" />
+
+                    <div class="form-group">
+                        <textarea id="list_ta" class="form-control" name="page" rows="10">[% boxtrapper_config %]</textarea>
+                    </div>
+                    <div class="form-group">
+                        <input id="btnSave" type="submit" value="[% locale.maketext("Save") %]" class="btn btn-primary" />
+                    </div>
+                </form>
+            </div>
+
+            [% INCLUDE boxtrapper_examples_include.html.tt %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='editlists.html?account=' _ RAW_FORM.account.uri _ '' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+
+<script type="text/javascript">
+    document.addEventListener("DOMContentLoaded", function() {
+        var form_control = document.getElementById("list_ta");
+        if (form_control) {
+          form_control.focus();
+        }
+    });
+</script>
+
+[% END %]

@@ -1,0 +1,117 @@
+[%
+
+USE JSON;
+
+SET graph_dirs = {
+    'backups'     => 1,
+    'etc'         => 1,
+    'logs'        => 1,
+    'mail'        => 1,
+    'perl'        => 1,
+    'php'         => 1,
+    'public_ftp'  => 1,
+    'public_html' => 1,
+    'ruby'        => 1,
+    'tmp'         => 1,
+};
+# TODO: kill all legacy-lang-style lookup hashes like this
+SET LANG = {
+    no_subdir      => locale.maketext('(not in a subdirectory)'),
+    other_subs     => locale.maketext('(other subdirectories)'),
+    open_in_fm     => locale.maketext('Open This Directory In File Manager'),
+    see_children   => locale.maketext('See disk usage for this directory’s child directories.'),
+    hide_children  => locale.maketext('Hide disk usage for this directory’s child directories.'),
+    see_mysql      => locale.maketext('Manage [asis,MySQL] Databases'),
+    see_pgsql      => locale.maketext('Manage [asis,PostgreSQL] Databases'),
+    other          => locale.maketext('Other'),
+    db_unavailable => locale.maketext('Database usage data is not available at this time. Please check later; if the problem persists, contact your system administrator.'),
+};
+LANG.mailaccounts_usage_blurb = locale.maketext("Email account storage may occupy less space on the disk if you use compression or hard-link optimizations designed to save space. Email account storage does not include the metadata that the system uses to store email.");
+LANG.other_usage_blurb = locale.maketext ("The files outside of your home directory, the metadata that the system uses to store email in the mail directory, or the files that you do not have permission to access.");
+
+SET plus_glyph = "fas fa-chevron-right expander ";
+SET minus_glyph = "fas fa-chevron-down expander ";
+SET home_glyph = "fas fa-home ";
+SET spinner_image = theme_magic_url("/cjt/images/loading.gif");
+%]
+
+<script type="text/javascript">
+var USER = [% CPANEL.user.json() || 'null' %];
+var GRAPH_DIRS = [% graph_dirs.json() || 'null' %];
+var LANG = [% LANG.json() || 'null' %];
+var PLUS_GLYPH = [% plus_glyph.json() || 'null' %];
+var MINUS_GLYPH = [% minus_glyph.json() || 'null' %];
+var HOME_GLYPH = [% home_glyph.json() || 'null' %];
+var SPINNER_IMAGE = [% spinner_image.json() || 'null' %];
+var SPACER = '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+var HOMEDIR = [% CPANEL.homedir.json() %];
+</script>
+
+<script id="dirs_table_template" type="text/html">
+<table id="disk_usage_table">
+<thead>
+<tr>
+    <th rowspan="2"></th>
+    <th id="directory_header" rowspan="2" style="vertical-align:middle">[% locale.maketext('Directory') %]</th>
+    <th id="contained_header" colspan="2">[% locale.maketext('Contained Disk Usage') %]</th>
+    <th id="owner_header" colspan="99" rowspan="2"></th>
+</tr>
+<tr>
+    <th id="megabytes_header"><abbr title="[% locale.maketext('1 MB = 1,024 kB = 1,048,576 bytes') %]">MB</abbr></th>
+    <th id="bytes_header">[% locale.maketext('Bytes') %]</th>
+</tr>
+</thead>
+<tfoot></tfoot>
+<tbody id="directory_rows_tbody"></tbody>
+</table>
+</script>
+
+<script id="expander_img_template" type="text/html">
+<span class="[% plus_glyph %]" title="[% LANG.see_children -%]" id="{path}-icon" onclick="if (!(&quot;{path}&quot; in Expanding)) toggle_children(&quot;{path}&quot;)"></span><img class="spinner" src="[% spinner_image %]" id="{path}-spin" style="display:none" />
+</script>
+
+<script id="nonexpander_img_template" type="text/html">
+<span class="[% minus_glyph %]" style="visibility:hidden"></span>
+</script>
+
+<script id="dirs_table_row_template" type="text/html">
+<tr id="{path}-row">
+<td></td>
+<td class="directory">
+    <div>{indentation_html}{expander_html}
+        <a title="[% LANG.open_in_fm %]" href="../filemanager/index.html?dirselect=homedir&dir={path_uri}" target="_blank">{dir_name}</a>
+    </div>
+</td>
+<td class="formatted_bytes"><div>{formatted_bytes}</div></td>
+<td class="raw_bytes"><div>{raw_bytes}</div></td>
+<td></td>
+</tr>
+</script>
+
+<script id="dirs_other_owner_table_row_template" type="text/html">
+<tr id="{path}-row">
+<td class="owner"><span style="visibility:hidden">[% locale.maketext('Owner: [_1]','{owner}') %]</span></td>
+<td class="directory">
+    <div>{indentation_html}{expander_html}
+        <a title="[% LANG.open_in_fm %]" href="../filemanager/index.html?dirselect=homedir&dir={path_uri}" target="_blank">{dir_name}</a>
+    </div>
+</td>
+<td class="formatted_bytes"><div>{formatted_bytes}</div></td>
+<td class="raw_bytes"><div>{raw_bytes}</div></td>
+<td class="owner">[% locale.maketext('Owned by “[_1]”.','{owner}') %]</td>
+</tr>
+</script>
+
+<script id="dirs_untraversible_table_row_template" type="text/html">
+<tr id="{path}-row">
+<td class="owner"><span style="visibility:hidden">[% locale.maketext('Owned by “[_1]”.','{owner}') %]</span></td>
+<td class="directory untraversible">
+    <div>{indentation_html}{expander_html}
+        <span class="untraversible">{dir_name}</span>
+    </div>
+</td>
+<td class="formatted_bytes untraversible"><div>[% locale.maketext('unknown') %]</div></td>
+<td class="raw_bytes untraversible"><div>[% locale.maketext('unknown') %]</div></td>
+<td class="owner">[% locale.maketext('Owned by “[_1]”.','{owner}') %]</td>
+</tr>
+</script>

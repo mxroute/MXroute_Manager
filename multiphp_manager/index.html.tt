@@ -1,0 +1,65 @@
+[%
+USE Uapi;
+USE JSON;
+USE EasyApache;
+
+SET CPANEL.CPVAR.dprefix = "../";
+
+# Get the system default PHP version.
+SET system_php_data = Uapi.exec('LangPHP', 'php_get_system_default_version', {});
+# Get all the installed PHP versions.
+SET php_versions_data = Uapi.exec('LangPHP', 'php_get_installed_versions', {});
+# Get all the domains and their corresponding PHP versions under the current user account.
+SET vhosts_data = Uapi.exec('LangPHP', 'php_get_vhost_versions',
+    {
+        'api.sort_column'    => 'vhost',
+        'api.paginate_start' => 1,
+        'api.paginate_size'  => 10,
+        'api.normalize'      => 1,
+    }
+);
+
+SET ea_version = EasyApache.get_ea_version();
+-%]
+
+
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'multiphp_manager'
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    page_stylesheets = [
+        'multiphp_manager/index.css'
+    ]
+-%]
+[% IF ea_version >= 4 -%]
+<div class="body-content">
+    <div ng-controller="applicationController">
+        <div id="viewContent"
+             class="ng-cloak"
+             ng-view
+             ng-cloak></div>
+    </div>
+ </div>
+
+<script type="text/javascript">
+    PAGE.versionListData = [% php_versions_data.json() %];
+    PAGE.vhostListData = [% vhosts_data.json() %];
+    PAGE.systemPHPData = [% system_php_data.json() %];
+</script>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+[% ELSE -%]
+<div class="body-content">
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-remove-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext("Error:") %]</strong> [% locale.maketext('This application only works with [asis,EasyApache4]. Contact your administrator to upgrade to [asis,EasyApache4].') %]
+        </div>
+    </div>
+</div>
+[% END -%]
+
+[% END #wrapper -%]

@@ -1,0 +1,54 @@
+<div id="whitelistSection">
+    <div class="section">
+        <form id="spamWhitelistForm" name="spamWhitelistForm" cp-form-waiting="updateWhitelistFrom()" class="form layout-medium">
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+                        <toggle-label-info
+                             for="spamWhitelist"
+                             label-text="[% locale.maketext('Spam Whitelist Items ([asis,whitelist_from])') %]"
+                             label-id="spamWhitelistLabel"
+                             info-icon-id="spamWhitelistLabel_icon"
+                             info-block-id="spamWhitelistLabel_info">
+                                [% locale.maketext("Specify the email addresses that the system should [output,strong,not] tag as spam.") %]
+                                [% locale.maketext("Do not whitelist your own domain (for example, “*@example.com”) because if you do, spammers who impersonate your domains may be more effective.") %]
+                                [% locale.maketext("You can also use the “*” and “?” wildcard characters for more flexibility.") %]
+                                [% locale.maketext("For more information, read our [output,url,_1,Spam Filters,target,_blank] documentation.","https://go.cpanel.net/cpaneldocs72spamfilters") %]
+                        </toggle-label-info>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <multi-field-editor
+                            id="whitelistMFE"
+                            add-new-label="[% locale.maketext('Add A New “[_1]” Item','whitelist_from') %]"
+                            ng-model="workingPreferences.whitelist_from">
+                                <multi-field-editor-item
+                                    ng-repeat="(key,value) in workingPreferences.whitelist_from track by $index"
+                                    label="whitelist_from"
+                                    label-for="whitelistMFE_item_{{ :: key }}_input"
+                                    index="key"
+                                    id="whitelistMFE_item_{{ :: key }}" >
+                                        <input
+                                            id="whitelistMFE_item_{{ :: key }}_input"
+                                            name="whitelistMFE_item_{{ :: key }}_input"
+                                            type="text"
+                                            class="form-control"
+                                            size="50"
+                                            ng-model="workingPreferences.whitelist_from[key]"
+                                            required />
+                                </multi-field-editor-item>
+                        </multi-field-editor>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <button id="btnUpdateWhitelistFrom"
+                    type="submit"
+                    class="btn btn-primary"
+                    ng-disabled="checkPristine('whitelist_from') || spamWhitelistForm.$invalid"
+                    >[% locale.maketext("Update Whitelist ([asis,whitelist_from])") %]</button>
+            </div>
+        </form>
+    </div>
+</div>

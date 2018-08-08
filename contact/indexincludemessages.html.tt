@@ -1,0 +1,1 @@
+[% locale.maketext("[output,strong,Important:] The [output,em,email] setting should not be an email address at “[_1]”.",CPANEL.CPDATA.DNS.html) %]

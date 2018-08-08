@@ -1,0 +1,31 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("Mysql", "routines");
+    SET routines = Api1.exec("Mysql", "routines", [FORM.user]);
+    Api1.post_exec("Mysql", "routines");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrDeleteUser">[% locale.maketext("Delete MySQL Users") %]</h2>
+    <p id="descDeleteUser">
+        [% locale.maketext('Are you sure you wish to permanently remove user “[_1]”?', FORM.user) %]
+    </p>
+    <p id="descRoutines">
+        [% routines %]
+    </p>
+    <p>
+        <a id="btnDeleteUser" class="btn btn-primary" href="deluser.html?user=[% FORM.user | url %]">
+            [% locale.maketext("Delete User") %]
+        </a>
+        <a id="btnCancel" class="btn btn-link" href="index.html">[% locale.maketext("Cancel") %]</a>
+    </p>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+[% END #wrapper -%]

@@ -1,0 +1,26 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+SET domain = FORM.domain.split(',').item(0);
+
+Api1.pre_exec("Park", "disableredirect");
+SET url = Api1.exec("Park", "disableredirect", [RAW_FORM.domain]);
+Api1.post_exec("Park", "disableredirect");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'aliases'
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrAliasRedir">[% locale.maketext("Alias Redirection") %]</h2>
+    <div class="alert alert-success" id="removeSuccess">
+        <span class="glyphicon glyphicon-ok-sign" id="removeSuccessImg"></span>
+        <span class="alert-message" id="removeSuccessMsg">
+            [% locale.maketext("Removed the redirection for the alias, “[_1]”.", domain) %]
+        </span>
+    </div>
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

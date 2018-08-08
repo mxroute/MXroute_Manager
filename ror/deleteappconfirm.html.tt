@@ -1,0 +1,20 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+-%]
+<div class="body-content">
+    <h2>[% locale.maketext("Delete Ruby on Rails Application") %]</h2>
+    <p>
+        [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the Ruby on Rails application “[_1]”?", FORM.appname)  %]
+    </p>
+    <a class="btn btn-primary" href="deleteapp.html?appname=[% FORM.appname%] ">
+        [% locale.maketext("Remove Application") %]
+    </a>
+    <a class="btn btn-link" href="index.html">
+        [% locale.maketext("Cancel") %]
+    </a>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

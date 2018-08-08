@@ -1,0 +1,32 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+
+    Api1.pre_exec("Fileman", "listfiles");
+    SET list_files = Api1.exec("Fileman", "listfiles", [RAW_FORM.item("dir"), "1", "-1", "thumbdir.html", "1"]);
+    Api1.post_exec("Fileman", "listfiles")
+%]
+
+[%
+    WRAPPER '_assets/master.html.tt'
+    app_key = 'images'
+    page_sub_heading = locale.maketext("Thumbnailer")
+-%]
+
+<div class="body-content">
+    <div class="section">
+        <p id="descChooseFileToThumb"><strong>
+            [% locale.maketext("Select a folder to thumbnail.") %]
+        </strong>
+        </p>
+        <p id="descThumbnailAction">
+            [% locale.maketext("Click on a [output,strong,folder icon] to navigate. Click on a [output,strong,folder name] to select it.") %]
+        </p>
+        <div id="apiOutputFileList" class="medium">
+        [% list_files %]
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location="images.html" return_link_text=locale.maketext("Go Back") %]
+</div>
+
+[% END #wrapper -%]

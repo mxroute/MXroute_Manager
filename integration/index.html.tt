@@ -1,0 +1,38 @@
+[% CPANEL.CPVAR.dprefix = '../' %]
+[%-
+    SET safe_app = RAW_FORM('app').remove('[^0-9A-Za-z_-]');
+-%]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = safe_app;
+-%]
+
+[%
+
+SET redirect_info = execute(
+    'Integration',
+    'fetch_url'
+    { 'app'=> safe_app  }
+);
+
+redirect_url = redirect_info.data.redirect_url || redirect_info.data.url;
+html_safe_redirect_url = redirect_url FILTER html;
+
+IF redirect_url;
+  '<div class="success_details">';
+  locale.maketext("The system will redirect you in a moment.");
+  '<meta http-equiv="refresh" content="0;url=' _ html_safe_redirect_url  _ '" />';
+  '</div>';
+ELSIF redirect_info.errors;
+  '<div class="error_details">';
+  html_safe_error = redirect_info.errors_as_string FILTER html;
+  locale.maketext("The system encountered an error while it attempted to fetch the auto login [asis,url]: [_1]", html_safe_error);
+  '</div>';
+ELSE;
+  '<div class="error_details">';
+  locale.maketext("The system encountered an unknown error while it attempted to fetch the auto login [asis,URL].");
+  '</div>';
+END;
+
+-%]
+
+[% END %]

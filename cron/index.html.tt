@@ -1,0 +1,881 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+Api2.pre_exec("Cron", "get_email");
+SET email_results = Api2.exec("Cron", "get_email", {} );
+Api2.post_exec("Cron", "get_email");
+IF email_results.size();
+    SET email = email_results.0.email;
+END;
+
+SET multiPHP_manager_url = cp_security_token _ "/frontend/" _ CPANEL.CPDATA.RS _ "/multiphp_manager/index.html";
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'cron_jobs'
+    page_js = js_code
+    page_scripts = ["js2-min/cron/index.js"]
+    page_stylesheets = ["css2-min/cron/index.css"]
+-%]
+<div class="body-content">
+    [% IF CPANEL.feature('cron') %]
+        <p id="descCron" class="description">
+            [% locale.maketext("Cron jobs allow you to automate certain commands or scripts on your site. You can set a command or script to run at a specific time every day, week, etc. For example, you could set a cron job to delete temporary files every week to free up disk space.")  %]
+        </p>
+
+        <div id="details" class="alert alert-warning">
+            <span class="glyphicon glyphicon-exclamation-sign" id="detailsWarnImg"></span>
+            <span class="alert-message" id="detailsWarnMsg">
+                [% locale.maketext("[output,strong,Warning:] You need to have a good knowledge of Linux commands before you can use cron jobs effectively. Check your script with your hosting administrator before adding a cron job.") %]
+            </span>
+        </div>
+
+        <div id="cjt_pagenotice_container"></div>
+
+        <div id="crontab_interface" class="section">
+            <h2 id="hdrCronEmail">
+                [% locale.maketext("Cron Email") %]
+            </h2>
+            <div>
+                <p id="descBrief">
+                    [% locale.maketext("Send an email with the output every time the [asis,cron] job runs.") %]
+                    <span id="email_toggle_more_less"
+                          class="action_link"
+                          onclick="CPANEL.util.toggle_more_less(this, 'edit_cron_email')">
+                        [% locale.maketext("more »")  %]
+                    </span>
+                </p>
+                <div id="edit_cron_email" style="display: none">
+                    <p id="descLong">
+                        <span class="description" id="descLongTxt">
+                            [% locale.maketext("You can have [asis,cron] send an email every time it runs a command which produces output. If you do not want an email to be sent for an individual cron job, you can redirect the command’s output to [asis,/dev/null]. For example:") %]
+                        </span>
+                        <code id="descLongTxtExample">
+                            mycommand &gt;/dev/null 2&gt;&amp;1
+                        </code>
+                    </p>
+                    <div id="changeEmailSection">
+                        <div class="form-group">
+                            <label id="lblCurrentEmail">
+                                [% locale.maketext("Current Email")  %]
+                            </label>
+                            <div class="row">
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                    <span id="current_email">
+                                        [% email %]
+                                    </span>
+                                </div>
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label id="lblEmail" for="email">
+                                [% locale.maketext("Email")  %]
+                            </label>
+                            <div class="row">
+                                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                    <input id="email" type="text" class="form-control"  />
+                                </div>
+                                <div id="email_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <input id="update_email" type="button" class="btn btn-primary" value="[% locale.maketext("Update Email") %]" />
+                            <span id="email_status">
+                            </span>
+                        </div>
+                    </div>
+                    <div id="email_status_bar" class="cjt_status_bar">
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <h2 id="hdrAddCronJob">
+                    [% locale.maketext("Add New Cron Job") %]
+                </h2>
+                <div class="well well-sm">
+                    <h5>[% locale.maketext('PHP command examples:') %]</h5>
+                    <p>
+                        <span class="help-block">
+                            [% locale.maketext("General example:") %]
+                        </span>
+                        <code dir="ltr">
+                            /usr/local/bin/php /home/<var>[% CPANEL.user %]</var>/public_html/path/to/cron/script</var>
+                        </code>
+                    </p>
+                    <p>
+                        <span class="help-block">
+                            [% locale.maketext("Domain-specific example:") %]
+                        </span>
+                        <code dir="ltr">
+                            /usr/local/bin/<var>ea-php56</var> /home/<var>[% CPANEL.user %]</var>/<var>domain_path</var>/path/to/cron/script
+                        </code>
+                        <span class="help-block">
+                            [% locale.maketext("In the above example, replace “[_1]” with the PHP version assigned to the domain you wish to use. Look in the [output,url,_2,MultiPHP Manager,_type,offsite] for the actual PHP version assigned to a domain.", "ea-php56", multiPHP_manager_url) %]
+                        </span>
+                    </p>
+                </div>
+                <div>
+                    <div class="form-group">
+                        <label id="lblCommonSettings" for="common_options">
+                            [% locale.maketext("Common Settings")  %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                <select id="common_options" onchange="select_common_option()"
+                                        class="form-control">
+                                    <option value="--">
+                                        -- [% locale.maketext("Common Settings") %] --
+                                    </option>
+                                    <option value="* * * * *">
+                                        [% locale.maketext("Once Per Minute") %](* * * * *)
+                                    </option>
+                                    <option value="*/5 * * * *">
+                                        [% locale.maketext("Once Per Five Minutes") %](*/5 * * * *)
+                                    </option>
+                                    <option value="0,30 * * * *">
+                                        [% locale.maketext("Twice Per Hour") %](0,30 * * * *)
+                                    </option>
+                                    <option value="0 * * * *">
+                                        [% locale.maketext("Once Per Hour") %](0 * * * *)
+                                    </option>
+                                    <option value="0 0,12 * * *">
+                                        [% locale.maketext("Twice Per Day") %](0 0,12 * * *)
+                                    </option>
+                                    <option value="0 0 * * *">
+                                        [% locale.maketext("Once Per Day") %](0 0 * * *)
+                                    </option>
+                                    <option value="0 0 * * 0">
+                                        [% locale.maketext("Once Per Week") %](0 0 * * 0)
+                                    </option>
+                                    <option value="0 0 1,15 * *">
+                                        [% locale.maketext("On the 1st and 15th of the Month") %](0 0 1,15 * *)
+                                    </option>
+                                    <option value="0 0 1 * *">
+                                        [% locale.maketext("Once Per Month") %](0 0 1 * *)
+                                    </option>
+                                    <option value="0 0 1 1 *">
+                                        [% locale.maketext("Once Per Year") %](0 0 1 1 *)
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblMinute" for="minute">
+                            [% locale.maketext("Minute:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-2">
+                                <input id="minute" type="text" class="form-control" size="4" />
+                            </div>
+                            <div class="col-xs-4">
+                                <select id="minute_options" class="form-control"
+                                        onchange="select_single_option('minute')">
+                                    <option value="--">
+                                        -- [% locale.maketext("Common Settings") %] --
+                                    </option>
+                                    <option value="*">
+                                        [% locale.maketext("Once Per Minute") %](*)
+                                    </option>
+                                    <option value="*/2">
+                                        [% locale.maketext("Once Per Two Minutes") %](*/2)
+                                    </option>
+                                    <option value="*/5">
+                                        [% locale.maketext("Once Per Five Minutes") %](*/5)
+                                    </option>
+                                    <option value="*/10">
+                                        [% locale.maketext("Once Per Ten Minutes") %](*/10)
+                                    </option>
+                                    <option value="*/15">
+                                        [% locale.maketext("Once Per Fifteen Minutes") %](*/15)
+                                    </option>
+                                    <option value="0,30">
+                                        [% locale.maketext("Once Per Thirty Minutes") %](0,30)
+                                    </option>
+                                    <option value="--">
+                                        -- [% locale.maketext("Minutes") %] --
+                                    </option>
+                                    <option value="0">
+                                        :00 [% locale.maketext("(At the beginning of the hour.)") %] (0)
+                                    </option>
+                                    <option value="1">
+                                        :01 (1)
+                                    </option>
+                                    <option value="2">
+                                        :02 (2)
+                                    </option>
+                                    <option value="3">
+                                        :03 (3)
+                                    </option>
+                                    <option value="4">
+                                        :04 (4)
+                                    </option>
+                                    <option value="5">
+                                        :05 (5)
+                                    </option>
+                                    <option value="6">
+                                        :06 (6)
+                                    </option>
+                                    <option value="7">
+                                        :07 (7)
+                                    </option>
+                                    <option value="8">
+                                        :08 (8)
+                                    </option>
+                                    <option value="9">
+                                        :09 (9)
+                                    </option>
+                                    <option value="10">
+                                        :10 (10)
+                                    </option>
+                                    <option value="11">
+                                        :11 (11)
+                                    </option>
+                                    <option value="12">
+                                        :12 (12)
+                                    </option>
+                                    <option value="13">
+                                        :13 (13)
+                                    </option>
+                                    <option value="14">
+                                        :14 (14)
+                                    </option>
+                                    <option value="15">
+                                        :15 [% locale.maketext("(At one quarter past the hour.)") %] (15)
+                                    </option>
+                                    <option value="16">
+                                        :16 (16)
+                                    </option>
+                                    <option value="17">
+                                        :17 (17)
+                                    </option>
+                                    <option value="18">
+                                        :18 (18)
+                                    </option>
+                                    <option value="19">
+                                        :19 (19)
+                                    </option>
+                                    <option value="20">
+                                        :20 (20)
+                                    </option>
+                                    <option value="21">
+                                        :21 (21)
+                                    </option>
+                                    <option value="22">
+                                        :22 (22)
+                                    </option>
+                                    <option value="23">
+                                        :23 (23)
+                                    </option>
+                                    <option value="24">
+                                        :24 (24)
+                                    </option>
+                                    <option value="25">
+                                        :25 (25)
+                                    </option>
+                                    <option value="26">
+                                        :26 (26)
+                                    </option>
+                                    <option value="27">
+                                        :27 (27)
+                                    </option>
+                                    <option value="28">
+                                        :28 (28)
+                                    </option>
+                                    <option value="29">
+                                        :29 (29)
+                                    </option>
+                                    <option value="30">
+                                        :30 [% locale.maketext("(At half past the hour.)") %] (30)
+                                    </option>
+                                    <option value="31">
+                                        :31 (31)
+                                    </option>
+                                    <option value="32">
+                                        :32 (32)
+                                    </option>
+                                    <option value="33">
+                                        :33 (33)
+                                    </option>
+                                    <option value="34">
+                                        :34 (34)
+                                    </option>
+                                    <option value="35">
+                                        :35 (35)
+                                    </option>
+                                    <option value="36">
+                                        :36 (36)
+                                    </option>
+                                    <option value="37">
+                                        :37 (37)
+                                    </option>
+                                    <option value="38">
+                                        :38 (38)
+                                    </option>
+                                    <option value="39">
+                                        :39 (39)
+                                    </option>
+                                    <option value="40">
+                                        :40 (40)
+                                    </option>
+                                    <option value="41">
+                                        :41 (41)
+                                    </option>
+                                    <option value="42">
+                                        :42 (42)
+                                    </option>
+                                    <option value="43">
+                                        :43 (43)
+                                    </option>
+                                    <option value="44">
+                                        :44 (44)
+                                    </option>
+                                    <option value="45">
+                                        :45 [% locale.maketext("(At one quarter until the hour.)") %] (45)
+                                    </option>
+                                    <option value="46">
+                                        :46 (46)
+                                    </option>
+                                    <option value="47">
+                                        :47 (47)
+                                    </option>
+                                    <option value="48">
+                                        :48 (48)
+                                    </option>
+                                    <option value="49">
+                                        :49 (49)
+                                    </option>
+                                    <option value="50">
+                                        :50 (50)
+                                    </option>
+                                    <option value="51">
+                                        :51 (51)
+                                    </option>
+                                    <option value="52">
+                                        :52 (52)
+                                    </option>
+                                    <option value="53">
+                                        :53 (53)
+                                    </option>
+                                    <option value="54">
+                                        :54 (54)
+                                    </option>
+                                    <option value="55">
+                                        :55 (55)
+                                    </option>
+                                    <option value="56">
+                                        :56 (56)
+                                    </option>
+                                    <option value="57">
+                                        :57 (57)
+                                    </option>
+                                    <option value="58">
+                                        :58 (58)
+                                    </option>
+                                    <option value="59">
+                                        :59 (59)
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="minute_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblHour" for="hour">
+                            [% locale.maketext("Hour:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-2">
+                                <input id="hour" type="text" class="form-control" size="4"  />
+                            </div>
+                            <div class="col-xs-4">
+                                <select id="hour_options" class="form-control" onchange="select_single_option('hour')">
+                                    <option value="--">
+                                        --
+                                        [% locale.maketext("Common Settings") %]
+                                            --
+                                    </option>
+                                    <option value="*">
+                                        [% locale.maketext("Every Hour") %]
+                                            (*)
+                                    </option>
+                                    <option value="*/2">
+                                        [% locale.maketext("Every Other Hour") %]
+                                            (*/2)
+                                    </option>
+                                    <option value="*/3">
+                                        [% locale.maketext("Every Third Hour") %]
+                                            (*/3)
+                                    </option>
+                                    <option value="*/4">
+                                        [% locale.maketext("Every Fourth Hour") %]
+                                            (*/4)
+                                    </option>
+                                    <option value="*/6">
+                                        [% locale.maketext("Every Sixth Hour") %]
+                                            (*/6)
+                                    </option>
+                                    <option value="0,12">
+                                        [% locale.maketext("Every Twelve Hours") %]
+                                            (0,12)
+                                    </option>
+                                    <option value="--">
+                                        --
+                                        [% locale.maketext("Hours") %]
+                                            --
+                                    </option>
+                                    <option value="0">
+                                        12:00 a.m.
+                                        [% locale.maketext("Midnight") %]
+                                            (0)
+                                    </option>
+                                    <option value="1">
+                                        1:00 a.m. (1)
+                                    </option>
+                                    <option value="2">
+                                        2:00 a.m. (2)
+                                    </option>
+                                    <option value="3">
+                                        3:00 a.m. (3)
+                                    </option>
+                                    <option value="4">
+                                        4:00 a.m. (4)
+                                    </option>
+                                    <option value="5">
+                                        5:00 a.m. (5)
+                                    </option>
+                                    <option value="6">
+                                        6:00 a.m. (6)
+                                    </option>
+                                    <option value="7">
+                                        7:00 a.m. (7)
+                                    </option>
+                                    <option value="8">
+                                        8:00 a.m. (8)
+                                    </option>
+                                    <option value="9">
+                                        9:00 a.m. (9)
+                                    </option>
+                                    <option value="10">
+                                        10:00 a.m. (10)
+                                    </option>
+                                    <option value="11">
+                                        11:00 a.m. (11)
+                                    </option>
+                                    <option value="12">
+                                        12:00 p.m.
+                                        [% locale.maketext("Noon") %]
+                                            (12)
+                                    </option>
+                                    <option value="13">
+                                        1:00 p.m. (13)
+                                    </option>
+                                    <option value="14">
+                                        2:00 p.m. (14)
+                                    </option>
+                                    <option value="15">
+                                        3:00 p.m. (15)
+                                    </option>
+                                    <option value="16">
+                                        4:00 p.m. (16)
+                                    </option>
+                                    <option value="17">
+                                        5:00 p.m. (17)
+                                    </option>
+                                    <option value="18">
+                                        6:00 p.m. (18)
+                                    </option>
+                                    <option value="19">
+                                        7:00 p.m. (19)
+                                    </option>
+                                    <option value="20">
+                                        8:00 p.m. (20)
+                                    </option>
+                                    <option value="21">
+                                        9:00 p.m. (21)
+                                    </option>
+                                    <option value="22">
+                                        10:00 p.m. (22)
+                                    </option>
+                                    <option value="23">
+                                        11:00 p.m. (23)
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="hour_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblDay" for="day">
+                            [% locale.maketext("Day:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-2">
+                                <input type="text" class="form-control" size="4" id="day" />
+                            </div>
+                            <div class="col-xs-4">
+                                <select id="day_options" onchange="select_single_option('day')" class="form-control">
+                                    <option value="--">
+                                        --
+                                        [% locale.maketext("Common Settings") %]
+                                            --
+                                    </option>
+                                    <option value="*">
+                                        [% locale.maketext("Every Day") %]
+                                            (*)
+                                    </option>
+                                    <option value="*/2">
+                                        [% locale.maketext("Every Other Day") %]
+                                            (*/2)
+                                    </option>
+                                    <option value="1,15">
+                                        [% locale.maketext("On the 1st and 15th of the Month") %]
+                                            (1,15)
+                                    </option>
+                                    <option value="--">
+                                        -- [% locale.maketext("Days") %] --
+                                    </option>
+                                    <option value="1">
+                                        [% locale.maketext("1st") %] (1)
+                                    </option>
+                                    <option value="2">
+                                        [% locale.maketext("2nd") %] (2)
+                                    </option>
+                                    <option value="3">
+                                        [% locale.maketext("3rd") %] (3)
+                                    </option>
+                                    <option value="4">
+                                        [% locale.maketext("4th") %] (4)
+                                    </option>
+                                    <option value="5">
+                                        [% locale.maketext("5th") %] (5)
+                                    </option>
+                                    <option value="6">
+                                        [% locale.maketext("6th") %] (6)
+                                    </option>
+                                    <option value="7">
+                                        [% locale.maketext("7th") %] (7)
+                                    </option>
+                                    <option value="8">
+                                        [% locale.maketext("8th") %] (8)
+                                    </option>
+                                    <option value="9">
+                                        [% locale.maketext("9th") %] (9)
+                                    </option>
+                                    <option value="10">
+                                        [% locale.maketext("10th") %] (10)
+                                    </option>
+                                    <option value="11">
+                                        [% locale.maketext("11th") %] (11)
+                                    </option>
+                                    <option value="12">
+                                        [% locale.maketext("12th") %] (12)
+                                    </option>
+                                    <option value="13">
+                                        [% locale.maketext("13th") %] (13)
+                                    </option>
+                                    <option value="14">
+                                        [% locale.maketext("14th") %] (14)
+                                    </option>
+                                    <option value="15">
+                                        [% locale.maketext("15th") %] (15)
+                                    </option>
+                                    <option value="16">
+                                        [% locale.maketext("16th") %] (16)
+                                    </option>
+                                    <option value="17">
+                                        [% locale.maketext("17th") %] (17)
+                                    </option>
+                                    <option value="18">
+                                        [% locale.maketext("18th") %] (18)
+                                    </option>
+                                    <option value="19">
+                                        [% locale.maketext("19th") %] (19)
+                                    </option>
+                                    <option value="20">
+                                        [% locale.maketext("20th") %] (20)
+                                    </option>
+                                    <option value="21">
+                                        [% locale.maketext("21st") %] (21)
+                                    </option>
+                                    <option value="22">
+                                        [% locale.maketext("22nd") %] (22)
+                                    </option>
+                                    <option value="23">
+                                        [% locale.maketext("23rd") %] (23)
+                                    </option>
+                                    <option value="24">
+                                        [% locale.maketext("24th") %] (24)
+                                    </option>
+                                    <option value="25">
+                                        [% locale.maketext("25th") %] (25)
+                                    </option>
+                                    <option value="26">
+                                        [% locale.maketext("26th") %] (26)
+                                    </option>
+                                    <option value="27">
+                                        [% locale.maketext("27th") %] (27)
+                                    </option>
+                                    <option value="28">
+                                        [% locale.maketext("28th") %] (28)
+                                    </option>
+                                    <option value="29">
+                                        [% locale.maketext("29th") %] (29)
+                                    </option>
+                                    <option value="30">
+                                        [% locale.maketext("30th") %] (30)
+                                    </option>
+                                    <option value="31">
+                                        [% locale.maketext("31st") %] (31)
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="day_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblMonth" for="month">
+                            [% locale.maketext("Month:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-2">
+                                <input type="text" class="form-control" size="4" id="month" />
+                            </div>
+                            <div class="col-xs-4">
+                                <select id="month_options" onchange="select_single_option('month')" class="form-control">
+                                    <option value="--">
+                                        -- [% locale.maketext("Common Settings") %] --
+                                    </option>
+                                    <option value="*">
+                                        [% locale.maketext("Every Month") %]
+                                            (*)
+                                    </option>
+                                    <option value="*/2">
+                                        [% locale.maketext("Every Other Month[comment,every second month]") %]
+                                            (*/2)
+                                    </option>
+                                    <option value="*/4">
+                                        [% locale.maketext("Every Third Month") %]
+                                            (*/4)
+                                    </option>
+                                    <option value="1,7">
+                                        [% locale.maketext("Every Six Months") %]
+                                            (1,7)
+                                    </option>
+                                    <option value="--">
+                                        -- [% locale.maketext("Months") %] --
+                                    </option>
+                                    <option value="1">
+                                        [% locale.maketext("January") %]
+                                            (1)
+                                    </option>
+                                    <option value="2">
+                                        [% locale.maketext("February") %]
+                                            (2)
+                                    </option>
+                                    <option value="3">
+                                        [% locale.maketext("March") %]
+                                            (3)
+                                    </option>
+                                    <option value="4">
+                                        [% locale.maketext("April") %]
+                                            (4)
+                                    </option>
+                                    <option value="5">
+                                        [% locale.maketext("May[comment,please use datetime methods for this sort of thing]") %]
+                                            (5)
+                                    </option>
+                                    <option value="6">
+                                        [% locale.maketext("June") %]
+                                            (6)
+                                    </option>
+                                    <option value="7">
+                                        [% locale.maketext("July") %]
+                                            (7)
+                                    </option>
+                                    <option value="8">
+                                        [% locale.maketext("August") %]
+                                            (8)
+                                    </option>
+                                    <option value="9">
+                                        [% locale.maketext("September") %]
+                                            (9)
+                                    </option>
+                                    <option value="10">
+                                        [% locale.maketext("October") %]
+                                            (10)
+                                    </option>
+                                    <option value="11">
+                                        [% locale.maketext("November") %]
+                                            (11)
+                                    </option>
+                                    <option value="12">
+                                        [% locale.maketext("December") %]
+                                            (12)
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="month_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblWeekday" for="weekday">
+                            [% locale.maketext("Weekday:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-2">
+                                <input type="text" class="form-control" size="4" id="weekday" />
+                            </div>
+                            <div class="col-xs-4">
+                                <select id="weekday_options" class="form-control" onchange="select_single_option('weekday')">
+                                    <option value="--">
+                                        -- [% locale.maketext("Common Settings") %] --
+                                    </option>
+                                    <option value="*">
+                                        [% locale.maketext("Every Day") %]
+                                            (*)
+                                    </option>
+                                    <option value="1-5">
+                                        [% locale.maketext("Every Weekday[comment,Monday through Friday]") %]
+                                            (1-5)
+                                    </option>
+                                    <option value="0,6">
+                                        [% locale.maketext("Every Weekend Day[comment,Saturday and Sunday]") %]
+                                            (6,0)
+                                    </option>
+                                    <option value="1,3,5">
+                                        [% locale.maketext("Every Monday, Wednesday, and Friday") %]
+                                            (1,3,5)
+                                    </option>
+                                    <option value="2,4">
+                                        [% locale.maketext("Every Tuesday and Thursday") %]
+                                            (2,4)
+                                    </option>
+                                    <option value="--">
+                                        --
+                                        [% locale.maketext("Weekdays") %]
+                                            --
+                                    </option>
+                                    <option value="0">
+                                        [% locale.maketext("Sunday") %]
+                                            (0)
+                                    </option>
+                                    <option value="1">
+                                        [% locale.maketext("Monday") %]
+                                            (1)
+                                    </option>
+                                    <option value="2">
+                                        [% locale.maketext("Tuesday") %]
+                                            (2)
+                                    </option>
+                                    <option value="3">
+                                        [% locale.maketext("Wednesday") %]
+                                            (3)
+                                    </option>
+                                    <option value="4">
+                                        [% locale.maketext("Thursday") %]
+                                            (4)
+                                    </option>
+                                    <option value="5">
+                                        [% locale.maketext("Friday") %]
+                                            (5)
+                                    </option>
+                                    <option value="6">
+                                        [% locale.maketext("Saturday") %]
+                                            (6)
+                                    </option>
+                                </select>
+                            </div>
+                            <div id="weekday_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label id="lblCommand" for="command">
+                            [% locale.maketext("Command:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                <input type="text" class="form-control" size="45" id="command" />
+                            </div>
+                            <div id="command_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input type="button" id="add_new_cron" class="btn btn-primary" value="[% locale.maketext("Add New Cron Job") %]" />
+                        <span id="add_new_cron_status">
+                        </span>
+                    </div>
+                </div>
+                <div id="add_cron_status_bar" class="cjt_status_bar">
+                </div>
+            </div>
+            <div class="section">
+                <h2 id="hdrCurrentCronJobs">
+                    [% locale.maketext("Current Cron Jobs") %]
+                </h2>
+                <div id="current_cron_jobs">
+                </div>
+            </div>
+        </div>
+        <!-- end crontab_interface -->
+[% END %]
+
+<!-- end cpanelfeature cron -->
+</div>
+<!-- end body-content -->
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+    <script type="text/javascript">
+    var SYSTEM_ACCOUNT = '[% CPANEL.user %]';
+    var LANG = {
+        cron_field_not_valid : "[% locale.maketext("You did not format the date and time settings correctly.")  %]",
+        command_not_empty : "[% locale.maketext("You must enter a command.")  %]",
+        edit_successful : "[% locale.maketext("Edit Successful")  %]",
+        editing_cron_job : "[% locale.maketext("[asis,cPanel] is editing the cron job …")  %]",
+        added_cron_job : "[% locale.maketext("[asis,cPanel] successfully added the [asis,cron] job.")  %]",
+        adding_cron_job : "[% locale.maketext("[asis,cPanel] is adding the cron job …")  %]",
+        unknown_error : "[% locale.maketext("[asis,cPanel] experienced an unknown error.")  %]",
+        cron_job_deleted : "[% locale.maketext("[asis,cPanel] successfully deleted the [asis,cron] job.")  %]",
+        deleting_cron_job : "[% locale.maketext("[asis,cPanel] is deleting the cron job …")  %]",
+        cron_valid_email : "[% locale.maketext("Email must be a valid email address, empty, or the system account.")  %]",
+        email_address : "[% locale.maketext("Email Address")  %]",
+        confirm_empty_email : "[% locale.maketext("Are you certain that you do NOT wish to receive emails when a [asis,cron] job runs?")  %]",
+        email_updated : "[% locale.maketext("[asis,cPanel] successfully updated the email address.")  %]",
+        changing_email : "[% locale.maketext("[asis,cPanel] is changing the email address …")  %]",
+        none : "[% locale.maketext("None")  %]",
+        Minute : "[% locale.maketext("Minute") %]",
+        Hour : "[% locale.maketext("Hour") %]",
+        Day : "[% locale.maketext("Day") %]",
+        Month : "[% locale.maketext("Month") %]",
+        Weekday : "[% locale.maketext("Weekday") %]",
+        Command : "[% locale.maketext("Command") %]"
+    };
+
+    [% IF CPANEL.CPDATA.DEMO %]
+    var demo_mode = true;
+    EVENT.onDOMReady( function() {
+        new CPANEL.widgets.Page_Notice( {
+            content: "[% locale.maketext("This feature is disabled in demo mode. The controls on this page will not submit.")  %]",
+            level:   "info"
+        } );
+    } );
+    [% ELSE %]
+    var demo_mode = false;
+    [% END %]
+    </script>
+[% END %]
+

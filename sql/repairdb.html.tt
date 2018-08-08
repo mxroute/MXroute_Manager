@@ -1,0 +1,43 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+    SET repair_db = execute("Mysql", "repair_database", { "name" => FORM.db });
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases'
+ -%]
+
+<div class="body-content">
+    <h2 id="hdrRepairingDb">
+        [% locale.maketext("Repairing Database") %]
+    </h2>
+
+    <p id="descRepairingDb">
+        [% locale.maketext("Database “[_1]” is now being repaired.", FORM.db) %]
+    </p>
+
+    [% IF repair_db.status %]
+    <div id="repairdbSuccess" class="alert alert-success">
+        <span id="repairdbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <span id="repairdbSuccessMsg" class="text">
+            [% locale.maketext("Repair Complete!") %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="repairdbError" class="alert alert-danger">
+        <span id="repairdbErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="repairdbErrorMsg" class="text">
+            [% locale.maketext("There was a problem repairing the database “[_1]”.", FORM.db) %]
+            [% FOREACH q = repair_db.errors %]
+                [% q.html() %]
+            [% END %]
+            [% CPANEL.CPERROR.item('mysql').html %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+
+[% END #wrapper -%]

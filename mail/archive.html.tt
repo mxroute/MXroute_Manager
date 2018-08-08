@@ -1,0 +1,103 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+
+IF FORM.itemsperpage;
+    SET CPANEL.CPVAR.itemsperpage = FORM.itemsperpage;
+END;
+IF (!( FORM.itemsperpage) || !( CPANEL.CPVAR.itemsperpage));
+    SET CPANEL.CPVAR.itemsperpage = "10";
+END;
+
+IF (FORM.api2_sort_column);
+    SET CPANEL.CPVAR.api2_sort_column = (FORM.api2_sort_column);
+END;
+IF (!( (FORM.api2_sort_column)) || !( (CPANEL.CPVAR.api2_sort_column)));
+    SET CPANEL.CPVAR.api2_sort_column = "domain";
+END;
+
+IF (FORM.api2_sort_reverse);
+    SET CPANEL.CPVAR.api2_sort_reverse = (FORM.api2_sort_reverse);
+END;
+IF (!( (FORM.api2_sort_reverse)) || !( (CPANEL.CPVAR.api2_sort_reverse)));
+    SET CPANEL.CPVAR.api2_sort_reverse = "0";
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'archive'
+    include_cjt = 1
+    page_scripts = ['/yui/progressbar/progressbar-min.js']
+    embed_scripts = ['js2/mail/archive.js']
+    page_stylesheets = ['/yui/progressbar/assets/skins/sam/progressbar.css']
+    embed_stylesheets = ['css2/mail/archive.css']
+-%]
+<div class="body-content">
+
+    [% IF CPANEL.feature('emailarchive') %]
+        [% IF (CPANEL.CPCONF.emailarchive == "disable" ? 0 : CPANEL.CPCONF.emailarchive) %]
+        <div id="descEmailArchivingAllowsYou" class="header-text">
+            [% locale.maketext("Save incoming, outgoing, or mailing list messages for a specified amount of time. Make sure you have enough disk space available for the retention period you select. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Archive", "_blank", "lnkArchiveDocumentation") %]
+
+        </div>
+
+        <div class="section">
+            [% INCLUDE mail/archive_default.html.tt %]
+        </div>
+
+        <div class="section">
+            <h2 id="hdrManagingArchiving">[% locale.maketext("Manage Archiving") %]</h2>
+
+            <p id="descOnceArchivingHasBegun" class="description">
+                [%
+                    locale.maketext(
+                        'Once archiving has begun, you can download a copy of the complete archive in maildir format for each domain by clicking the “[_1]” action. A read-only IMAP connection to the archive is also available.',
+                        locale.maketext('Download Archive'),
+                    );
+                %]
+            </p>
+
+            [% INCLUDE mail/archive_search.html.tt %]
+
+            <div id="archive_status_bar" class="cjt_status_bar"></div>
+
+            <div class="table-responsive">
+              <table id="emailarchtbl" class="archives sortable truncate-table table table-striped"  custom-sort-method="onSortClick">
+                <thead>
+                    [% INCLUDE mail/archive_list_header.html.tt %]
+                </thead>
+                <tbody>
+                    [% INCLUDE mail/archive_list.html.tt %]
+                </tbody>
+              </table>
+            </div>
+
+            [% INCLUDE '_assets/paginate.html.tt' %]
+
+        </div>
+
+        <div class="section" id="header-text">
+            <strong>[% locale.maketext("Notes:") %]</strong>
+            <ul class="bulleted">
+                <li id="descWhenArchivingMailingLists">
+                    [% locale.maketext("When archiving mailing lists, only the messages that get sent out to remote users on the list when a message is received are retained in the archive.") %]
+                </li>
+                <li id="descDiskSpaceUsage">
+                    [% locale.maketext("Disk space usage is only recalculated once every day.") %]
+                </li>
+                <li id="descACustomRetentionof">
+                    [% locale.maketext("A custom retention of [output,strong,0] indicates that emails are retained forever.") %]
+                </li>
+            </ul>
+        </div>
+
+        [% INCLUDE mail/archive_download.html.tt %]
+
+        <iframe style="display:none;" name="archivedown" id="archivedown"></iframe>
+        [% END %]
+    [% END %]
+
+    [% IF !(CPANEL.CPCONF.emailarchive == "disable" ? 0 : CPANEL.CPCONF.emailarchive) %]
+        [% locale.maketext("Email archiving is disabled.") %]
+    [% END %]
+</div>
+[% END #wrapper %]

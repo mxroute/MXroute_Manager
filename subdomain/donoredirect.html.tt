@@ -1,0 +1,21 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    Api1.pre_exec("SubDomain", "disablesubrd");
+    SET disable_redirect = Api1.exec("SubDomain", "disablesubrd", [FORM.item('domain')]);
+    Api1.post_exec("SubDomain", "disablesubrd");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'subdomains'
+ -%]
+
+<div class="body-content">
+    <h2>[% locale.maketext("Redirection") %]</h2>
+
+    [% disable_redirect %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+
+[% END #wrapper -%]

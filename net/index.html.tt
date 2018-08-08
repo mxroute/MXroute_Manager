@@ -1,0 +1,78 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../";
+    Api1.pre_exec("Net", "sethastraceroute");
+    SET trace_route = Api1.exec("Net", "sethastraceroute", [undef]);
+    Api1.post_exec("Net", "sethastraceroute"); %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'track_dns'
+ -%]
+
+<div class="body-content">
+    [% IF CPANEL.feature('nettools') %]
+        <p class="description">
+            [% locale.maketext("Network Tools allow a user to find out information about any domain, or to trace the route from the server your site is on to the computer you are accessing cPanel from. Finding out information about a domain can be useful in making sure your DNS is set up properly as you will find out information about your IP address as well as your DNS.") %]
+        </p>
+        <div class="section">
+            <h2>
+                [% locale.maketext("Domain Lookup") %]
+            </h2>
+            <p class="description">
+                [% locale.maketext("The Domain Lookup tool allows you to find out the IP address of any domain, as well as DNS information about that domain. This can be a very useful tool right after your site is set up or after DNS changes have been made to make sure your DNS is setup properly.") %]
+            </p>
+            <div>
+                <form action="dnslook.html" id="dnslook" name="dnslook">
+                    <div class="form-group">
+                        <label for="dns">
+                            [% locale.maketext("Enter a domain to look up:") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                <input type="text" class="form-control" name="dns" id="dns">
+                            </div>
+                            <div id="dns_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <input id="submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Look Up") %]">
+                    </div>
+                </form>
+            </div>
+        </div>
+        [% trace_route %]
+            [% IF !CPANEL.CPVAR.Net_traceroute_disabled %]
+                <div class="section">
+                    <h2>
+                        [% locale.maketext("Trace Route") %]
+                    </h2>
+                    <p class="description">
+                        [% locale.maketext("This function allows you to trace the route from the computer you are accessing cPanel from to the server your site is on (i.e. the number of servers and what servers your data must pass through to get to your site).") %]
+                    </p>
+                    <form action="traceroute.html">
+                        <input type="submit" class="btn btn-primary" value="[% locale.maketext("Trace") %]" />
+                    </form>
+                </div>
+            [% END %]
+    [% END %]
+    [% IF !CPANEL.feature('nettools') %]
+        [%  Api1.exec("include", ["../refresh.html"]) %]
+    [% END %]
+</div>
+[% END #wrapper -%]
+[% BLOCK js_block %]
+    [% IF CPANEL.feature('nettools') %]
+        <script type="text/javascript">
+            var init = function() {
+                    var validation = new CPANEL.validate.validator("[% locale.maketext('Network Tools')  %]");
+                    validation.add('dns', 'fqdn', '[% locale.maketext("Your entry must be a domain name (e.g. example.com).")  %]');
+                    validation.attach();
+                    CPANEL.validate.attach_to_form("submit-button", validation);
+                };
+
+            YAHOO.util.Event.onDOMReady(init);
+        </script>
+    [% END %]
+[% END %]

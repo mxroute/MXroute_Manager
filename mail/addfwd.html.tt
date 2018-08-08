@@ -1,0 +1,349 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET mail_domains = execute("Email", "list_mail_domains", {});
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    page_js = js_code
+    app_key = 'forwarders'
+ -%]
+
+<div class="body-content">
+    <style>
+        input[disabled] {
+            pointer-events: none;
+        }
+    </style>
+    <div class="section">
+        <h2>[% locale.maketext("Add a New Forwarder") %]</h2>
+        <h3>[% locale.maketext("Address") %]</h3>
+
+        <form method="post" name="fwdf" id="fwdf" action="doaddfwd.html">
+            <div class="form-group">
+                [% IF (ExpVar.expand('$appname') == "webmail") %]
+                    <label for="email">
+                        [% locale.maketext("Forwarding") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12">
+                            <input id="email" type="hidden" name="email" value="[% CPANEL.authuser.html() %]" />
+                            [% CPANEL.authuser.html() %]
+                        </div>
+                    </div>
+                [% ELSE %]
+                    <label for="email">
+                        [% locale.maketext("Address to Forward:") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <div class="input-group">
+                                <input type="text" class="form-control col-xs-2" autofill="off" autocomplete="off" id="email" name="email" />
+                                <span class="input-group-addon">@</span>
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="email_error"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+
+                    <label for="domain">
+                        [% locale.maketext("Domain")  %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <select id="ddlDomain" name="domain" class="form-control">
+                                [% FOREACH hashref IN mail_domains.data %]
+                                    <option value="[% hashref.domain.html() %]">[% hashref.domain.html() %]</option>
+                                [% END %]
+                            </select>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="ddlDomain_error"></div>
+                    </div>
+                [% END %]
+
+            </div>
+
+            <h3>[% locale.maketext("Destination") %]</h3>
+
+            [% IF (ExpVar.expand('$appname') == "webmail") %]
+                <div class="form-group">
+                    <label>
+                        [% locale.maketext("Forward to Email Address") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input name="fwdopt" id="fwd_radio" type="hidden" value="fwd" />
+                            <input name="fwdemail" id="fwdemail" type="text" class="form-control" />
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="fwdemail_error"></div>
+                    </div>
+                </div>
+            [% ELSE %]
+                <div class="form-group">
+                    <label for="fwd_radio">
+                        <input name="fwdopt" id="fwd_radio" type="radio" value="fwd" checked="checked" />
+                        [% locale.maketext("Forward to Email Address") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-offset-1 col-xs-11 col-sm-6 col-md-6 col-lg-6">
+                            <span id="fwdemail_clickmask">
+                                <input name="fwdemail" id="fwdemail"  type="text" class="form-control" />
+                            </span>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="fwdemail_error"></div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="discard_radio">
+                        <input name="fwdopt" type="radio" value="fail" id="discard_radio" />
+                        [% locale.maketext("Discard and send an error to the sender (at [asis,SMTP] time).") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-offset-1 col-xs-11 col-sm-6 col-md-6 col-lg-6">
+                            <label for="failmsgs">
+                                [% locale.maketext("Failure Message (seen by sender)") %]
+                            </label>
+                            <span id="failmsgs_clickmask">
+                                <input name="failmsgs" id="failmsgs" type="text" class="form-control" value="[% locale.maketext("No such person at this address.") %]" />
+                            </span>
+                        </div>
+                        <div class="col-xs-5" id="failmsgs_error"></div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <a id="toggle_advanced_options" href="#">
+                        <strong>[% locale.maketext("Advanced Options") %]</strong> <span class="caret"></span></a>
+                </div>
+
+                <div style="display: none;" id="advance" class="section">
+
+                    <div class="form-group">
+                        <label for="fwdsystem_radio">
+                            <input id="fwdsystem_radio" name="fwdopt" type="radio" value="system" id="system_radio" />
+                            [% locale.maketext("Forward to a system account") %]</label>
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-offset-1 col-xs-11 col-sm-6 col-md-6 col-lg-6">
+                                <span id="fwdsystem_clickmask">
+                                    <input id="fwdsystem" name="fwdsystem" type="text" class="form-control" value="[% CPANEL.CPDATA.item('USER').html %]" />
+                                </span>
+                            </div>
+                            <div class="col-xs-5" id="fwdsystem_error"></div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="pipeit">
+                            <input name="fwdopt" id="pipeit" type="radio" value="pipe" />
+                            [% locale.maketext("Pipe to a Program") %]
+                        </label>
+                        <div class="row">
+                            <div class="col-xs-offset-1 col-xs-11">
+                                [% SET CPANEL.CPVAR.autoinput = "pipefwd" %]
+
+                                <span class="fas fa-home">/</span>
+                                <span id="pipefwd_clickmask">
+                                [% PROCESS 'autodir/dirbox.html.tt' %]
+                                </span>
+
+                                <div class="row">
+                                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                                        <span class="help-block">[% locale.maketext("When piping to a program, you should enter a path relative to your home directory. If the script requires an interpreter such as Perl or PHP, you should omit the /usr/bin/perl or /usr/bin/php portion. Make sure that your script is executable and has the appropriate [output,url,_1,target,_2,hashbang,id,_3] at the top of the script. If you do not know how to add the hashbang, just make sure to name your script file with the correct extension and you will be prompted to have the hashbang added automatically.",'http://en.wikipedia.org/wiki/Hashbang','_blank', 'lnkHashbang' ) %]</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="fwdopt_blackhole">
+                            <input name="fwdopt" type="radio" value="blackhole" id="fwdopt_blackhole" />
+                            [% locale.maketext("Discard (Not Recommended)") %]
+                        </label>
+                    </div>
+                </div>
+            [% END %]
+
+            <div class="form-group">
+                <input class="btn btn-primary" type="submit" id="submit" value="[% locale.maketext("Add Forwarder") %]" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='fwds.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+[% IF (ExpVar.expand('$appname') == "webmail") %]
+var init_page = function() {
+    var forward_validator = new CPANEL.validate.validator("[% locale.maketext("Forward Address") %]");
+    forward_validator.add("fwdemail", "email", "[% locale.maketext("That is not a valid email address.") %]");
+    forward_validator.attach();
+
+    CPANEL.validate.attach_to_form("submit", forward_validator);
+
+    YAHOO.util.Dom.get("fwdemail").focus();
+};
+YAHOO.util.Event.onDOMReady(init_page);
+[% ELSE %]
+var toggle_radios = function() {
+    if (YAHOO.util.Dom.get("fwd_radio").checked == true) {
+        discard_validator.clear_messages();
+        dir_validator.clear_messages();
+        YAHOO.util.Dom.get("fwdemail").disabled = false;
+        YAHOO.util.Dom.get("failmsgs").disabled = true;
+        YAHOO.util.Dom.get("fwdsystem").disabled = true;
+        YAHOO.util.Dom.get("pipefwd").disabled = true;
+    }
+    else if (YAHOO.util.Dom.get("discard_radio").checked == true) {
+        destination_validator.clear_messages();
+        dir_validator.clear_messages();
+        YAHOO.util.Dom.get("fwdemail").disabled = true;
+        YAHOO.util.Dom.get("failmsgs").disabled = false;
+        YAHOO.util.Dom.get("fwdsystem").disabled = true;
+        YAHOO.util.Dom.get("pipefwd").disabled = true;
+    }
+    else if (YAHOO.util.Dom.get("pipeit").checked == true) {
+        destination_validator.clear_messages();
+        discard_validator.clear_messages();
+        YAHOO.util.Dom.get("fwdemail").disabled = true;
+        YAHOO.util.Dom.get("failmsgs").disabled = true;
+        YAHOO.util.Dom.get("fwdsystem").disabled = true;
+        YAHOO.util.Dom.get("pipefwd").disabled = false;
+    }
+    else if (YAHOO.util.Dom.get("fwdopt_blackhole").checked == true) {
+        destination_validator.clear_messages();
+        discard_validator.clear_messages();
+        dir_validator.clear_messages();
+        YAHOO.util.Dom.get("fwdemail").disabled = true;
+        YAHOO.util.Dom.get("failmsgs").disabled = true;
+        YAHOO.util.Dom.get("fwdsystem").disabled = true;
+        YAHOO.util.Dom.get("pipefwd").disabled = true;
+    }
+    else if (YAHOO.util.Dom.get("fwdsystem_radio").checked == true) {
+        destination_validator.clear_messages();
+        discard_validator.clear_messages();
+        dir_validator.clear_messages();
+        YAHOO.util.Dom.get("fwdemail").disabled = true;
+        YAHOO.util.Dom.get("failmsgs").disabled = true;
+        YAHOO.util.Dom.get("fwdsystem").disabled = false;
+        YAHOO.util.Dom.get("pipefwd").disabled = true;
+    }
+};
+
+//a bit more complicated than other validators because the criteria
+//can be altered in WHM
+var validate_system_user = function() {
+    var value = YAHOO.util.Dom.get("fwdsystem").value;
+
+    return CPANEL.validate.alphanumeric( value )
+        && CPANEL.validate.no_chars( value, ' ' )
+    ;
+}
+
+var validate_destination = function() {
+    if (YAHOO.util.Dom.get("fwd_radio").checked) {
+        var email_list = YAHOO.util.Dom.get("fwdemail").value.trim();
+        var emails = email_list.split(/\s*,\s*/);
+        return emails.every(CPANEL.validate.email);
+    }
+    else return true;
+};
+
+var validate_discard = function() {
+    if (YAHOO.util.Dom.get("discard_radio").checked) {
+        return CPANEL.validate.min_length(YAHOO.util.Dom.get("failmsgs").value, 1);
+    }
+    else return true;
+};
+
+var validate_dirpath = function() {
+    if (YAHOO.util.Dom.get("pipeit").checked) {
+        return CPANEL.validate.dir_path(YAHOO.util.Dom.get("pipefwd").value);
+    }
+    else return true;
+};
+
+var forward_validator = new CPANEL.validate.validator("[% locale.maketext("Forward Address") %]");
+var forward_domain_validator = new CPANEL.validate.validator("[% locale.maketext("Domain") %]");
+var destination_validator = new CPANEL.validate.validator("[% locale.maketext("Destination Address") %]");
+var discard_validator = new CPANEL.validate.validator("[% locale.maketext("Discard Message") %]");
+var dir_validator = new CPANEL.validate.validator("[% locale.maketext("Directory") %]");
+var system_user_validator = new CPANEL.validate.validator("[% locale.maketext("System Account") %]");
+
+function init_page() {
+
+    system_user_validator.add("fwdsystem", validate_system_user, "[% locale.maketext("This is not a valid username.")  %]", "fwdsystem_radio");
+    system_user_validator.attach();
+
+    // Setup the local part validation
+    var domain_el = YAHOO.util.Dom.get("ddlDomain");
+    forward_validator.add("email", "min_length(%input%, 1)", "[% locale.maketext("You must enter a forwarded email address.")  %]", null, { unique_id: "username_min_length" });
+    forward_validator.add("email", "max_length(%input%, 64)", "[% locale.maketext("The local part of the forwarded email address cannot exceed [numf,_1] characters.", 64)%]", null, { unique_id: "username_max_length" });
+    forward_validator.add("email", function(local_el) {
+            var username = local_el.value + "@" + domain_el.value;
+            return CPANEL.validate.max_length(username, 254);
+        },
+        LOCALE.maketext("The forwarded email address cannot exceed [numf,_1] characters.", 254),
+        null,
+        { unique_id: "username_full_length" }
+    );
+    forward_validator.add("email", "local_part_email(%input%, 'rfc', true)", LOCALE.maketext("The local part of the forwarded email address contains invalid characters."), null, { unique_id: "username_valid" });
+    forward_validator.add("email", "no_unsafe_periods", "[% locale.maketext("The local part of the forwarded email address cannot start with a period, end with a period, or include two consecutive periods.") %]", null, { unique_id: "username_safe_periods" });
+    forward_validator.attach();
+
+    // Setup the domain part validation
+    forward_domain_validator.add("ddlDomain", function() {
+            forward_validator.clear_messages();
+            forward_validator.verify(); // Will show up in the local parts validator
+            return true;                // So this always passes
+        }, ""
+    );
+    forward_domain_validator.attach();
+
+    destination_validator.add("fwdemail", validate_destination, "[% locale.maketext("That is not a valid email address.")  %]");
+    destination_validator.attach();
+
+    discard_validator.add("failmsgs", validate_discard, "[% locale.maketext("You must enter a failure message.")  %]");
+    discard_validator.attach();
+
+    // We use JSON here to ensure the backslash is emitted correctly.
+    dir_validator.add("pipefwd", validate_dirpath, [% locale.maketext("Directory paths cannot be empty or contain the following characters: [output,chr,92] ? % * : | [output,quot] [output,gt] [output,lt]").json()  %]);
+    dir_validator.attach();
+
+    CPANEL.validate.attach_to_form("submit", [
+        forward_validator,
+        forward_domain_validator,
+        destination_validator,
+        discard_validator,
+        dir_validator,
+        system_user_validator
+    ]);
+
+    YAHOO.util.Dom.get("email").focus();
+    YAHOO.util.Event.on("toggle_advanced_options", "click", function() { CPANEL.animate.slide_toggle("advance") });
+    YAHOO.util.Event.on(["fwd_radio", "discard_radio", "pipeit", "fwdsystem_radio", "fwdopt_blackhole"], "click", toggle_radios);
+
+    var checkAndFocus = function(radio, input) {
+        YAHOO.util.Dom.get(radio).checked = true;
+        toggle_radios();
+        YAHOO.util.Dom.get(input).focus();
+    };
+
+    // select the radio button when an input field gets focus
+    YAHOO.util.Event.on("fwdemail_clickmask", "click", function() { checkAndFocus("fwd_radio", "fwdemail"); });
+    YAHOO.util.Event.on("failmsgs_clickmask", "click", function() { checkAndFocus("discard_radio", "failmsgs"); });
+    YAHOO.util.Event.on("pipefwd_clickmask", "click", function() { checkAndFocus("pipeit", "pipefwd"); });
+    YAHOO.util.Event.on("fwdsystem_clickmask", "click", function() { checkAndFocus("fwdsystem_radio", "fwdsystem"); });
+
+    toggle_radios();
+}
+YAHOO.util.Event.onDOMReady(init_page);
+[% END %]
+</script>
+[% END %]

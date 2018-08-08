@@ -1,0 +1,39 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+    SET api_call = execute(
+        'Postgresql',
+        'grant_all_privileges',
+        {
+            user => RAW_FORM.user,
+            database => RAW_FORM.db,
+        },
+    );
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'postgresql_databases'
+-%]
+<div class="body-content">
+
+    [% IF api_call.status() %]
+    <div id="addSuccess" class="alert alert-success">
+        <span id="addSuccessImg" class="glyphicon glyphicon-info-sign"></span>
+        <span id="addSuccessMsg">
+            [% locale.maketext("You have added the user “[_1]” to the database “[_2]”.", FORM.user, FORM.db) %]
+        </span>
+    </div>
+    [% ELSE %]
+    <div id="addError" class="alert alert-danger">
+        <span id="addErrorImg" class="glyphicon glyphicon-exclamation-sign"></span>
+        <span id="addErrorMsg">
+            [% locale.maketext("There was a problem adding the user.") %]
+            [% api_call.errors_as_string().html() %]
+        </span>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]

@@ -1,0 +1,23 @@
+<html>
+    <head>
+        <title>[% locale.maketext("[asis,cPanel X]") %]</title>
+        [% Api1.exec("relinclude", ["filemanager/files_head.html"]) %]
+    </head>
+    <body  class="topright">
+        <b>
+            [%
+                Api1.pre_exec("Fileman", "fmrename");
+                Api1.exec("Fileman", "fmrename", [FORM.dir, FORM.file, FORM.newname, FORM.doubledecode]);
+                Api1.post_exec("Fileman", "fmrename")
+            %]
+        </b>
+        <script type="text/javascript">
+            if (parent.dirwindow.window.location.href.indexOf("?") > 0) {
+                    parent.dirwindow.window.location.href = parent.dirwindow.window.location.href + "&refresh=[% ExpVar.expand('$random') %]";
+            }
+            if (parent.dirwindow.window.location.href.indexOf("?") == -1) {
+                    parent.dirwindow.window.location.href = parent.dirwindow.window.location.href + "?refresh=[% ExpVar.expand('$random') %]";
+            }
+        </script>
+    </body>
+</html>

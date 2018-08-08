@@ -1,0 +1,24 @@
+
+<div style="display:none;" id="encodingsdisabled">
+    <div class="hd">
+        <div class="lt"></div>
+        <span>[% locale.maketext("Character Encoding Verification Disabled") %]</span>
+
+    <div class="rt">
+</div></div>
+<div class="bd">
+    <div class="filecontent" id="encodingsdisabled-content">
+        <form name="encodingsdisabledform" action="setencodingsdisabled.html">
+            [%
+                locale.maketext(
+                    'We will attempt to automatically detect character encodings and will no longer verify them with you. If you need to change this setting in the future, use the “[_1]” link or the “[_2]” option on the main screen.',
+                    locale.maketext('Settings'),
+                    locale.maketext('Reset Page Settings'),
+                );
+            %]
+        </form>
+    </div>
+</div>
+    <div class="ft"></div>
+</div>
+

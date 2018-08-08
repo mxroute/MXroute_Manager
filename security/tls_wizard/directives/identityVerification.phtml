@@ -1,0 +1,23 @@
+<ng-form name="iden_ver_subform">
+    <div class="form-group">{{STR.preamble}}</div>
+    <div ng-repeat="ivitem in items" ng-class="{'form-group': 1, required: !+ivitem.is_optional}">
+        <div>
+            <label for="{{vhostName}}/{{ivitem.name}}" ng-bind-html="ivitem.label"></label>
+        </div>
+        <div ng-class="{ 'has-error' : !iden_ver_subform[ivitem.name].$valid }">
+            <div ng-if="use_html_input(ivitem)">
+                <input id="{{vhostName}}/{{ivitem.name}}" type="{{get_html_input_type(ivitem)}}" class="form-control" name="{{ivitem.name}}" ng-model="models[ivitem.name]" ng-pattern="ivitem.pattern" class="form-control" ng-required="!ivitem.is_optional ? true : false" placeholder="{{!ivitem.is_optional ? STR.required : ''}}" />
+            </div>
+            <div ng-if="ivitem.type === 'country_code'">
+                <select id="{{vhostName}}/{{ivitem.name}}" name="{{ivitem.name}}" class="form-control" ng-model="models[ivitem.name]" ng-required="!ivitem.is_optional ? true : false" ng-options="c[0] as (c[1] ? (c[0] + ' (' + c[1] + ')') : c[0]) for c in countries">
+                </select>
+            </div>
+            <div ng-if="ivitem.type === 'choose_one'">
+                <select id="{{vhostName}}/{{ivitem.name}}" name="{{ivitem.name}}" class="form-control" ng-model="models[ivitem.name]" ng-required="!ivitem.is_optional ? true : false" ng-options="it[0] as it[1] for it in ivitem.options">
+                </select>
+            </div>
+        </div>
+        <span ng-if="ivitem.type === 'date'">{{get_date_format_description()}}</span>
+        <span ng-if="ivitem.description" class="help-block" ng-bind-html="ivitem.description"></span>
+    </div>
+</ng-form>

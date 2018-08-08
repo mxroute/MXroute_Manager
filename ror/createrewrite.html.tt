@@ -1,0 +1,78 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[%
+Api1.pre_exec("Email", "printdomainoptions");
+SET domain_options = Api1.exec("Email", "printdomainoptions", [undef]);
+Api1.post_exec("Email", "printdomainoptions");
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ruby_on_rails'
+-%]
+<div class="body-content">
+    <div class="section">
+        <h2>[% locale.maketext("Create a URL Rewrite") %]</h2>
+        <p class="description">
+            [% locale.maketext("Since applications are running on a different port than the other URLs on your server, you’ll need to redirect incoming traffic to that port. To do this, you can create a URL rewrite to send users to your Ruby on Rails application.")  %]
+        </p>
+
+        <div class="alert alert-info">
+            <span class="glyphicon glyphicon-info-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("Requests will be rewritten to [output,url,_1].", 'http://' _ CPANEL.CPDATA.DNS.html() _ ':' _ FORM.port) %]
+            </div>
+        </div>
+
+        <form action="saverewrite.html" method="get">
+            <input type="hidden" name="appname" value="[% RAW_FORM.appname.uri %]" />
+
+            <div class="form-group">
+                <label>
+                    [% locale.maketext("App Name") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% FORM.appname %]
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="domain">
+                    [% locale.maketext("Domain") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="defsel" name="domain" id="domain" class="form-control">
+                            [% domain_options %]
+                            <option value=".*">[% locale.maketext("** All Public Domains **") %]</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="url">
+                    [% locale.maketext("URL") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div class="input-group">
+                            <span class="input-group-addon">/</span>
+                            <input type="text" class="form-control" name="url" id="url" maxlength="15" />
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input class="btn btn-primary" type="submit" value="[% locale.maketext("Save") %]" />
+            </div>
+
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

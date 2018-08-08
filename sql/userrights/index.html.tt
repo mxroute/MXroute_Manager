@@ -1,0 +1,62 @@
+[% BLOCK page_css_block -%]
+<style type="text/css">
+form .cp-form-waiting-wrapper .ng-transclude {
+    padding: 0 6px;
+}
+</style>
+[% END; -%]
+
+[%
+SET CPANEL.CPVAR.dprefix = "../../";
+
+page_css = PROCESS page_css_block;
+
+WRAPPER '_assets/master.html.tt'
+    app_key = 'mysql_databases',
+    use_master_bootstrap = 0,
+    page_styles = page_css,
+;
+
+SET dbusername = RAW_FORM('user');
+SET dbname = RAW_FORM('db');
+
+SET page_data = {
+    username => dbusername,
+    dbname => dbname,
+};
+-%]
+
+<div class="body-content">
+    <div id="ng_content"
+        ng-controller="BaseController"
+        ng-cloak
+    >
+        <div growl></div>
+
+        <h2 id="hdrManageUserPrivs">[% locale.maketext("Manage User Privileges") %]</h2>
+
+        <p>[% locale.maketext("User") %]: <b ng-non-bindable>[% dbusername | html %]</b></p>
+        <p>[% locale.maketext("Database") %]: <b ng-non-bindable>[% dbname | html %]</b></p>
+        <div class="row">
+            <div class="col-xs-12 col-sm-10 col-md-8">
+                <form id="privs_form" name="privs_form" cp-form-waiting="save_privs(privs_form)">
+                    [% PROCESS 'sql/userrights_include.html.tt' -%]
+
+                    <div class="form-group">
+                        <button type="submit" class="btn btn-primary" id="submit" />[% locale.maketext("Make Changes") %]</button>
+                        <button type="reset" value="[% locale.maketext("Reset") %]" class="btn btn-secondary">[% locale.maketext('Reset') %]</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        [% INCLUDE _assets/return_link.html.tt return_location='../' return_link_text=locale.maketext('Go Back') %]
+    </div>
+</div>
+
+<script>
+CPANEL.PAGE = [% JSON.stringify(page_data) %];
+</script>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+[% END #wrapper %]

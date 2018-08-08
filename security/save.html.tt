@@ -1,0 +1,35 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = 'index.html?account=' _ FORM.account.uri();
+SET source_ip_check_account = Api2.exec("SourceIPCheck", "getaccount", {"account" => FORM.account}).0;
+SET source_ip_save_security_questions = Api2.exec("SourceIPCheck", "savesecquestions", {
+    "q3ques" => FORM.q3ques,
+    "q2answer" => FORM.q2answer,
+    "account" => FORM.account,
+    "q2ques" => FORM.q2ques,
+    "q4answer" => FORM.q4answer,
+    "q3answer" => FORM.q3answer,
+    "q4ques" => FORM.q4ques,
+    "q1ques" => FORM.q1ques,
+    "q1answer" => FORM.q1answer
+}).0;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'security_policy'
+%]
+<div class="body-content">
+
+    <h2>[% locale.maketext('Confirm Security Questions and Answers for “[output,inline,_1,class,status]”', source_ip_check_account.account) %]</h2>
+
+    [% IF CPANEL.CPVAR.questions %]
+        [% locale.maketext("Error:") %] [% CPANEL.CPVAR.questions.html %]
+    [% ELSE %]
+        [% locale.maketext("Your answers have been saved.") %]
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

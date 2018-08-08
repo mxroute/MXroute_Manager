@@ -1,0 +1,85 @@
+[%
+USE Api2;
+
+SET CPANEL.CPVAR.dprefix = "../";
+SET return_link = 'index.html?account=' _ FORM.account.uri();
+SET source_ip_check_account = Api2.exec("SourceIPCheck", "getaccount", {"account" => FORM.account}).0;
+SET source_ip_check_list_ips = Api2.exec("SourceIPCheck", "listips", {
+    "api2_sort_column" => "ip",
+    "api2_sort" => "1",
+    "account" => FORM.account,
+    "api2_sort_method" => "ipv4"
+} );
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'security_policy'
+%]
+<div class="body-content">
+
+    <div class="section">
+        <h2>[% locale.maketext("Add Access IP for “[output,inline,_1,class,status]”", source_ip_check_account.account) %]</h2>
+        <p class="description">[% locale.maketext("This feature allows you to designate IP addresses from which you can access your account.") %]</p>
+        <p class="description">[% locale.maketext("You may enter an asterisk (*) as a wildcard for a range of IP addresses. Asterisks are allowed in any field except the first.") %] [% locale.maketext("The following are all examples of valid entries:") %]
+            <ul>
+                <li>10.*.*.*</li>
+                <li>10.1.*.*</li>
+                <li>10.1.20.*</li>
+                <li>10.1.20.158</li>
+            </ul>
+        </p>
+        <p>[% locale.maketext("Your current IP address is “[_1]”.",CPANEL.ENV.REMOTE_ADDR.html) %]</p>
+
+        <form action="addaccessip.html" method="post">
+            <input type="hidden" id="account" name="account" value="[% FORM.account %]">
+            <div class="form-group">
+                <label for="ip">[% locale.maketext("Access IP") %]</label>
+            </div>
+            <div class="form-inline form-inline-padded">
+                <div class="form-group">
+                    <input type="text" class="form-control form-control-small" size="3" maxlength="3" id="ip" name="ip"/>.
+                    <input type="text" class="form-control form-control-small" size="3" maxlength="3" id="ip2" name="ip2"/>.
+                    <input type="text" class="form-control form-control-small" size="3" maxlength="3" id="ip3" name="ip3"/>.
+                    <input type="text" class="form-control form-control-small" size="3" maxlength="3" id="ip4" name="ip4"/>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" id="submit" value="[% locale.maketext("Add") %]" class="btn btn-primary">
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2>[% locale.maketext("Manage Recognized IP Addresses") %]</h2>
+
+        <table class="sortable table table-striped">
+            <tr>
+                <th>[% locale.maketext("IP Address") %]</th>
+                <th>[% locale.maketext("Functions") %]</th>
+            </tr>
+            [% IF source_ip_check_list_ips.size %]
+                [% FOREACH hashref IN source_ip_check_list_ips %]
+                <tr>
+                    <td>[% hashref.ip.html() %]</td>
+                    <td>
+                        <form action="delaccessip.html">
+                            <input type="submit" id="submitDelete_[% loop.count %]" value="[% locale.maketext("Remove") %]" class="btn btn-primary">
+                            <input type="hidden" id="ip_[% loop.count %]" name="ip" value="[% hashref.ip.html() %]">
+                            <input type="hidden" id="account_[% loop.count %]" name="account" value="[% FORM.account %]">
+                        </form>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td colspan="2">[% locale.maketext("No Access IPs") %]</td>
+                </tr>
+            [% END %]
+        </table>
+    </div>
+
+
+    [% INCLUDE _assets/return_link.html.tt return_location=return_link return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END #wrapper %]
