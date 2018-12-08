@@ -139,7 +139,7 @@
         password_and_authentication = locale.maketext("Password and Authentication"),
         login = locale.maketext("Log in"),
         receive = locale.maketext("Receive"),
-        send = locale.maketext("Send"),
+        send = locale.maketext("Sending suspended for outbound spam"),
 
         default_account_reject_or_forward = locale.maketext("[output,strong,Note:] Your default account has been set to either reject incoming email or forward it to another account."),
         default_account_destination = locale.maketext("Check [output,url,_1,Default Address] for the destination of default mail for this domain.", "def.html"),
