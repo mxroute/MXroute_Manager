@@ -1,0 +1,12 @@
+[% SET CPANEL.CPVAR.dprefix="../../"  %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'why'               # The file value from the dynamicui.conf file.
+    page_title = "Why are there random subdomains?"      # The page title.
+-%]
+
+While viewing the Custom SSL page you may notice that the first domain you signed up with suddenly has a bunch of subdomains that appear to consist of randomly generated strings. This is a side effect of something we've done to simplify our control panel, and it's removal is our next action item. With the way cPanel functions, every domain you add to your account will create a subdomain on the first domain you signed up with. Instead of making you create that each time, without purpose, we've created it for you with a randomly generated string. Our current development step is working to hide these from view, so that you never have to see them again.
+
+<br><br>
+<a href="javascript:history.back()">Go Back</a>
+
+[% END %]
