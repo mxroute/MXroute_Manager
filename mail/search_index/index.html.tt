@@ -24,7 +24,7 @@
 
     <div class='body-content'>
         <p class="description">
-            [% locale.maketext("[output,abbr,IMAP,Internet Mail Access Protocol] Full-Text Search Indexing (powered by [asis,Apache Solr™]) provides fast search capabilities for [output,abbr,IMAP,Internet Mail Access Protocol] mailboxes. This significantly improves the speed and convenience of the search experience for [asis,iOS] devices, [asis,Microsoft Outlook], [asis,Horde], [asis,Roundcube], and [asis,Mozilla Thunderbird] users.") %]
+            [% locale.maketext("[output,abbr,IMAP,Internet Mail Access Protocol] Full-Text Search Indexing (powered by [asis,Apache Solr™]) provides fast search capabilities for [output,abbr,IMAP,Internet Mail Access Protocol] mailboxes. This significantly improves the speed and convenience of the search experience for [asis,iOS] devices, [asis,Microsoft Outlook], [asis,SquirrelMail], [asis,Horde], [asis,Roundcube], and [asis,Mozilla Thunderbird] users.") %]
         </p>
 
         <div id="viewContent"

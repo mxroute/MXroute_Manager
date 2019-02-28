@@ -1,9 +1,0 @@
-<div id="descExample" class="col-xs-12 col-sm-4">
-    <h4>[% locale.maketext("Examples:") %]</h4>
-    <p>subject [% locale.maketext("I Love You") %]</p>
-    <p>from nick\@example\.org</p>
-    <p>from .+\@example\.com</p>
-    <p>cc mailinglist\@example\.com</p>
-    <p>to alias\@example\.com</p>
-</div>
-

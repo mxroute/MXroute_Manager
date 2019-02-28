@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Access":"Acceder","Admin":"Administrador","Edit Privacy Options: “[_1]”":"Editar las opciones de privacidad: “[_1]”","Functions":"Funciones","List Name":"Nombre de lista","Saving …":"Guardando…","Usage":"Uso","[join,_1,_2][_1] … and [numf,_3] more":"[join,_1,_2][_1] … y [numf,_3] más"};
+    var newLex = {"Access":"Access","Admin":"Admin","Edit Privacy Options: “[_1]”":"Edit Privacy Options: “[_1]”","Functions":"Functions","List Name":"List Name","Saving …":"Saving …","Usage":"Usage","[join,_1,_2][_1] … and [numf,_3] more":"[join,_1,_2][_1] … and [numf,_3] more"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

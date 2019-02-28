@@ -80,6 +80,17 @@
 }
 
 /*
+ * Overrides of growl styles
+ */
+
+.growl-message span.nobreak {
+    word-wrap: normal;
+    -webkit-hyphens: none;
+    -moz-hyphens: none;
+    hyphens: none;
+}
+
+/*
   WARNING: IE8 crashes with glyphicons
   If you add another glyphicon change
   be sure to update whostmgr/docroot/templates/master_templates/master.tmpl

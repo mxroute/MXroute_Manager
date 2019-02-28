@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Successfully unlinked the “[_1]” account “[_2]”":"Se desvinculó correctamente la cuenta “[_1]” “[_2]”","The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]":"El sistema encontró un error cuando intentaba recuperar resultados. Actualice la interfaz: [_1]"};
+    var newLex = {"Successfully unlinked the “[_1]” account “[_2]”":"Successfully unlinked the “[_1]” account “[_2]”","The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]":"The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

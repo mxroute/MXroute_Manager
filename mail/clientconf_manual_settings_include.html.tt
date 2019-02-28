@@ -45,7 +45,7 @@ and run
               <table class="table manual_settings_table" [% IF in_html_email; table_props; END %]>
                   <tr>
                       <td [% IF in_html_email; td_props; END %] id="lblSSLSettingsAreaUsername">[% locale.maketext('Username:') %]</td>
-                      <td [% IF in_html_email; td_props; END %] id="valSSLSettingsAreaUsername" class="data wrap-text">[% mail_client_settings.inbox_username %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valSSLSettingsAreaUsername" class="data">[% mail_client_settings.inbox_username %]</td>
                   </tr>
                   <tr>
                       <td [% IF in_html_email; td_props; END %] id="lblSettingsAreaPassword">[% locale.maketext('Password:') %]</td>
@@ -106,7 +106,7 @@ and run
               <table id="tblManualSettingsTable" class="table manual_settings_table" [% IF in_html_email; table_props; END %]>
                   <tr>
                       <td [% IF in_html_email; td_props; END %] id="lblNonSSLSettingsUsername">[% locale.maketext('Username:') %]</td>
-                      <td [% IF in_html_email; td_props; END %] id="valNonSSLSettingsUsername" class="data wrap-text">[% mail_client_settings.inbox_username.html() %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valNonSSLSettingsUsername" class="data">[% mail_client_settings.inbox_username.html() %]</td>
                   </tr>
                   <tr>
                       <td [% IF in_html_email; td_props; END %] id="lblNonSSLSettingsPassword">[% locale.maketext('Password:') %]</td>

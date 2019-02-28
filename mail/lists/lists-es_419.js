@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Edit Privacy Options: “[_1]”":"Editar las opciones de privacidad: “[_1]”","Saving …":"Guardando…"};
+    var newLex = {"Edit Privacy Options: “[_1]”":"Edit Privacy Options: “[_1]”","Saving …":"Saving …"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

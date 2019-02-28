@@ -40,7 +40,7 @@
         <p id="descSpamStatus" class="description">
             [%
                 locale.maketext(
-                    "[output,strong,Hint:] To filter all mail that [asis,Apache SpamAssassin™] has marked as spam, just choose “[_1]” and “[_2]”, then enter “[_3]” in the box."
+                    "[output,strong,Hint:] To filter all mail that SpamAssassin has marked as spam, just choose “[_1]” and “[_2]”, then enter “[_3]” in the box."
                     locale.maketext('Spam Status'),
                     locale.maketext('[comment]begins with[comment,comparison option]'),
                     locale.maketext('Yes'),
@@ -48,7 +48,7 @@
             %]
         </p>
         <p id="descSpamBar" class="description">
-            [% locale.maketext("[output,strong,Hint]: To filter all mail that [asis,Apache SpamAssassin™] has marked with a spam score of 5.0 or greater, choose [output,em,Spam Bar] and [output,em,contains], then enter “[asis,+++++]” in the box (Note: If you wanted to match a spam score of 4, you would use [asis,++++]`. A spam score of 3 would be [asis,+++], etc).") %]
+            [% locale.maketext("[output,strong,Hint]: To filter all mail that [asis,SpamAssassin] has marked with a spam score of 5.0 or greater, choose [output,em,Spam Bar] and [output,em,contains], then enter “[asis,+++++]” in the box (Note: If you wanted to match a spam score of 4, you would use [asis,++++]`. A spam score of 3 would be [asis,+++], etc).") %]
         </p>
         [% END %]
 
