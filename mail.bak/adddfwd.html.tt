@@ -1,0 +1,76 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET mail_domains = execute("Email", "list_mail_domains", {});
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'forwarders'
+    page_js = js_code
+ -%]
+
+<div class="body-content">
+    <div class="section">
+        <h2 id="hdrNewDomainFwd">[% locale.maketext("Add a New Domain Forwarder") %]</h2>
+
+        <p id="descDomainFwder" class="description">
+            [% locale.maketext("In addition to forwarding individual mail accounts, you can forward all email from one domain to another.") %]
+            [% locale.maketext("To send all email for a domain to a single email address, change the Default Address for that domain.") %]
+        </p>
+        <form method="get" action="doadddfwd.html" name="mainform" id="mainform">
+            <div class="form-group">
+                <label id="lblDomain" for="domain">
+                    [% locale.maketext("Domain") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-3">
+                        <select name="domain" class="form-control">
+                            [% FOREACH hashref IN mail_domains.data %]
+                                <option value="[% hashref.domain.html() %]">[% hashref.domain.html() %]</option>
+                            [% END %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-1">
+                        <p id="lblTo" class="form-control-static">
+                            [% locale.maketext("to[comment,this is meant to be a horizontal separator of 2 side by side things]") %]
+                        </p>
+                    </div>
+                    <div class="col-xs-12 col-sm-5">
+                        <input type="text" class="form-control" name="forward" id="forward" />
+                        <div id="forward_error"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" class="btn btn-primary" id="submit" value="[% locale.maketext("Add Domain Forwarder") %]" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='fwds.html' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+    var init = function() {
+
+        // create validators
+        var valid = new CPANEL.validate.validator("[% locale.maketext("Add Domain Forwarder") %]");
+        valid.add("forward", "fqdn", "[% locale.maketext("Please enter a valid domain (e.g., example.com).") %]");
+        valid.attach();
+
+        // attach validators to form
+        CPANEL.validate.attach_to_form("submit", valid);
+
+        // put the focus on the forward box
+        YAHOO.util.Dom.get("forward").focus();
+    };
+
+    YAHOO.util.Event.onDOMReady(init);
+
+</script>
+[% END %]

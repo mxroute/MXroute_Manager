@@ -1,0 +1,53 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../../";
+
+    SET deletefilter = execute("Email", "delete_filter", {
+        "filtername"=>RAW_FORM.filtername,
+        "account"=>RAW_FORM.account
+    });
+
+    SET email_acct = execute( 'Email', 'account_name', {"account"=>FORM.account, "display"=>"0"}).data;
+%]
+
+[%
+    IF FORM.account != "" OR email_acct != "";
+        SET app_name = 'email_filters';
+    ELSE;
+        SET app_name = 'global_email_filters';
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = app_name
+%]
+<div class="body-content">
+    [% IF deletefilter.status %]
+        <div id="deleteSuccess" class="alert alert-success">
+            <span id="deleteSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            [% FOREACH msg IN deletefilter.messages %]
+            <div class="alert-message">
+                [% msg.html() %]
+            </div>
+            [% END %]
+        </div>
+    [% ELSE %]
+        <div id="deleteError" class="alert alert-danger">
+            <span id="deleteErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+                [% locale.maketext("There was a problem deleting the filter.") %]
+            </div>
+            [% FOREACH msg IN deletefilter.errors %]
+            <div class="alert-message">
+                [% msg.html() %]
+            </div>
+            [% END %]
+        </div>
+    [% END %]
+
+    [% IF FORM.account %]
+        [% INCLUDE _assets/return_link.html.tt return_location='userfilters.html?account=' _ FORM.account _ '' return_link_text=locale.maketext('Go Back') %]
+    [% ELSE %]
+        [% INCLUDE _assets/return_link.html.tt return_location='userfilters.html' return_link_text=locale.maketext('Go Back') %]
+    [% END %]
+</div>
+[% END %]

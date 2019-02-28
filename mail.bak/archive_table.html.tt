@@ -1,0 +1,8 @@
+[% IF FORM.item('itemsperpage') %]
+    [% SET CPANEL.CPVAR.itemsperpage = FORM.item('itemsperpage') %]
+[% END %]
+[% IF (!( FORM.item('itemsperpage')) || !( CPANEL.CPVAR.item('itemsperpage'))) %]
+    [% SET CPANEL.CPVAR.itemsperpage = "10" %]
+[% END %]
+[% INCLUDE mail/archive_list.html.tt %]
+

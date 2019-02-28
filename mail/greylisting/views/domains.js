@@ -20,12 +20,14 @@ define(
         "cjt/directives/validationItemDirective",
         "cjt/directives/spinnerDirective",
         "cjt/directives/autoFocus",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "cjt/filters/wrapFilter",
         "cjt/filters/breakFilter",
-        "app/services/domainService",
-        "cjt/decorators/growlDecorator"
+        "app/services/domainService"
     ],
-    function(angular, _, LOCALE, growl) {
+    function(angular, _, LOCALE) {
+        "use strict";
 
         // Retrieve the current application
         var app = angular.module("App");
@@ -83,14 +85,14 @@ define(
                 "$q",
                 "DomainService",
                 "spinnerAPI",
-                "growl",
+                "alertService",
                 function(
                     $scope,
                     $routeParams,
                     $q,
                     DomainService,
                     spinnerAPI,
-                    growl
+                    alertService
                 ) {
 
                     /**
@@ -346,7 +348,13 @@ define(
                                     $scope.meta.start = 0;
                                 }
                             }, function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "greylisting"
+                                });
                             })
                             .then(function() {
                                 spinnerAPI.stop("loadingSpinner");
@@ -368,9 +376,22 @@ define(
                                 .then(function(result) {
                                     $scope.totalEnabled++;
                                     $scope.totalDisabled--;
-                                    growl.success(LOCALE.maketext("Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "greylisting"
+                                    });
                                 }, function(results) {
-                                    growl.error(results.error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: results.error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "greylisting"
+                                    });
                                 })
                                 .then(function() {
                                     spinnerAPI.stop("loadingSpinner");
@@ -381,9 +402,22 @@ define(
                                 .then(function(result) {
                                     $scope.totalDisabled++;
                                     $scope.totalEnabled--;
-                                    growl.success(LOCALE.maketext("Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "greylisting"
+                                    });
                                 }, function(results) {
-                                    growl.error(results.error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: results.error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "greylisting"
+                                    });
                                 })
                                 .then(function() {
                                     spinnerAPI.stop("loadingSpinner");
@@ -412,9 +446,22 @@ define(
                                 $scope.totalPages = results.totalPages;
                                 $scope.totalEnabled = results.totalItems;
                                 $scope.totalDisabled = 0;
-                                growl.success(LOCALE.maketext("Successfully enabled [asis,Greylisting] on all domains."));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("Successfully enabled [asis,Greylisting] on all domains."),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "greylisting"
+                                });
                             }, function(results) {
-                                growl.error(results.error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: results.error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "greylisting"
+                                });
                             })
                             .then(function() {
                                 spinnerAPI.stop("loadingSpinner");
@@ -442,9 +489,22 @@ define(
                                 $scope.totalPages = results.totalPages;
                                 $scope.totalDisabled = results.totalItems;
                                 $scope.totalEnabled = 0;
-                                growl.success(LOCALE.maketext("Successfully disabled [asis,Greylisting] on all domains."));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("Successfully disabled [asis,Greylisting] on all domains."),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "greylisting"
+                                });
                             }, function(results) {
-                                growl.error(results.error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: results.error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "greylisting"
+                                });
                             })
                             .finally(function() {
                                 spinnerAPI.stop("loadingSpinner");

@@ -1,0 +1,42 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+[%
+    Api1.pre_exec("BoxTrapper", "saveconf") ;
+    SET save_conf = Api1.exec("BoxTrapper", "saveconf", [RAW_FORM.item('account'),RAW_FORM.item('froms'),RAW_FORM.item('queue'),RAW_FORM.item('autowhitelist'),RAW_FORM.item('fromname'),RAW_FORM.item('min_spam_score_deliver'),RAW_FORM.item('whitelist_by_assoc')]) ;
+    Api1.post_exec("BoxTrapper", "saveconf")
+%]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+%]
+    <div class="body-content">
+
+        [% IF (ExpVar.expand('$appname') == "webmail" && !( FORM.item('account') == CPANEL.authuser)) %]
+        <div id="changeSettingsErrorMsg" class="alert alert-danger">
+            <span class="glyphicon glyphicon-remove-sign"></span>
+            <div class="alert-message">
+            [% locale.maketext("You are not allowed to change settings for the user “[output,strong,_1]”.",FORM.item('account')) %]
+            </div>
+        </div>
+        [% ELSIF CPANEL.CPDATA.item('DEMO') %]
+            [% locale.maketext("This feature is disabled in demo mode.") %]
+        [% ELSE %]
+            <div id="configBoxTrapperMsg" class="alert alert-success">
+                <span class="glyphicon glyphicon-ok-sign"></span>
+                <div class="alert-message">
+                <p>[% locale.maketext("The system successfully configured [asis,BoxTrapper] for the account “[output,strong,_1]”.", FORM.item('account')) %]</p>
+                <p>[% save_conf %]</p>
+                </div>
+            </div>
+        [% END %]
+
+        <ul class="list-inline text-center">
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkConf', return_location='conf.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext("Go Back") %]
+            </li>
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkManage', return_location='manage.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext("Go Back to [asis,BoxTrapper] Configuration") %]
+            </li>
+        </ul>
+
+    </div>
+[% END %]

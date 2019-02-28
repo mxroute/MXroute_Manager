@@ -1,0 +1,22 @@
+            <tr>
+                <th colspan="2" class="col1-2 cell
+                    [%- IF (!CPANEL.FORM.api2_sort_column || CPANEL.FORM.api2_sort_column == 'domain') &&
+                           (!CPANEL.FORM.api2_sort_reverse || CPANEL.FORM.api2_sort_reverse == '0') -%]
+                     sorttable_sorted_reverse
+                    [%- END -%]
+                    [%- IF CPANEL.FORM.api2_sort_column == 'domain' && CPANEL.FORM.api2_sort_reverse == '1' -%]
+                     sorttable_sorted
+                    [%- END -%]"
+                    sort-column="domain" sortable-default-reverse='1'>
+                    [% locale.maketext('Domain') %]
+                </th>
+                <th id="lblDiskUsage" class="diskusagecol cell
+                    [%- IF CPANEL.FORM.api2_sort_column == 'diskused' && CPANEL.FORM.api2_sort_reverse == '1' %] sorttable_sorted[%- END -%]
+                    [%- IF CPANEL.FORM.api2_sort_column == 'diskused' && CPANEL.FORM.api2_sort_reverse == '0' %] sorttable_sorted_reverse[%- END -%]"
+                    sort-column="diskused">
+                    [% locale.maketext('Disk Usage') %]
+                </th>
+                <th id="lblArchiving" class="col3 cell" nonsortable="1">[% locale.maketext('Archiving') %]</th>
+                <th id="lblActions" class="cell" nonsortable="1">[% locale.maketext("Actions") %]</th>
+            </tr>
+

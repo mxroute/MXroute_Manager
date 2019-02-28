@@ -1,0 +1,51 @@
+[%
+    USE BaseDefault;
+    #This is always for webmail so we can pass a webmail parameter
+    SET external_auth_modules = execute("ExternalAuthentication","configured_modules",{appname=>'webmaild'}).data;
+%]
+<div>
+    <h1>
+    {{ locale.maketext("Manage External Authentication for “[_1]”", username) }}
+    </h1>
+
+    <div class="callout callout-info" ng-if="!providers.length">
+        [% locale.maketext('The user has no linked external accounts.') %]
+    </div>
+    <div ng-if="providers.length">
+        [% FOREACH module IN external_auth_modules %]
+            <table class="table table-striped" ng-if="(providers | filter:{provider_id:'[% module.provider_id %]'}).length > 0">
+                <thead>
+                    <tr>
+                        <th class="col-xs-12 col-sm-8 col-md-8 col-lg-8">
+                            <div style="background-color:#[% module.color %]" class="external-auth-icon-container">
+                                <i class="external-auth-icon" style="background-image:url(data:[% module.icon_type %];base64,[% module.icon %])"></i>
+                            </div>
+                            <span class="module-header">
+                                [% module.display_name %]
+                            </span>
+                        </th>
+                        <th>[% locale.maketext('Action') %]</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr ng-repeat="provider in providers"
+                        ng-if="provider.provider_id == '[% module.provider_id %]'"
+                        data-title="[% locale.maketext('Account') %]" id="{{provider.provider_id}}_{{provider.subject_unique_identifier}}">
+                        <td class="provider-info" ng-bind="provider.preferred_username">
+                        </td>
+                        <td>
+                            <button type="button"
+                                button-class="btn-danger"
+                                cp-action="unlink(provider, '[% module.display_name %]')"
+                                id="remove_{{provider.subject_unique_identifier}}">
+                                <span class='glyphicon glyphicon-trash'></span>
+                                [% locale.maketext('Unlink Account') %]
+                            </button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        [% END %]
+    </div>
+    <div growl></div>
+</div>

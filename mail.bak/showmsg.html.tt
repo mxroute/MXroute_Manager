@@ -1,0 +1,112 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    Api1.pre_exec("BoxTrapper", "showmessage");
+    SET boxtrapper_showmessage = Api1.exec("BoxTrapper", "showmessage", [RAW_FORM.account,RAW_FORM.t,RAW_FORM.q]);
+    Api1.post_exec("BoxTrapper", "showmessage")
+
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+-%]
+<div class="body-content">
+
+    <h2 id="hdrQueue">[% locale.maketext("[asis,BoxTrapper] queue for the account “[output,strong,_1]”.",FORM.account) %]</h2>
+
+    <div class="section">
+        <strong>[% locale.maketext("Choose an action:") %]</strong>
+        <form action="msgaction.html">
+            <input type="hidden" name="account" id="hidAcct" value="[% FORM.account %]" />
+            <input type="hidden" name="q" id="hidQ" value="[% FORM.q %]" />
+            <input type="hidden" name="t" id="hidT" value="[% FORM.t %]" />
+
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnWhiteDeliverAll">
+                        <input checked type="radio" id="rbtnWhiteDeliverAll" name="action" value="deliverall,whitelist" />
+                        [% locale.maketext("Whitelist and deliver all messages from this sender.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnWhiteDeliverThis">
+                        <input type="radio" name="action" id="rbtnWhiteDeliverThis" value="deliver,whitelist" />
+                        [% locale.maketext("Whitelist and deliver this message from this sender.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnDeliverAll">
+                        <input type="radio" name="action" id="rbtnDeliverAll" value="deliverall" />
+                        [% locale.maketext("Deliver all messages from this sender.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnDeliverThis">
+                        <input type="radio" name="action" id="rbtnDeliverThis" value="deliver" />
+                        [% locale.maketext("Deliver this message.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnDeleteThis">
+                        <input type="radio" name="action" id="rbtnDeleteThis" value="delete" />
+                        [% locale.maketext("Delete this message from the queue.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnDeleteAll">
+                        <input type="radio" name="action" id="rbtnDeleteAll" value="deleteall" />
+                        [% locale.maketext("Delete all messages from this sender.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnDeleteThisBlacklist">
+                        <input type="radio" name="action" id="rbtnDeleteThisBlacklist" value="delete,blacklist" />
+                        [% locale.maketext("Delete this message and blacklist the sender.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="radio">
+                    <label id="lblRbtnDeleteThisIgnore">
+                        <input type="radio" name="action" id="rbtnDeleteThisIgnore" value="delete,ignorelist" />
+                        [% locale.maketext("Delete this message and add sender to Ignore List.") %]
+                    </label>
+                </div>
+            </div>
+            <div class="form-group">
+                <input type="submit" value="[% locale.maketext("Go") %]" id="btnGo" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <h2 id="hdrMsgPreview">
+          [% locale.maketext("Message Preview") %]
+          <button class="btn-secondary" onclick="window.location.href='download_boxtrapper_message.html?account=[% FORM.account.uri %]&q=[% FORM.q.uri %]';">
+              <img class="email_control_icon" src="[% MagicRevision('/images/download_sm.gif') %]" border="0">
+              <span class="email_control_text">Download in “<strong>.eml</strong>” format.</span>
+          </button>
+      </h2>
+
+        <form>
+            <div class="form-group">
+                <textarea rows="30" cols="85" readonly="readonly" id="txtShowMsg" class="form-control">[% boxtrapper_showmessage %]</textarea>
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='showq.html?account=' _ FORM.account _ '' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

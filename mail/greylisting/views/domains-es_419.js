@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Successfully disabled [asis,Greylisting] on all domains.":"Successfully disabled [asis,Greylisting] on all domains.","Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.","Successfully enabled [asis,Greylisting] on all domains.":"Successfully enabled [asis,Greylisting] on all domains.","Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”."};
+    var newLex = {"Successfully disabled [asis,Greylisting] on all domains.":"Se deshabilitó correctamente [asis,Greylisting] en todos los dominios.","Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"Se deshabilitó correctamente [asis,Greylisting] en “[output,class,_1,nobreak]”.","Successfully enabled [asis,Greylisting] on all domains.":"Se habilitó correctamente [asis,Greylisting] en todos los dominios.","Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"Se habilitó correctamente [asis,Greylisting] en “[output,class,_1,nobreak]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

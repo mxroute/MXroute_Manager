@@ -1,0 +1,154 @@
+[%
+    SET txt_password = locale.maketext('Use the email account’s password.');
+    IF mail_client_settings.from_archiving || mail_client_settings.inbox_username.match('_mainaccount@') || !mail_client_settings.inbox_username.match('@');
+        SET txt_password = locale.maketext('Use your [asis,cPanel] password.');
+    END;
+%]
+
+[%#
+If you change this file be sure to update
+
+/usr/local/cpanel/etc/icontact_templates/Mail/ClientConfig.html.tmpl
+
+and run
+
+/usr/local/cpanel/build-tools/test_icontact_notifications --type=Mail::ClientConfig
+
+%]
+
+
+[% SET table_props = 'style="border-collapse: collapse; border-spacing: 0; margin-bottom: 0; width: 100%; background-color: transparent; max-width: 100%;"' %]
+[% SET td_props = 'style="border-top: 1px solid #ddd; padding: 8px;"' %]
+[% SET li_props = 'style="display: inline-block; padding-left: 5px; padding-right: 5px;"' %]
+[% SET ul_props = 'style="margin-bottom: 10px; margin-top: 0; list-style: outside none none; margin-left: -5px; padding-left: 0;"' %]
+
+    <div id="manual_settings_area" class="section">
+        <h2 id="hdrManualSettings">[% locale.maketext('Mail Client Manual Settings') %]</h2>
+        [% IF CPANEL.appname %]
+            <p id="descManualSettings" class="description">[%locale.maketext('If you do not see an auto-configuration script for your client in the list above, you can manually configure your mail client using the settings below:')%]</p>
+        [% END %]
+        <div class="row">
+         <div class="col-md-6">
+          <div id="ssl_settings_area"
+            [% IF in_html_email %]
+            style="background-color: #fff;  border: 1px solid transparent; border-radius: 4px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border-color: #428bca;"
+            [% END %]
+            class="preferred-selection panel panel-primary">
+               <div
+                [% IF in_html_email %]
+                style="border-top-left-radius: 3px; border-top-right-radius: 3px; padding: 10px 15px; background-color: #428bca; border-color: #428bca; color: #fff;"
+                [% END %]
+                class="panel-heading">
+                [% locale.maketext('Secure [output,abbr,SSL,Secure Sockets Layer]/[output,abbr,TLS,Transport Layer Security] Settings') %]
+                [% locale.maketext('(Recommended)')%]
+              </div>
+              <table class="table manual_settings_table" [% IF in_html_email; table_props; END %]>
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblSSLSettingsAreaUsername">[% locale.maketext('Username:') %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valSSLSettingsAreaUsername" class="data">[% mail_client_settings.inbox_username %]</td>
+                  </tr>
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblSettingsAreaPassword">[% locale.maketext('Password:') %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valSettingsAreaPassword" class="escape-note"> [% txt_password %]</td>
+                  </tr>
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblSettingsAreaIncomingServer">[% locale.maketext("Incoming Server:") %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valSettingsAreaIncomingServer" class="data">[% mail_client_settings.inbox_host.html() %]
+                          <ul
+                          [% IF in_html_email; ul_props; END %]
+                          class="port_list list-inline">
+                              <li [% IF in_html_email; li_props; END %]>[% locale.maketext('[output,acronym,IMAP,Internet Message Access Protocol] Port: [_1]',993) %]</li>
+                              [% IF !mail_client_settings.from_archiving %]
+                              <li [% IF in_html_email; li_props; END %]>[% locale.maketext('[output,acronym,POP3,Post Office Protocol 3] Port: [_1]',995) %]</li>
+                              [% END %]
+                          </ul>
+                      </td>
+                  </tr>
+                  [% IF !mail_client_settings.from_archiving %]
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblSettingsAreaOutgoingServer">[% locale.maketext("Outgoing Server:") %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valSettingsAreaOutGoingServer" class="data">[% mail_client_settings.smtp_host.html() %]
+                          <ul
+                          [% IF in_html_email; ul_props; END %]
+                          class="port_list list-inline">
+                              <li [% IF in_html_email; li_props; END %]>[% locale.maketext("[output,abbr,SMTP,Simple Mail Transfer Protocol] Port: [_1]", mail_client_settings.smtp_port) %]</li>
+                          </ul>
+                      </td>
+                  </tr>
+                  [% END %]
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] colspan="2" class="notes">
+                          [% SET auth_reqd_protocols = ['IMAP']; -%]
+                          [% IF !mail_client_settings.from_archiving %]
+                            [% auth_reqd_protocols.push('POP3', 'SMTP') -%]
+                          [% END -%]
+                          <div id="lblSettingsAreaSmallNote1" class="small_note">[% locale.maketext("[list_and,_1] [numerate,_1,requires,require] authentication.", auth_reqd_protocols) %]</div>
+                      </td>
+                  </tr>
+              </table>
+          </div>
+         </div>
+  [% IF mail_client_settings.has_plaintext_authentication %]
+         <div class="col-md-6">
+           <div id="non_ssl_settings_area"
+            [% IF in_html_email %]
+            style="background-color: #fff;  border: 1px solid transparent; border-radius: 4px; box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05); margin-bottom: 20px; border-color: #f6c342;"
+            [% END %]
+           class="panel panel-default panel-warning">
+               <div
+                [% IF in_html_email %]
+                style="border-top-left-radius: 3px; border-top-right-radius: 3px; padding: 10px 15px; background-color: #fcf8e1; border-color: #f6c342; color: #333;"
+                [% END %]
+                class="panel-heading">
+                <span id="descNonSSLSettings">[% locale.maketext('Non-[asis,SSL] Settings') %]</span>
+                <span id="descNotRecommended" class="caption not-recommended">[% locale.maketext('(NOT Recommended)')%]</pan>
+              </div>
+              <table id="tblManualSettingsTable" class="table manual_settings_table" [% IF in_html_email; table_props; END %]>
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblNonSSLSettingsUsername">[% locale.maketext('Username:') %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valNonSSLSettingsUsername" class="data">[% mail_client_settings.inbox_username.html() %]</td>
+                  </tr>
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblNonSSLSettingsPassword">[% locale.maketext('Password:') %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valNonSSLSettingsPassword" class="escape-note">[% txt_password %]</td>
+                  </tr>
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="lblNonSSLSettingsIncomingServer">[% locale.maketext('Incoming Server:') %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="valNonSSLSettingsIncomingServer" class="data">[% mail_client_settings.mail_domain.html() -%]
+                          <ul
+                          [% IF in_html_email; ul_props; END %]
+                          class="port_list list-inline">
+                              <li [% IF in_html_email; li_props; END %]>[% locale.maketext('[output,acronym,IMAP,Internet Message Access Protocol] Port: [_1]',143) %]</li>
+                               [% IF !mail_client_settings.from_archiving %]
+                              <li [% IF in_html_email; li_props; END %]>[% locale.maketext('[output,acronym,POP3,Post Office Protocol 3] Port: [_1]',110) %]</li>
+                              [% END %]
+                          </ul>
+                      </td>
+                  </tr>
+                   [% IF !mail_client_settings.from_archiving %]
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] id="NonSSLSettingsOutgoingServer">[% locale.maketext("Outgoing Server:") %]</td>
+                      <td [% IF in_html_email; td_props; END %] id="NonSSLSettingsOutgoingServerData" class="data">[% mail_client_settings.mail_domain.html() -%]
+                          <ul
+                          [% IF in_html_email; ul_props; END %]
+                          class="port_list list-inline">
+                              <li [% IF in_html_email; li_props; END %]>[% locale.maketext("[output,abbr,SMTP,Simple Mail Transfer Protocol] Port: [_1]", mail_client_settings.smtp_insecure_port) %]</li>
+                          </ul>
+                      </td>
+                  </tr>
+                  [% END %]
+                  <tr>
+                      <td [% IF in_html_email; td_props; END %] colspan="2" class="notes">
+                          [% SET auth_reqd_protocols = ['IMAP']; -%]
+                          [% IF !mail_client_settings.from_archiving %]
+                            [% auth_reqd_protocols.push('POP3', 'SMTP') -%]
+                          [% END -%]
+                          <div id="descNonSSLSettingsAuthenticationIsRequiredForIMAPPOP3SMTP1" class="small_note">[% locale.maketext("[list_and,_1] [numerate,_1,requires,require] authentication.", auth_reqd_protocols) %]</div>
+                      </td>
+                  </tr>
+              </table>
+          </div>
+        </div>
+[% END %]
+      </div>
+    </div>

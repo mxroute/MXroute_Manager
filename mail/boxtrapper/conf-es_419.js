@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Minimum [asis,Apache] [asis,SpamAssassin] Spam Score required to bypass [asis,BoxTrapper]:":"Minimum [asis,Apache] [asis,SpamAssassin] Spam Score required to bypass [asis,BoxTrapper]:","The minimum spam score must be numeric.":"The minimum spam score must be numeric.","The number of days that you wish to keep logs and messages in the queue.":"The number of days that you wish to keep logs and messages in the queue.","The number of days to keep logs must be a positive integer.":"The number of days to keep logs must be a positive integer."};
+    var newLex = {"Minimum [asis,Apache] [asis,SpamAssassin] Spam Score required to bypass [asis,BoxTrapper]:":"Se requiere una puntuación mínima de [asis,Apache] [asis,SpamAssassin] Spam para omitir [asis,BoxTrapper]:","The minimum spam score must be numeric.":"La puntuación de spam mínima debe ser numérica.","The number of days that you wish to keep logs and messages in the queue.":"La cantidad de días que desea mantener los registros y mensajes en la cola.","The number of days to keep logs must be a positive integer.":"La cantidad de días que se mantendrán los registros debe ser un número entero positivo."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

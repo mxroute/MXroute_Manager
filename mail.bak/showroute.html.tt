@@ -1,0 +1,30 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'track_delivery'
+ -%]
+
+<div class="body-content">
+    <div class="section">
+        <p id="descTraceAddy">
+        [% IF CPANEL.feature('traceaddy') %]
+            <img id="imgTraceAddy" src="[% CPANEL.ENV.item('cp_security_token').html %]/backend/traceaddy.cgi?[% FORM.email %]" alt="" border="0" />
+            <br />
+            <strong id="lblLegend">[% locale.maketext("Legend") %]</strong>
+            <br /><br />
+            <img id="imgMailRoutingError" src="/smicons/alert.red.gif" alt="" border="0" />[% locale.maketext("Mail Routing Error") %]<br />
+            <img id="imgFilterFile" src="/smicons/f.gif" alt="" border="0" />[% locale.maketext("Filter/Alias File") %]<br />
+            <img id="imgSMTPDest" src="/smicons/world2.gif" alt="" border="0" />[% locale.maketext("SMTP Destination") %]<br />
+            <img id="imgLocalMailbox" src="/smicons/folder.gif" alt="" border="0" />[% locale.maketext("Local Mailbox") %]<br />
+            <br />
+        [% END %]
+        </p>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='javascript:window.history.back()' return_link_text=locale.maketext('Go Back') %]
+
+</div>
+[% END %]
+

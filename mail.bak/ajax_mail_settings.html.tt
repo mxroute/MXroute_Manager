@@ -1,0 +1,71 @@
+<div class="email_client_config_container">
+    <h3 id="hdrMailSettings">[% locale.maketext("Mail Settings") %]</h3>
+    <ul>
+        <li class="item-margin">[% locale.maketext("Username:") %] <strong>[%
+Api1.pre_exec("Email", "getmailserveruser");
+Api1.exec("Email", "getmailserveruser", [RAW_FORM.item("acct")]);
+Api1.post_exec("Email", "getmailserveruser")
+%]</strong></li>
+        <li>[% locale.maketext("SSL Incoming Mail Server:") %] <strong>[%
+Api1.pre_exec("SSL", "getcnname");
+Api1.exec("SSL", "getcnname", [RAW_FORM.item("acct"), "imap"]);
+Api1.post_exec("SSL", "getcnname")
+%]</strong></li>
+        <li class="item-margin">
+           [% locale.maketext("SSL Outgoing Mail Server:") %]
+           <em id="ssl_html">[%
+SET exectag0="{host}";
+SET exectag1="{port}";
+locale.maketext("[output,strong,_1,title,Host Name] port [numf,_2], server requires authentication.", exectag0, exectag1)
+%]</em>
+           <script type="text/javascript">
+                // Doing it this way allows us to avoid building this text up with partial phrases, works with the nature of cpanel tags, and works when CPANEL and LOCALE have not been loaded.
+                // If we could assign the value of cpanel tag calls to a variable and pass the variable in then we could avoid the placeholder/javascript pattern and use numf() for the port, oh well
+                var ssl_html = document.getElementById('ssl_html').innerHTML;
+                ssl_html = ssl_html.replace('{host}', '<span style="font-style:normal">[%
+Api1.pre_exec("SSL", "getcnname");
+Api1.exec("SSL", "getcnname", [RAW_FORM.item("acct"), "smtp"]);
+Api1.post_exec("SSL", "getcnname")
+%]</span>');
+                ssl_html = ssl_html.replace('{port}', '[%
+Api1.pre_exec("Chkservd", "geteximport_ssl");
+Api1.exec("Chkservd", "geteximport_ssl", [undef]);
+Api1.post_exec("Chkservd", "geteximport_ssl")
+%]');
+                document.getElementById('ssl_html').innerHTML = ssl_html;
+           </script>
+        </li>
+        <li>[% locale.maketext("Incoming Mail Server:") %] <strong>[%
+Api1.pre_exec("Email", "getmailserver");
+Api1.exec("Email", "getmailserver", [RAW_FORM.item("acct")]);
+Api1.post_exec("Email", "getmailserver")
+%]</strong></li>
+        <li class="item-margin">[% locale.maketext("Outgoing Mail Server:") %]
+           <em id="reg_html">[%
+SET exectag0="{host}";
+SET exectag1="{port}";
+locale.maketext("[output,strong,_1,title,Host Name] port [numf,_2], server requires authentication.", exectag0, exectag1)
+%]</em>
+           <script type="text/javascript">
+                // Doing it this way allows us to avoid building this text up with partial phrases, works with the nature of cpanel tags, and works when CPANEL and LOCALE have not been loaded.
+                // If we could assign the value of cpanel tag calls to a variable and pass the variable in then we could avoid the placeholder/javascript pattern and use numf() for the port, oh well
+                var reg_html = document.getElementById('reg_html').innerHTML;
+                reg_html = reg_html.replace('{host}', '<span style="font-style:normal">[%
+Api1.pre_exec("Email", "getmailserver");
+Api1.exec("Email", "getmailserver", [RAW_FORM.item("acct")]);
+Api1.post_exec("Email", "getmailserver")
+%]</span>');
+                reg_html = reg_html.replace('{port}', '[%
+Api1.pre_exec("Chkservd", "geteximport");
+Api1.exec("Chkservd", "geteximport", [undef]);
+Api1.post_exec("Chkservd", "geteximport")
+%]');
+                document.getElementById('reg_html').innerHTML = reg_html;
+           </script>
+        </li>
+        <li>[% locale.maketext("Supported Incoming Mail Protocols:") %] <strong>POP3, POP3S (SSL/TLS), IMAP, IMAPS (SSL/TLS)</strong></li>
+        <li>[% locale.maketext("Supported Outgoing Mail Protocols:") %] <strong>SMTP, SMTPS (SSL/TLS)</strong></li>
+    </ul>
+    <p><a href="clientconf.html?acct=[% RAW_FORM.item("acct").uri %]" target="_blank">[% locale.maketext("Click here to automatically configure popular email clients.") %]</a></p>
+    <p><em>[% locale.maketext("Note: SSL servers recommended.") %]</em></p>
+</div>

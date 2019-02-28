@@ -5,7 +5,7 @@ USE JSON;
 SET CPANEL.CPVAR.dprefix = "../../";
 
 SET has_feature = CPANEL.feature('greylist');
-SET domains = Uapi.exec('cPGreyList', 'list_domains', {
+SET domains = Uapi.execute_or_die('cPGreyList', 'list_domains', {
     'api.sort_column'    => 'domain',
     'api.paginate_start' => 1,
     'api.paginate_size'  => 20,
@@ -30,13 +30,15 @@ SET enabled = execute('cPGreyList', 'has_greylisting_enabled', {}).data.enabled;
 [% IF has_feature -%]
 
     <div class="body-content">
+        <!-- NOTE: leave the alert-group in single quotes -->
+        <cp-alert-list alert-group="'greylisting'"></cp-alert-list>
         <div ng-controller="applicationController">
             <div id="viewContent"
                  class="ng-cloak"
                  ng-view
                  ng-cloak></div>
         </div>
-     </div>
+    </div>
 
 
     <script type="text/javascript">
@@ -45,7 +47,6 @@ SET enabled = execute('cPGreyList', 'has_greylisting_enabled', {}).data.enabled;
         PAGE.hasFeature = [% has_feature ? 'true' : 'false' %];
     </script>
     [% PROCESS '_assets/cjt2_header_include.tt' %]
-    <div growl></div>
 [% ELSE -%]
 
 
