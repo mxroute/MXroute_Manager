@@ -4,6 +4,7 @@
 -%]
 <div class="body-content">
 
+    [% IF CPANEL.feature('sslmanager') %]
     <p id="descSSL" class="description">[% locale.maketext('The SSL/TLS Manager will allow you to generate SSL certificates, certificate signing requests, and private keys. These are all parts of using SSL to secure your website. SSL allows you to secure pages on your site so that information such as logins, credit card numbers, etc are sent encrypted instead of plain text. It is important to secure your site’s login areas, shopping areas, and other pages where sensitive information could be sent over the web.') %]</p>
 
     <div class="section">
@@ -27,21 +28,14 @@
           </div>
           </noscript>
       [% END %]
-
-      [% IF ExpVar.expand('$isreseller') && ExpVar.expand('$hasdedicatedip') %]
-        [% installed_host = execute('SSL', 'installed_host') %]
-        [% check_shared_cert = execute('SSL', 'check_shared_cert') %]
-
-        [% IF installed_host.data.host %]
-            <h2 id="hdrSharing">[% locale.maketext("Manage Certificate Sharing") %]</h2>
-            <p><a id="lnkSharing" href="manageshare.html">[% locale.maketext("Change Certificate Sharing Permissions.") %]</a></p>
-        [% END %]
-
-        [% IF check_shared_cert.data.has_shared_cert %]
-            <h2 id="hdrUrl">[% locale.maketext("Your Shared SSL Certficate URL") %]</h2>
-            <p><a id="lnkCheck" target="_blank" href="https://[% check_shared_cert.data.shared_ssl_host %]/~[% ExpVar.expand('$user').uri() %]/">https://[% check_shared_cert.data.shared_ssl_host %]/~[% ExpVar.expand('$user') %]/</a></p>
-        [% END %]
-      [% END %]
     </div>
+    [% ELSE %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        <div class="alert-message">
+            <strong>[% locale.maketext('Error:') %]</strong> [% locale.maketext('You do not have access to this feature!') %]
+        </div>
+    </div>
+    [% END %]
 </div>
 [% END #wrapper %]

@@ -50,6 +50,18 @@ SET safe_ip = ExpVar.expand('$ip');
 IF RAW_FORM.id;
     SET cert_info = execute('SSL', 'fetch_cert_info', { id => RAW_FORM.id });
 END;
+
+SET market_products = execute('Market', 'get_all_products', {
+    'api.filter'=>1,
+
+    'api.filter_term_0'=>'ssl_certificate',
+    'api.filter_type_0'=>'eq',
+    'api.filter_column_0'=>'product_group',
+
+    'api.filter_column_1'=>'enabled',
+    'api.filter_type_1'=>'eq',
+    'api.filter_term_1'=>'1',
+}).data;
 %]
 
 [% css_code = PROCESS css_block %]
@@ -360,7 +372,8 @@ YAHOO.lang.augmentObject( LOCALE.LEXICON, [% lexicon.json() %] );
     } -%]
     var PAGE = {
         data : [% JSON.stringify(page_data) %],
-        nvdata : [% JSON.stringify( NVData.get_page_nvdata() || {} ) %]
+        nvdata : [% JSON.stringify( NVData.get_page_nvdata() || {} ) %],
+        cpmarket_can_sell_ssl: [% CPANEL.feature('tls_wizard') && market_products.size ? 'true' : 'false' %],
     };
     window.PAGE = PAGE;
 
