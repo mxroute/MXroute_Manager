@@ -1,0 +1,84 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET password_strength_required_strength = execute("PasswdStrength", "get_required_strength", { "app" =>"list" });
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'mailing_lists'
+    page_js = js_code
+-%]
+<div class="body-content">
+
+    <div class="section">
+        <form method="post" action="dopasswdlist.html" id="userform" name="userform">
+            <!-- prevent password autofill -->
+            <input type="text" style="display:none">
+            <input type="password" autocomplete='off' style="display:none">
+            <input type="hidden" name="email" id="hidEmail" value="[% FORM.email %]" />
+
+            <p id="descPassword">[% locale.maketext("Changing password for “[_1]” …", FORM.email) %]</p>
+
+            <div class="form-group">
+                <label id="lblPassword" for="password">
+                    [% locale.maketext("New Password") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' name="password" id="password" class="form-control" />
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="password_error"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblPassword2" for="password2">
+                    [% locale.maketext("Password (Again)") %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="password" autocomplete='off' name="password2" id="password2" class="form-control" />
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6" id="password2_error"></div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblPasswordStrength">
+                    [% locale.maketext("Strength") %] <span id="why_strong_passwords_link" class="glyphicon glyphicon-info-sign"></span>
+                </label>
+                [% INCLUDE _assets/why_strong_passwords.html.tt %]
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="password_strength" class="password_strength"></div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="button" id="create_strong_password" class="btn btn-default" value="[% locale.maketext("Password Generator") %]" tabindex="-1" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input type="submit" id="submit" value="[% locale.maketext("Change Password") %]" class="btn btn-primary" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='lists.html' return_link_text=locale.maketext('Go Back') %]
+
+</div><!-- end body-content -->
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+var REQUIRED_PASSWORD_STRENGTH = parseInt('[% password_strength_required_strength.data.strength.html() %]', 10) || 0;
+
+var init_page = function() {
+    var password_validators = CPANEL.password.setup("password", "password2", "password_strength", REQUIRED_PASSWORD_STRENGTH, "create_strong_password", "why_strong_passwords_link", "why_strong_passwords_text");
+    CPANEL.validate.attach_to_form("submit", password_validators);
+
+    YAHOO.util.Dom.get("password").focus();
+};
+YAHOO.util.Event.onDOMReady(init_page);
+</script>
+[% END %]

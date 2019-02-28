@@ -1,0 +1,34 @@
+[% SET CPANEL.CPVAR.dprefix = "../../" %]
+
+[%
+    SET email_acct = execute( 'Email', 'account_name', {"account"=>FORM.account, "display"=>"0"}).data;
+
+    IF FORM.account != "" OR email_acct != "";
+        SET app_name = 'email_filters';
+    ELSE;
+        SET app_name = 'global_email_filters';
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = app_name
+%]
+
+<div class="body-content">
+    <h2 id="hdrDelete">[% locale.maketext("Delete Filter") %]</h2>
+    <p id="descConfirmation">
+        [% locale.maketext("Are you sure you wish to delete the “[_1]” filter?",FORM.filtername) %]
+    </p>
+    <p>
+        <a id="btnDelete" class="btn btn-primary" href="deletefilter.html?account=[% RAW_FORM.account.uri %]&filtername=[% RAW_FORM.filtername.uri %]">[% locale.maketext("Delete Filter") %]</a>
+        <a id="btnCancel" class="btn btn-link" href="userfilters.html?account=[% RAW_FORM.account.uri %]">[% locale.maketext("Cancel") %]</a>
+    </p>
+
+    [% IF FORM.account %]
+        [% INCLUDE _assets/return_link.html.tt return_location='userfilters.html?account=' _ FORM.account _ '' return_link_text=locale.maketext('Go Back') %]
+    [% ELSE %]
+        [% INCLUDE _assets/return_link.html.tt return_location='userfilters.html' return_link_text=locale.maketext('Go Back') %]
+    [% END %]
+</div>
+[% END %]
+

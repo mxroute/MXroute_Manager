@@ -1,0 +1,151 @@
+[%-
+
+# Imports
+USE Api2;
+USE DataURI;
+USE JSON;
+USE VarCache;
+USE Encoder;
+USE CPScalar;
+
+# Setup the spinner, include the DATAURI optimization
+SET spinner_url = '/images/report-spinner.gif';
+IF CPANEL.ua_is_ie && CPANEL.ua_is_ie < 8;
+    SET spinner_url = MagicRevision(spinner_url);
+    "<img src='$spinner_url' style='display:none'>";
+ELSE;
+    SET spinner_url = DataURI.datauri(spinner_url, 'image/gif');
+END;
+
+# Setup the titles for each type.
+SET archive_type_titles = {
+    'incoming' => locale.maketext('Incoming Email Messages'),
+    'outgoing' => locale.maketext('Outgoing Email Messages'),
+    'mailman' =>  locale.maketext('Outgoing Mailing List Email Messages'),
+};
+
+%]
+
+[% PROCESS '_assets/_ajaxapp.html.tt' -%]
+
+<script type="text/javascript">
+var archive_domains = [];
+var archive_types = {};
+[% SET form_regex = CPANEL.get_raw_form('searchregex') -%]
+[% SET api_response = Api2.exec( 'Email', 'get_archiving_types', {} ); -%]
+[% IF api_response.size -%]
+    [% FOR archive_type = api_response -%]
+        [% SET archive_types = archive_type %]
+        [% FOREACH pair IN archive_type.pairs -%]
+            archive_types[[% pair.key.json() %]]=[% pair.value.json() %];
+        [% END %]
+    [% END %]
+[% END %]
+
+</script>
+
+[%
+ SET api_response = Api2.exec( 'Email', 'get_archiving_configuration', {
+        regex               => form_regex,
+        no_expvar           => 1,
+        api2_paginate       => 1,
+        api2_paginate_start => CPANEL.FORM.api2_paginate_start,
+        api2_paginate_size  => CPANEL.CPVAR.itemsperpage,
+        api2_sort           => 1,
+        api2_sort_column    => CPANEL.FORM.api2_sort_column || 'domain',
+        api2_sort_reverse   => CPANEL.FORM.api2_sort_reverse == '1', # Reverse is descending.
+        });
+-%]
+
+[% IF api_response.size -%]
+    [% FOR dom = api_response -%]
+            [% SET oddeven = loop.index % 2 ? 'odd' : 'even' -%]
+            [%-
+                SET archive_active = 0;
+                FOR archive_type IN archive_types;
+                    SET archive_key = "archive_" _ archive_type.key;
+                    IF dom.$archive_key;
+                        SET archive_active = 1;
+                        LAST;
+                    END;
+                END;
+            %]
+            <tr class="row-[% oddeven %]">
+                <td class="col1" truncate="50">
+                     [% dom.domain.html().breakOn('\.') %]
+                </td>
+                <td class="col2">
+                    <div style="visibility:hidden" id="spinner_[% dom.domain FILTER html %]">
+                        <img src="[% spinner_url %]" alt="[% locale.maketext('Wait …') %]"/>
+                    </div>
+                </td>
+                <td id="lblDiskUsage" class="diskusagecol">
+                        [% locale.format_bytes(dom.diskused) %]
+                </td>
+                <td class="col3" nowrap="nowrap">
+                    [% FOREACH archive_type IN archive_types.pairs -%]
+                        [% SET archive_type_key = archive_type.key -%]
+                        [% SET archive_type_name = archive_type.value -%]
+                        [% SET archive_type_title = archive_type_titles.$archive_type_key -%]
+                        [% SET archive_type_dom_key = "archive_" _ archive_type.key -%]
+                        [% SET archive_type_dom_key_retain_days = "archive_" _ archive_type.key _ "_retain_days" -%]
+                        <div class="checkbox">
+                            <label>
+                                <input type="checkbox" id="archive_[% archive_type_key FILTER html %]_[% dom.domain FILTER html %]" name="archive_[% archive_type_key FILTER html %]_[% dom.domain FILTER html %]" [% IF dom.$archive_type_dom_key %]checked="checked"[% END %] value="1" title="[% archive_type_title %]">
+                                [% archive_type_title %]
+                            </label>
+                            [% SET retention_control_enabled = dom.$archive_type_dom_key -%]
+                            [% SET retention_control_key = "archive_" _ archive_type_key _ "_retain_days_" _ dom.domain -%]
+                            [% SET retention_control_value = dom.$archive_type_dom_key_retain_days -%]
+                            [% PROCESS mail/retention_control.html.tt -%]
+                        </div>
+                    [% END -%]
+                </td>
+                <td class="col4">
+                    <div id="archive_controls_[% dom.domain FILTER html %]"[% IF !archive_active %] style="display:none;"[% END %]>
+                        <div class="action-container">
+                            <div class="access_option imap_access">
+                                [% SET archive_account = '_archive@' _ dom.domain %]
+                                <a id="archive_controls_[% dom.domain FILTER html %]_access_imap"
+                                    href="clientconf.html?acct=[% archive_account FILTER uri %]&archiving=1"
+                                    title="[% locale.maketext('Instructions on how to access this archive using your mail client.')%]">
+                                    [% locale.maketext('IMAP Access') %]
+                                </a>
+                            </div>
+                            <div class="access_option download_access">
+                                <a id="archive_controls_[% dom.domain FILTER html %]_download_archive"
+                                    href="javascript:void(0)"
+                                    onClick="archive_download('[% dom.domain FILTER html %]',this); return false;"
+                                    title="[% locale.maketext('Download this email archive to your computer.')%]">
+                                    [% locale.maketext('Download Archive') %]
+                                </a>
+                            </div>
+                            <div class="access_option download_access">
+                                <a id="archive_controls_[% dom.domain FILTER html %]_access_webmail"
+                                    href="[% cp_security_token %]/xferwebmail/?user=_archive@[% dom.domain FILTER html %]"
+                                    target="webmail"
+                                    title="[% locale.maketext('View this email archive using Webmail.') %]">
+                                    [% locale.maketext('Access Webmail') %]
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+                    <script type="text/javascript">archive_domains.push('[% dom.domain FILTER html %]');</script>
+                </td>
+            </tr>
+            <tr id="archive_status_bar_row_[% dom.domain FILTER html %]" style="display:none">
+                <td class="statusbartd" colspan="5">
+                    <div id="archive_status_bar_[% dom.domain FILTER html %]" class="archive_status_bar cjt_status_bar"></div>
+                </td>
+            </tr>
+
+    [% END -%]
+[% ELSE -%]
+        [% SET err = form_regex
+        ? locale.maketext('No configured domains match the search term “[_1]”.', form_regex)
+        : locale.maketext('No domains configured.'); -%]
+                <tr>
+                    <td colspan="5" class="errors">[% err FILTER html %]</td>
+                </tr>
+[% END -%]

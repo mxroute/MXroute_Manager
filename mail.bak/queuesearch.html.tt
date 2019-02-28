@@ -1,0 +1,134 @@
+
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'boxtrapper'
+    embed_scripts = ['js2/mail/queuesearch.js']
+    page_js = js_code
+    page_stylesheets = ['mail/boxtrapper.css']
+%]
+
+
+<div class="body-content">
+<div>
+    <h2 id="hdrQueue">[% locale.maketext("[asis,BoxTrapper] queue for the account “[output,strong,_1]”.",  FORM.item('account')) %]</h2>
+
+    <div class="section">
+        <fieldset>
+            <legend id="lgndSearch">[% locale.maketext("New Search:") %]</legend>
+            <form name="queuesearch" action="queuesearch.html" method="get">
+                <input type="hidden" name="account" id="hidAcct" value="[% FORM.item('account') %]" />
+
+                <div class="form-group">
+                    <label id="lblSearch" for="field">
+                        [% locale.maketext("Search In:") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <select name="field" id="field" class="form-control">
+                                <option value="sender">[% locale.maketext("Sender") %]</option>
+                                <option value="subject">[% locale.maketext("Subject") %]</option>
+                                <option value="body">[% locale.maketext("Body") %]</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label id="lblSearchString" for="string">
+                        [% locale.maketext("For search string:") %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input type="text" class="form-control" name="string" id="string" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <input type="submit" value="[% locale.maketext("Submit") %]" class="btn btn-primary" id="btnSubmitSearch" />
+                </div>
+            </form>
+        </fieldset>
+
+        <a id="lnkReturnToCurrentDate" href="showq.html?account=[% RAW_FORM.item('account').uri %]">
+            [% locale.maketext("Return to current date.") %]
+        </a>
+        <hr />
+    </div>
+
+    <div class="section">
+    <form name="input" id="formMultiMsg" action="multimsgaction.html" method="get">
+            [% IF CPANEL.CPDATA.item('DEMO') %]
+                [% locale.maketext("This feature is disabled in demo mode.") %]
+            [% ELSE %]
+        <input type="hidden" name="mystring" id="hidMyString" value="[% FORM.item('string') %]" />
+        <input type="hidden" name="myfield" id="hidMyField" value="[% FORM.item('field') %]" />
+        <div class="table-responsive">
+          <table class="sortable truncate-table table table-striped" id="qres">
+            <tr>
+                <th class="sorttable_nosort"><input id="qres_top_check" onclick="selectBoxes(this,'qres')" type="checkbox" name="select" value="" /></th>
+                <th>[% locale.maketext("From") %]</th>
+                <th>[% locale.maketext("Subject") %]</th>
+                <th>[% locale.maketext("Time") %]</th>
+            </tr>
+                [% Api1.pre_exec("BoxTrapper", "showqueuesearch") ;
+                    Api1.exec("BoxTrapper", "showqueuesearch", [RAW_FORM.item('field'),RAW_FORM.item('string'),RAW_FORM.item('account'),"queuesearch.html","1","1"]) ;
+                    Api1.post_exec("BoxTrapper", "showqueuesearch")
+                %]
+            [% END %]
+          </table>
+        </div>
+        <div class="form-group">
+            <div class="radio">
+                <label id="lblRbtnDeleteAll">
+                    <input type="radio" name="multimsg" id="rbtnDeleteAll" value="deleteall" />
+                    [% locale.maketext("Delete") %]
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <div class="radio">
+                <label id="lblRbtnWhitelistAll">
+                    <input type="radio" name="multimsg" id="rbtnWhitelistAll" value="whitelistall" />
+                    [% locale.maketext("Whitelist and Deliver")  %]
+                </label>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <input type="submit" class="btn btn-primary" id="btnSubmitMultiMsg" value="[% locale.maketext("Submit") %]" />
+        </div>
+
+    </form>
+    </div>
+</div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='manage.html?account=' _ FORM.item('account') _ '' return_link_text=locale.maketext('Go Back to BoxTrapper Configuration') %]
+</div>
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var checkflag = 0;
+
+    function check(field) {
+        if (checkflag == 0) {
+            for (i = 0; i < field.length; i++) {
+                field[i].checked = 1;
+            }
+            checkflag = 1;
+            return "Uncheck All";
+        }
+        else {
+            for (i = 0; i < field.length; i++) {
+                field[i].checked = 0;
+            }
+            checkflag = 0;
+            return "Check All";
+        }
+    }
+</script>
+[% END %]

@@ -21,7 +21,8 @@ define(
         "cjt/modules",
         "cjt/directives/formWaiting",
         "cjt/directives/searchDirective",
-        "cjt/decorators/growlAPIReporter",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "uiBootstrap",
         "cjt/services/APICatcher",
         "cjt/directives/toggleSortDirective",
@@ -94,10 +95,8 @@ define(
                         // Use the dynamic CJT2 module name, since this code is shared between Webmail and cPanel
                         window.PAGE.CJT2_ANGULAR_MODULE_NAME,
 
-                        "cjt2.decorators.growlAPIReporter",
                         "cjt2.directives.search",
                         "ui.bootstrap",
-                        "angular-growl",
                         "localytics.directives",    // for “chosen”
                     ]);
 
@@ -106,8 +105,8 @@ define(
                         "$location",
                         "$sce",
                         "APICatcher",
-                        "growl",
-                        function($scope, $location, $sce, api, growl) {
+                        "alertService",
+                        function($scope, $location, $sce, api, alertService) {
                             var mailbox_by_name;
 
                             function _set_mailbox_status(mbstatus) {
@@ -295,8 +294,14 @@ define(
                                         var scope = this;
 
                                         return api.promise(batch).then( function(good_resp) {
-                                            growl.success( LOCALE.maketext("The operation on “[_1]” succeeded.", _.escape(mailbox_by_name[mbname].display_name)) );
-
+                                            alertService.add({
+                                                type: "success",
+                                                message: LOCALE.maketext("The operation on “[_1]” succeeded.", _.escape(mailbox_by_name[mbname].display_name)),
+                                                closeable: true,
+                                                replace: false,
+                                                autoClose: 10000,
+                                                group: "emailDiskUsage"
+                                            });
                                             scope.mbmeta[$scope.account][mbname].action = null;
 
                                             var to_set = good_resp.data.slice(1);

@@ -1,0 +1,57 @@
+[%
+    SET CPANEL.CPVAR.dprefix = "../../";
+
+    Api2.pre_exec("Email", "tracefilter");
+    SET api2_result_Email_tracefilter = execute("Email", "trace_filter", {"msg"=>FORM.test_msg, "account"=>FORM.account} );
+    Api2.post_exec("Email", "tracefilter");
+
+    SET email_acct = execute( 'Email', 'account_name', {"account"=>FORM.account, "display"=>"0"}).data;
+%]
+
+[%
+    IF FORM.account != "" OR email_acct != "";
+        SET app_name = 'email_filters';
+    ELSE;
+        SET app_name = 'global_email_filters';
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = app_name
+%]
+    <div class="body-content">
+        <div class="section">
+            [% IF api2_result_Email_tracefilter.status -%]
+                <h2 id="hdrResults">[% locale.maketext("Filter Trace Results:") %]</h2>
+
+            <!--
+                x3 stdmheader.html listens for "msg" in the form
+                to disable home and help links, so use test_msg instead.
+            -->
+                <div name="tracefilter">
+                    <pre id="txtFilterTraceResults">[%
+                        #NB: this API call’s output is HTML!
+                        api2_result_Email_tracefilter.data.trace;
+                    -%]</pre>
+                </div>
+            [% ELSE -%]
+                [%# copied/pasted from http://styleguide.cpanel.net/#/notices -%]
+                <div class="alert alert-danger">
+                    <span class="glyphicon glyphicon-remove-sign"></span>
+                    <div class="alert-message">
+                        <strong>[% locale.maketext('Error:') %]</strong>
+                        [% api2_result_Email_tracefilter.errors_as_string() -%]
+                    </div>
+                </div>
+            [% END -%]
+        </div>
+
+        [% IF FORM.account %]
+            [% INCLUDE _assets/return_link.html.tt return_location='userfilters.html?account=' _ FORM.account _ '' return_link_text=locale.maketext('Go Back') %]
+        [% ELSE %]
+            [% INCLUDE _assets/return_link.html.tt return_location='userfilters.html' return_link_text=locale.maketext('Go Back') %]
+        [% END %]
+
+    </div>
+[% END %]
+

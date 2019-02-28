@@ -21,8 +21,8 @@ SET MACUA = CPANEL.ENV.HTTP_USER_AGENT.replace('_','.');
 # Chrome returns  Intel Mac OS X 10_7_4
 
 SET mac_os_version = CPANEL.ENV.HTTP_USER_AGENT.match('[Mm]acintosh') && MACUA.match('Mac OS X (\d+)\.(\d+)');
-SET is_at_least_lion = (mac_os_version.0 >= 10 && mac_os_version.1 >= 7);
-SET is_at_least_mountain_lion = (mac_os_version.0 >= 10 && mac_os_version.1 >= 8);
+SET is_at_least_lion = (mac_os_version.0 && mac_os_version.0 >= 10 && mac_os_version.1 && mac_os_version.1 >= 7);
+SET is_at_least_mountain_lion = (mac_os_version.0 && mac_os_version.0 >= 10 && mac_os_version.1 && mac_os_version.1 >= 8);
 
 SET is_ios = CPANEL.ENV.HTTP_USER_AGENT.match('iPad') || CPANEL.ENV.HTTP_USER_AGENT.match('iPhone') || CPANEL.ENV.HTTP_USER_AGENT.match('iPod') || (!from_archiving && is_at_least_mountain_lion);
 SET is_mac = mac_os_version && !is_ios;
@@ -385,6 +385,14 @@ a.insecure {
 
 .escape-note {
     font-style: italic;
+}
+
+.manual_settings_table {
+    table-layout: fixed;
+}
+
+.manual_settings_table tr td:first-child {
+    width: 120px;
 }
 </style>
 

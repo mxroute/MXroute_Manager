@@ -1,0 +1,53 @@
+<div id="blacklistSection">
+    <div class="section">
+        <form id="spamBlacklistForm" name="spamBlacklistForm" cp-form-waiting="updateBlacklistFrom()" class="form layout-medium">
+            <div class="form-group">
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+                        <toggle-label-info
+                             for="spamBlacklist"
+                             label-text="[% locale.maketext('Spam Blacklist Items ([asis,blacklist_from])') %]"
+                             label-id="spamBlacklistLabel"
+                             info-icon-id="spamBlacklistLabel_icon"
+                             info-block-id="spamBlacklistLabel_info">
+                                [% locale.maketext("Specify the email addresses to tag as spam.") %]
+                                [% locale.maketext("You can also use the “*” and “?” wildcard characters for more flexibility.") %]
+                                [% locale.maketext("For more information, read our [output,url,_1,Spam Filters,target,_blank] documentation.","https://go.cpanel.net/cpaneldocs72spamfilters") %]
+                        </toggle-label-info>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+                        <multi-field-editor
+                            id="blacklistMFE"
+                            add-new-label="[% locale.maketext('Add A New “[_1]” Item','blacklist_from') %]"
+                            ng-model="workingPreferences.blacklist_from">
+                                <multi-field-editor-item
+                                    ng-repeat="(key,value) in workingPreferences.blacklist_from track by $index"
+                                    label="blacklist_from"
+                                    label-for="blacklistMFE_item_{{ :: key }}_input"
+                                    index="key"
+                                    id="blacklistMFE_item_{{ :: key }}" >
+                                        <input
+                                            id="blacklistMFE_item_{{ :: key }}_input"
+                                            name="blacklistMFE_item_{{ :: key }}_input"
+                                            type="text"
+                                            class="form-control"
+                                            size="50"
+                                            ng-model="workingPreferences.blacklist_from[key]"
+                                            required />
+                                </multi-field-editor-item>
+                        </multi-field-editor>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <button id="btnUpdateBlacklistFrom"
+                    type="submit"
+                    class="btn btn-primary"
+                    ng-disabled="checkPristine('blacklist_from') || spamBlacklistForm.$invalid"
+                    >[% locale.maketext("Update Blacklist ([asis,blacklist_from])") %]</button>
+            </div>
+        </form>
+    </div>
+</div>

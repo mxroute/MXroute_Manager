@@ -1,0 +1,57 @@
+<div id="advancedSection">
+	<div class="section">
+		<form id="requiredScoreForm" name="requiredScoreForm" cp-form-waiting="updateTestingScores()" class="form layout-medium">
+		    <div class="form-group">
+		        <div class="row">
+		            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+		                <toggle-label-info
+		                     for="spamTestingScores"
+		                     label-text="[% locale.maketext('Spam Testing Scores') %]"
+		                     label-id="spamTestingScoresLabel"
+		                     info-icon-id="spamTestingScoresLabel_icon"
+		                     info-block-id="spamTestingScoresLabel_info"
+                             show-info-block="true">
+		                     [% locale.maketext("Select a “symbolic_test_name” and enter a score. If the test returns true, the system adds this score to an email’s calculated spam score.") %]
+		                     [% locale.maketext("You only need to provide one value per test. cPanel systems always enable the “Bayesian” and “network” tests, and the score that you enter applies to this condition.") %]
+		                     [% locale.maketext("A test score of zero disables that test.") %]
+		                </toggle-label-info>
+		            </div>
+		        </div>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+                        <callout callout-type="warning" callout-heading="[% locale.maketext('Sensitive Content Warning:') %]">
+                            [% locale.maketext('[output,em,Warning]: Certain spam score testing keywords may offend some users. Proceed with caution.') %]
+                        </callout>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-xs-12">
+        		        <multi-field-editor
+                            id="testingScoresMFE"
+                            add-new-label="[% locale.maketext('Add A New “[_1]” Item','scores') %]"
+                            ng-model="workingPreferences.score">
+                                <multi-field-editor-item
+                                    ng-repeat="(key,value) in workingPreferences.score track by $index"
+                                    label="scores"
+                                    label-for="testingScoresMFE_item_{{ :: key }}_field_input"
+                                    index="key"
+                                    id="testingScoresMFE_item_{{ :: key }}" >
+                                        <score-field
+                                            score-types="symbolicTestNames"
+                                            id="testingScoresMFE_item_{{ :: key }}_field"
+                                            ng-model="workingPreferences.score[key]"></score-field>
+                                </multi-field-editor-item>
+                        </multi-field-editor>
+                    </div>
+                </div>
+		    </div>
+		    <div class="form-group">
+		    	<button id="btnUpdateSpamScore"
+		    		type="submit"
+		    		class="btn btn-primary"
+		    		ng-disabled="checkPristine('score') || requiredScoreForm.$invalid"
+		    		>[% locale.maketext("Update Scoring Options") %]</button>
+		    </div>
+		</form>
+	</div>
+</div>

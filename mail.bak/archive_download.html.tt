@@ -1,0 +1,14 @@
+<script id="download_archive_template" type="text/html">
+    <div id="archive_download_contents">
+        <p>[% locale.maketext('Archives are stored in “[_1]” format.','maildir') %]</p>
+        <p>[% locale.maketext('Please choose an archive to download:') %]</p>
+        <ul>
+            <li><a href="javascript:void(0)" id="download_all_archives_{domain}">[% locale.maketext('All Archives') %]</a></li>
+            {list}
+        </ul>
+    </div>
+</script>
+
+<script id="download_archive_item_template" type="text/html">
+            <li><a href="javascript:void(0)" id="download_{archive_type}_archives_{domain}">{archive_type_name}</a></li>
+</script>

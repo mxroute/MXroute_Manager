@@ -1,0 +1,13 @@
+[% SET CPANEL.CPVAR.dprefix = "../" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'filtering'
+-%]
+<div class="body-content">
+
+    <h2 id="hdrFilterTrace">[% locale.maketext("Filter Trace Results:") %]</h2>
+    <pre id="txtFilterTrace">[% execute('Email', 'trace_filter', { account => RAW_FORM.item('DNS'), msg => RAW_FORM.item('msg') }).data %]</pre>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='blocks.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

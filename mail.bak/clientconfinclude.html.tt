@@ -1,0 +1,656 @@
+[%
+PROCESS '_assets/_ajaxapp_header.html.tt';
+
+USE JSON;
+USE HTTP;
+USE ExpVar;
+
+SET account = CPANEL.FORM.acct;
+SET from_archiving = CPANEL.get_raw_form('archiving');
+
+SET mail_client_settings = execute('Email','get_client_settings',{account=>CPANEL.FORM.acct}).data;
+
+SET apps = [];
+
+SET proxysubdomains = CPANEL.CPCONF().proxysubdomains && CPANEL.CPCONF().autodiscover_proxy_subdomains;
+
+SET is_unix = CPANEL.ENV.HTTP_USER_AGENT.match('[Ll]inux') || CPANEL.ENV.HTTP_USER_AGENT.match('[Ff]reeBSD');
+
+
+SET MACUA = CPANEL.ENV.HTTP_USER_AGENT.replace('_','.');
+# Chrome returns  Intel Mac OS X 10_7_4
+
+SET mac_os_version = CPANEL.ENV.HTTP_USER_AGENT.match('[Mm]acintosh') && MACUA.match('Mac OS X (\d+)\.(\d+)');
+SET is_at_least_lion = (mac_os_version.0 >= 10 && mac_os_version.1 >= 7);
+SET is_at_least_mountain_lion = (mac_os_version.0 >= 10 && mac_os_version.1 >= 8);
+
+SET is_ios = CPANEL.ENV.HTTP_USER_AGENT.match('iPad') || CPANEL.ENV.HTTP_USER_AGENT.match('iPhone') || CPANEL.ENV.HTTP_USER_AGENT.match('iPod') || (!from_archiving && is_at_least_mountain_lion);
+SET is_mac = mac_os_version && !is_ios;
+
+# and MacOS® Mail.app® for “Mountain Lion” (10.8+) -- see TODO below
+SET ios_apps = [
+    {
+        key => "ios",
+        label => locale.maketext('[asis,iOS] for [asis,iPhone/iPad/iPod] and [asis,MacOS®] [asis,Mail.app®] for [asis,Mountain Lion (10.8+)]'),
+        note => "",
+        urlgen => "ios_url",
+    }
+];
+
+SET unix_apps = [];
+
+IF proxysubdomains;
+unix_apps = unix_apps.merge([
+    {
+        key => "thunderbird",
+        label => "Mozilla Thunderbird®",
+        note => "",
+        urlgen => "autoconfig",
+    },
+    {
+        key => "kmail",
+        label => "KDE Kmail",
+        note => "",
+        urlgen => "autoconfig",
+    }
+
+]);
+END;
+
+SET mac_apps = [
+    {
+        key => 'mail.app-10.7',
+        version => '10.7',
+        label => 'MacOS® Mail.app® for “Lion” (10.7+)',
+        note => locale.maketext('[output,strong,IMAP Path Prefix] must be set to [output,strong,INBOX]; otherwise, Mail.app® will not be able to store deleted, draft, or sent mail on the server.'),
+        urlgen => "mac",
+        open_if_mac => 1,
+    }
+];
+
+mac_apps = mac_apps.merge(
+        [
+            {
+                key => 'mail.app',
+                label => 'MacOS® Mail.app® for “Pre Lion” (10.4+)',
+                note => locale.maketext('[output,strong,IMAP Path Prefix] must be set to [output,strong,INBOX]; otherwise, Mail.app® will not be able to store deleted, draft, or sent mail on the server.'),
+                urlgen => "mac",
+                open_if_mac => 1,
+            }
+        ]
+    );
+IF !is_at_least_lion;
+    mac_apps = mac_apps.reverse();
+END;
+
+IF is_mac;
+    SET recommended = locale.maketext('[output,strong,Recommended] version for your operating system.');
+    mac_apps.0.note = "${recommended}<br>${mac_apps.0.note}";
+END;
+
+IF proxysubdomains;
+    mac_apps = mac_apps.merge(
+        [
+            {
+                key => "postbox",
+                label => "Postbox®",
+                note => "",
+                urlgen => "autoconfig",
+            }
+        ]
+    );
+END;
+
+###### Ugly hack to get a "function" in Template Toolkit.
+SET ms_url_type = 'imap';
+SET ms_url_ssl = 0;
+VIEW ms_url;
+    BLOCK hash;
+        SET my_inc_host = ms_url_ssl ? mail_client_settings.inbox_host : mail_client_settings.mail_domain;
+        SET my_out_host = ms_url_ssl ? mail_client_settings.smtp_host : mail_client_settings.mail_domain;
+        "email.reg?" _ HTTP.make_query_string( {
+            acct => CPANEL.get_raw_form('acct'),
+            type => ms_url_type,
+            app  => item.key,
+            inc_host => my_inc_host,
+            out_host => my_out_host,
+            usessl => ms_url_ssl,
+        } );
+    END;
+END;
+
+SET mac_mail_url_ssl = '';  #Set this before calling to get "parameters".
+VIEW mac_mail_url;
+    BLOCK hash;
+        SET imap_host = mac_mail_url_ssl ? mail_client_settings.inbox_host : mail_client_settings.mail_domain;
+        SET my_port   = mac_mail_url_ssl ? mail_client_settings.smtp_port : mail_client_settings.smtp_insecure_port;
+        SET url_parts = [
+            CPANEL.get_raw_form('acct'),
+            imap_host,
+            my_port,
+            mac_mail_url_ssl,
+            has_maildir,
+        ];
+        IF item.version;
+            url_parts.push( item.version );
+        END;
+
+        qs = url_parts.join('|').uri();
+        "$cp_security_token/backend/mailappsetup.cgi?$qs";  #the "return"
+    END;
+END;
+
+SET wlm_url_type = 'imap';
+SET wlm_url_ssl = 0;
+VIEW wlm_url;
+    BLOCK hash;
+        SET my_inc_host = wlm_url_ssl ? mail_client_settings.inbox_host : mail_client_settings.mail_domain;
+        SET my_out_host = wlm_url_ssl ? mail_client_settings.smtp_host : mail_client_settings.mail_domain;
+        SET my_port = wlm_url_ssl ? mail_client_settings.smtp_port : mail_client_settings.smtp_insecure_port;
+        "$cp_security_token/backend/emailsetup-livemail.cgi?" _ HTTP.make_query_string( {
+            acct => CPANEL.get_raw_form('acct'),
+            type => wlm_url_type,
+            inc_host => my_inc_host,
+            out_host => my_out_host,
+            usessl => wlm_url_ssl,
+            smtpport => my_port,
+            archive => from_archiving,
+        } );
+    END;
+END;
+
+SET ios_url_type = 'imap';
+SET ios_url_ssl = 0;
+VIEW ios_url;
+    BLOCK hash;
+        SET my_inc_host = ios_url_ssl ? mail_client_settings.inbox_host : mail_client_settings.mail_domain;
+        SET my_out_host = ios_url_ssl ? mail_client_settings.smtp_host : mail_client_settings.mail_domain;
+        SET my_port = ios_url_ssl ? mail_client_settings.smtp_port : mail_client_settings.smtp_insecure_port;
+        "$cp_security_token/backend/emailsetup-ios.cgi?" _ HTTP.make_query_string( {
+            acct => CPANEL.get_raw_form('acct'),
+            type => ios_url_type,
+            inc_host => my_inc_host,
+            out_host => my_out_host,
+            usessl => ios_url_ssl,
+            smtpport => my_port,
+            archive => from_archiving,
+        } );
+    END;
+END;
+
+
+
+###### End ugly hack.
+
+
+SET ms_apps = [];
+
+IF proxysubdomains;
+    ms_apps = ms_apps.merge([
+        {
+            key => "windows10mail",
+            label => "Mail for Windows® 10",
+            note => "",
+            urlgen => "autodiscover",
+        }
+        ]);
+    ms_apps = ms_apps.merge([
+        {
+            key => "outlook2010"
+            label => "Microsoft Outlook 2010® for Windows®",
+            note => "",
+            urlgen => "autodiscover",
+        }
+        ]);
+END;
+
+ms_apps = ms_apps.merge([
+    {
+        key => "livemail",
+        label => "Windows Live Mail®",
+        note => locale.maketext("Make sure to close Windows Live Mail® before running this script. Once the script is completed, it will automatically start Windows Live Mail®."),
+        urlgen => "wlm_url",
+    }
+    ]);
+
+IF proxysubdomains;
+    ms_apps = ms_apps.merge([
+        {
+        key => "outlook2007"
+        label => "Microsoft Outlook 2007® for Windows®",
+        note => "",
+        urlgen => "autodiscover",
+        }
+   ]);
+END;
+ms_apps = ms_apps.merge([
+    {
+        key => "outlook",
+        label => "Microsoft Outlook 2000® for Windows®",
+        note => "",
+        urlgen => "ms_url",
+    },
+    {
+        key => "outlookexpress",
+        label => "Microsoft Outlook Express® for Windows®",
+        note => "",
+        urlgen => "ms_url",
+    }
+    ]);
+
+
+# Put the current detected os on the top of the list
+
+# Once we sign the iOS mobileconfig (requires comodo project)
+# from_archiving + iOS is slightly subpar because it
+# requires outgoing server when we don't want one.  So if we
+# have > mountain lion, but no from_archiving we prefer the
+# mobileconfig route
+IF is_ios;
+    apps = apps.merge(ios_apps);
+    apps = apps.merge(mac_apps);
+    apps = apps.merge(unix_apps);
+    apps = apps.merge(ms_apps);
+ELSIF is_unix;
+    apps = apps.merge(unix_apps);
+    apps = apps.merge(mac_apps);
+    apps = apps.merge(ios_apps);
+    apps = apps.merge(ms_apps);
+ELSIF is_mac;
+    apps = apps.merge(mac_apps);
+    apps = apps.merge(ios_apps);
+    apps = apps.merge(unix_apps);
+    apps = apps.merge(ms_apps);
+ELSE;
+    apps = apps.merge(ms_apps);
+    apps = apps.merge(mac_apps);
+    apps = apps.merge(ios_apps);
+    apps = apps.merge(unix_apps);
+END;
+
+SET ssl_loop = [0,1];
+SET has_plaintext_auth = mail_client_settings.has_plaintext_authentication;
+IF !has_plaintext_auth;
+    SET ssl_loop = [1];
+END;
+
+
+FOR app = apps;
+    app.urls = {};
+
+    IF app.urlgen == 'autoconfig';
+        app.urls.autoconfig = 1;
+    ELSIF app.urlgen == 'autodiscover';
+        app.urls.autodiscover = 1;
+    ELSE;
+        SET protocols = ['imap','pop3'];
+        IF app.urlgen == 'mac' || app.urlgen == 'ios_url';
+          SET protocols = ['imap'];
+        END;
+
+        FOR protocol = protocols;
+            FOR ssl = ssl_loop;
+                SET new_key = protocol _ ( ssl ? 's' : '' );
+                IF app.urlgen == 'ms_url';
+                    ms_url_type = protocol;
+                    ms_url_ssl = ssl;
+                    app.urls.$new_key = ms_url.print(app);
+                ELSIF app.urlgen == 'wlm_url';
+                    wlm_url_type = protocol;
+                    wlm_url_ssl = ssl;
+                    app.urls.$new_key = wlm_url.print(app);
+                ELSIF app.urlgen == 'ios_url';
+                    ios_url_type = protocol;
+                    ios_url_ssl = ssl;
+                    app.urls.$new_key = ios_url.print(app);
+                ELSIF app.urlgen == 'mac';
+                    mac_mail_url_type = protocol;
+                    mac_mail_url_ssl = ssl;
+                    app.urls.$new_key = mac_mail_url.print(app);
+                END;
+            END;
+        END;
+     END;
+END;
+
+
+IF !from_archiving;
+    SET protocol_order = [ 'imaps', 'pop3s', 'imap', 'pop3', 'autoconfig', 'autodiscover' ];
+ELSE;
+    SET protocol_order = [ 'imaps', 'imap', 'autoconfig', 'autodiscover' ];
+END;
+
+SET secure_protocols = {
+  'imaps' => 1,
+  'pop3s' => 1,
+  'autoconfig' => 1,
+  'autodiscover' => 1,
+};
+
+SET protocol_desc = {
+    'autodiscover' = {
+        'label' = locale.maketext('Auto Discovery'),
+        'hover' = locale.maketext('Microsoft Auto Discovery Protocol')
+    },
+    'autoconfig' = {
+        'label' = locale.maketext('Auto Config'),
+        'hover' = locale.maketext('[asis,Mozilla] Auto Configuration: [_1]', '1.1')
+    },
+    'imaps' = {
+        'label' = locale.maketext('IMAP over SSL/TLS'),
+        'hover' = locale.maketext('IMAP Mail Protocol over SSL/TLS (IMAPS)')
+    },
+    'pop3s' = {
+        'label' = locale.maketext('POP3 over SSL/TLS'),
+        'hover' = locale.maketext('POP3 Mail Protocol over SSL/TLS (POP3S)'),
+    }
+    'imap' = {
+        'label' = locale.maketext('IMAP'),
+        'hover' = locale.maketext('IMAP Mail Protocol'),
+    }
+    'pop3' = {
+        'label' = locale.maketext_plain_context('[output,acronym,POP3,Post Office Protocol v3]'),
+        'hover' = locale.maketext('POP3 Mail Protocol'),
+    }
+};
+
+-%]
+
+<style type="text/css">
+
+.note_header {
+    font-weight: bold;
+}
+
+.caption {
+    font-weight: bold;
+}
+
+a.secure {
+    font-weight: bold;
+    padding: 0 0.5em;
+}
+
+a.insecure {
+    font-weight: normal;
+    padding: 0 0.5em;
+}
+
+.not-recommended {
+    font-weight: normal;
+}
+.child-note {
+    margin-left: 20px;
+}
+
+.escape-note {
+    font-style: italic;
+}
+</style>
+
+[% IF !from_archiving %]
+    [% SET page_heading = locale.maketext('Set Up Mail Client for “[_1]”',account) %]
+[% ELSE %]
+    [% SET page_heading =  locale.maketext('Set Up Mail Client Archive for “[_1]”',account) %]
+[% END %]
+
+[% SET apponelabel = apps.1.label %]
+[% IF !from_archiving %]
+<p id="descWhenYouAccess1" class="description">[% locale.maketext('When you access an email account through a desktop email application such as “[_1]”, the email application will require specific information about your email account. You can use the auto-configure options below to attempt to automatically configure your email application. If the available options are not compatible with your application, you will need to use the [output,strong,Manual Settings] information.', apponelabel.html())%]</p>
+[% ELSE %]
+<p id="descWhenYouAccess2" class="description">[% locale.maketext('When you access an email archive through a desktop email application such as “[_1]”, the email application will require specific information about your email account. You can use the auto-configure options below to attempt to automatically configure your email application. If the available options are not compatible with your application, you will need to use the [output,strong,Manual Settings] information. We provide read-only access to your mail archives via IMAP only.', apponelabel.html())%]</p>
+<div id="pw_notice" class="description-area"></div>
+<script>
+new CPANEL.widgets.Page_Notice( null, {
+    container: "pw_notice",
+    level: "info",
+    content: "[% locale.maketext('Use your cPanel account password to read email archives via IMAP.') %]"
+} );
+</script>
+[% END %]
+
+
+<script>
+var saved_notice;
+var success = function() {
+    saved_notice = new CPANEL.ajax.Dynamic_Notice( {
+        level: "success",
+        container: "email_notice",
+        content: "[% locale.maketext("Email sent.")  %]",
+        replaces: saved_notice
+    } );
+};
+function dispatch_client_config_email() {
+        CPANEL.api( {
+            module:   "Email",
+            func:     "dispatch_client_settings",
+            version: 3,
+            data:     { 'to': DOM.get('clientconfemail').value, 'account':[% account.json() %] },
+            callback: CPANEL.ajax.build_callback( success, null, {
+                on_error: function() { }
+            } )
+        } );
+}
+</script>
+
+<div id="config_area" class="section">
+    <h2 id="hdrAutoConfigurationScripts">[%locale.maketext('Mail Client Automatic Configuration Scripts')%]</h2>
+
+    <div id="auto_config_area">
+        <p id="descAutoConfigArea" class="description">[%locale.maketext('Listed below are the available mail client automatic configuration scripts. Select the script for your mail client and operating system.')%]</p>
+
+        <script type="text/javascript">
+            var app_keys = [];
+            [% FOR app = apps -%]
+            app_keys.push('[% app.key %]');
+            [% END %]
+        </script>
+
+      <div class="table-responsive">
+        <table id="tblApplicationProtocols" class="table nonsortable">
+        <thead>
+            <tr>
+                <th>[% locale.maketext("Application") %]</th>
+                <th>[% locale.maketext("Protocols") %]</th>
+            </td>
+        </thead>
+        <tbody>
+        [% FOR app = apps -%]
+            <tr>
+                <td class="app_name">
+                    [% app.label.html() %]
+                    [%- IF app.note -%]
+                    <a id="[% app.key %]_notes_control" href="javascript:void(0)"><img src="[% MagicRevision('/images/info.png') %]"></a>
+                    [%- END -%]
+                </td>
+                <td class="links">
+                    [%- FOR protocol = protocol_order;
+                        NEXT IF !app.urls.$protocol;
+                        SET classname = secure_protocols.$protocol ? 'secure' : 'insecure';
+                        SET secure = secure_protocols.$protocol ? 'true' : 'false';
+                        IF protocol.index('auto') > -1 ;-%]
+                        <a class="[% classname %]" href="javascript:void(0);" title="[% protocol_desc.$protocol.hover %]" onclick="show_mail_config_notices(this,'[% app.label %]', '[% protocol_desc.$protocol.label %]', [% secure %], '[% protocol %]'); return false;">[% protocol_desc.$protocol.label %]</a>
+                        [%- ELSE -%]
+                        <a class="[% classname %]" href="[% app.urls.$protocol %]" title="[% protocol_desc.$protocol.hover %]" onclick="show_mail_config_notices(this,'[% app.label %]', '[% protocol_desc.$protocol.label %]', [% secure %], '[% protocol %]'); return false;">[% protocol_desc.$protocol.label %]</a>
+                        [%- END -%]
+                    [% END; -%]
+                </td>
+            </tr>
+            [% IF app.note;
+               SET isCurrentMacVersion = is_mac && app.open_if_mac && ((is_at_least_lion && app.version == 10.7) || (!is_at_least_lion && app.version < 10.7)) %]
+            <tr id="[% app.key %]_notes_row" [% IF !(isCurrentMacVersion) %]style="display: none"[% END %] class="child-note-row">
+                <td colspan="2">
+                    <div class="child-note" id="[% app.key%]_note" [% IF !(isCurrentMacVersion) %]style="display: none"[% END %]>[% app.note %]</div>
+                </td>
+            </tr>
+            [% END %]
+        [% END -%]
+        </tbody>
+        </table>
+      </div>
+    </div>
+    [% PROCESS mail/clientconf_manual_settings_include.html.tt %]
+</div>
+
+<div class="section">
+    <h2 id="hdrAutoConfigurationScripts">[%locale.maketext('Email Instructions') %]</h2>
+    <div id="email_auto_config_area">
+        <div id="email_notice" class="description-area"></div>
+        <div id="descAutoConfigArea" class="description">[%locale.maketext('Send configuration information for “[_1]” to the following email address:', account.html()); %]</div>
+        <form class="navbar-form navbar-left" action="javascript:void(0)" onSubmit="dispatch_client_config_email();">
+          <div class="form-group">
+            <input id="clientconfemail" type="text" class="form-control" placeholder="Email">
+          </div>
+          <button type="submit" class="btn btn-default">Send</button>
+        </form>
+    </div>
+    <div style="clear:both;"></div>
+</div>
+
+<div class="section">
+    <p class="description">
+        <b id="Notes">[% locale.maketext('Notes:')%]</b>
+        <ul>
+            <li id="NotesListItem1">[% locale.maketext('IMAP email access coordinates between the server and your mail application. Messages that have been read/deleted/replied to will show up as such, both on the server and in the mail application.') %]</li>
+            [% IF !from_archiving %]
+            <li id="NotesListItem2">[% locale.maketext('POP3 does not coordinate with the server. Messages marked as read/deleted/replied to in the mail application will not show up as such on the server. This means that future mail downloads with POP3 will show all messages as unread.') %]</li>
+            <li id="NotesListItem3">[% locale.maketext('Outgoing mail is sent using SMTP.') %]</li>
+            <li id="NotesListItem4">[% locale.maketext('We recommend using POP3 over SSL/TLS or IMAP over SSL/TLS since they provide increased security for your interactions with the remote mail server.') %]</li>
+            [% ELSE %]
+            <li id="NotesListItem5">[% locale.maketext('We recommend using IMAP over SSL/TLS since it provides increased security for your interactions with the remote mail server.') %]</li>
+            [% END %]
+        </ul>
+    </p>
+</div>
+
+<script id="notices_body_template_secure" type="text/html">
+    <p>[% locale.maketext('This will automatically configure “[_1]” with the correct settings for “[_2]”.','{app}','{protocol}') %]</p>
+    <ul>
+        <li>[% locale.maketext('If you are prompted to open, run, or save this file, choose “Run” or “Open”.') %]</li>
+        <li>[% locale.maketext('If your computer asks if you would like to enter the information into the registry, choose “Yes”.') %]</li>
+        <li>[% locale.maketext('Use your email account password as the password.') %]</li>
+    </ul>
+</script>
+
+<script id="notices_body_template_clear" type="text/html">
+    <p>[% locale.maketext('This will automatically configure “[_1]” with the correct settings for “[_2]”.','{app}','{protocol}') %]</p>
+    <ul>
+        <li>[% locale.maketext('If you are prompted to open, run, or save this file, choose “Run” or “Open”.') %]</li>
+        <li>[% locale.maketext('If your computer asks if you would like to enter the information into the registry, choose “Yes”.') %]</li>
+        <li>[% locale.maketext('Use your email account password as the password.') %]</li>
+    </ul>
+</script>
+
+<script id="notices_body_template_autoconfig" type="text/html">
+    <p>[% locale.maketext("Mail application “[_1]” can automatically detect this email account’s settings.",'{app}') %]</p>
+    <ul>
+        <li>[% locale.maketext('Choose to set up a new email account in “[_1]”.','{app}') %]</li>
+        <li>[% locale.maketext('When “[_1]” prompts you for the email address, enter “[_2]”.','{app}','<code style="word-wrap:break-word">{email}</code>') %]</li>
+        <li>[% locale.maketext('Use your email account password as the password.') %]</li>
+    </ul>
+    <p>[% locale.maketext('If the auto-configuration fails, please set up the account using the manual settings.') %]</p>
+</script>
+
+[% PROCESS '_assets/_ajaxapp_footer.html.tt' -%]
+
+<script>
+var cpDOM = CPANEL.dom;
+var EVENT = YAHOO.util.Event;
+
+function register_toggle_notes() {
+
+    for(var item in app_keys) {
+        var key = app_keys[item];
+        var note = DOM.get(key + "_notes_control");
+        if(!note)
+            continue;
+
+        var get_handler = function(key) {
+            return function() {
+                var noteKey = key;
+                var noteRowEl = DOM.get(noteKey + "_notes_row");
+                var noteEl = DOM.get(noteKey + "_note");
+                if(noteRowEl && noteEl) {
+                    if(cpDOM.isVisible(noteRowEl)) {
+                        var slide = CPANEL.animate.slide_up(noteEl);
+                        if (slide) {
+                            slide.onComplete.subscribe(function() {
+                                cpDOM.hide(noteRowEl);
+                            });
+                        }
+                    } else {
+                        cpDOM.show(noteRowEl);
+                        CPANEL.animate.slide_down(noteEl);
+                    }
+                }
+            }
+        }
+
+        EVENT.on(note, 'click', get_handler(key))
+    }
+
+}
+/**
+ * Show the mail configuration pre-download notice box
+ * for the specificed app and protocol.
+ * @name show_mail_config_notices
+ * @param {string} clicked
+ * @param {string} app
+ * @param {string} protocol
+ * @param {Boolean} secure
+ * @param {string} protocolkey
+ */
+function show_mail_config_notices(clicked, app, protocol, secure, protocolkey) {
+    var url = clicked.href;
+
+    var dialog = new CPANEL.ajax.Common_Dialog( "", {
+        width: "380px"
+    });
+
+    dialog.setHeader(CPANEL.widgets.Dialog.applyDialogHeader("[% locale.maketext('Set Up Mail Client') %]"));
+
+    var template = "";
+    if ( (protocolkey === "autodiscover") || (protocolkey === "autoconfig") ) {
+        template = DOM.get("notices_body_template_autoconfig").text;
+    } else if(secure) {
+        template = DOM.get("notices_body_template_secure").text;
+    }
+    else {
+        template = DOM.get("notices_body_template_clear").text;
+    }
+
+    var email = [% CPANEL.get_raw_form('acct').json || 'null' %];
+    if (!email || !/@/.test(email)) {
+        email = "_mainaccount@[% CPANEL.CPDATA.DOMAIN %]";
+    }
+
+    dialog.setBody( YAHOO.lang.substitute( template, {
+        email: String(email).html_encode(),
+        app: app,
+        protocol: protocol
+    } ) );
+    dialog.beforeSubmitEvent.subscribe( function() {
+            dialog.hide_to_point(clicked);
+            if (protocolkey !== "autodiscover" && protocolkey !== "autoconfig") {
+                location.href = url;
+            }
+        return false;
+    } );
+    if (protocolkey === "autodiscover" || protocolkey === "autoconfig") {
+          dialog.cfg.getProperty("buttons")[0].text = LOCALE.maketext('OK');
+          dialog.cfg.getProperty("buttons").pop(); // removes cancel button
+    }
+    dialog.show_from_source(clicked);
+}
+
+/**
+ * Initialize the page after the DOM is ready...
+ * @name initialize
+ */
+function initialize() {
+    register_toggle_notes();
+}
+
+YAHOO.util.Event.onDOMReady(initialize);
+
+</script>

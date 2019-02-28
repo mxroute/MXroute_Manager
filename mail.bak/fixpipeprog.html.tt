@@ -1,0 +1,22 @@
+[% SET CPANEL.CPVAR.headerimg = "../images/mailmenu.gif" %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'default_address'
+-%]
+<div class="body-content">
+
+[%
+Api1.pre_exec("Email", "fixuppipedprog");
+Api1.exec("Email", "fixuppipedprog", [RAW_FORM.item("prog")]);
+Api1.post_exec("Email", "fixuppipedprog")
+%]
+
+[% locale.maketext("The program you have chosen to pipe to ([_1]) has been checked for a [output,url,_2,hashbang,target,_3,id,lnkHashbangWiki], which has been added if needed. It has also been marked executable.", '<span class="fas fa-home"></span>' _ '/' _ FORM.item("prog"), "http://en.wikipedia.org/wiki/Hashbang", "_blank") %]
+
+[% IF (FORM.item('return') == "fwd") %]
+    [% INCLUDE _assets/return_link.html.tt return_location='fwds.html' return_link_text=locale.maketext('Go Back') %]
+[% ELSE %]
+    [% INCLUDE _assets/return_link.html.tt return_location='def.html' return_link_text=locale.maketext('Go Back') %]
+[% END %]
+</div>
+[% END #wrapper %]

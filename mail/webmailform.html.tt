@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    [% INCLUDE _assets/return_link.html.tt return_location='pops/index.html' return_link_text=locale.maketext('Go Back') %]
+    [% INCLUDE _assets/return_link.html.tt return_location='../email_accounts/index.html.tt' return_link_text=locale.maketext('Go Back') %]
 </div>
 [% END #wrapper %]
 

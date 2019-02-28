@@ -1,0 +1,35 @@
+[%-
+# Imports
+USE Api2;
+USE DataURI;
+USE NVData;
+USE JSON;
+
+# Setup the spinner, include the DATAURI optimization
+SET spinner_url = '/images/report-spinner.gif';
+IF CPANEL.ua_is_ie && CPANEL.ua_is_ie < 8;
+    SET spinner_url = MagicRevision(spinner_url);
+    "<img id='imgSpinner' src='$spinner_url' style='display:none'>";
+ELSE;
+    SET spinner_url = DataURI.datauri(spinner_url, 'image/gif');
+END;
+
+-%]
+
+    <div id="search-panel_mailarchive" class="search-page-container">
+        <form method="get" action="" class="form-inline">
+            <div class="form-group">
+                <input id="search-regex"  type="text" class="form-control" size="15" name="searchregex" value="[% CPANEL.FORM.searchregex %]" />
+            </div>
+            <div class="form-group">
+                <input id="search-go" type="submit" class="btn btn-primary" value="[% locale.maketext('Go') %]"  title="[% locale.maketext('Click to filter the domains by the specified expression.') %]">
+                <input id="search-clear" type="submit" class="btn btn-primary" value="[% locale.maketext('Clear') %]"  title="[% locale.maketext('Click to remove the existing filter.') %]">
+                <input id="search-sort-column" type="hidden" name="api2_sort_column" value="[% CPANEL.CPVAR.api2_sort_column %]" >
+                <input id="search-sort-reverse" type="hidden" name="api2_sort_reverse" value="[% CPANEL.CPVAR.api2_sort_reverse %]"  >
+                <input id="search-itemsperpage" type="hidden" name="itemsperpage" value="[% CPANEL.CPVAR.itemsperpage %]" >
+                <span id="spinner_sorting" style="display:none;" >
+                    <img id="imgWaiting" src="[% spinner_url %]" alt="[% locale.maketext('Wait …') %]"/>
+                </span>
+            </div>
+        </form>
+    </div>

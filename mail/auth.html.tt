@@ -55,16 +55,12 @@ END; %]
 <div class="body-content">
     [% IF has_feature %]
         <p class="description" id="descAuthentication">
-            [% locale.maketext("First, let me stress that you can most likely live without DKIM and save yourself the frustration of dealing with this. We use MailChannels for outbound email. DKIM provides extremely small benefit to inbox delivery reputation. It's only true benefit is to show that emails are actually from you and not spoofed, by using the signature. Now, raise your hand if you can think of a top mail provider that always rejects DKIM failures or a list of recipients that actually check if emails are signed. Crickets chirping? Exactly. The entire standard is pointless, it's only role required that people actually enforce the standard, and that ship has sailed.")  %]
+            [% locale.maketext("Email authentication helps prevent spam. The options below attempt to equip email messages with verifiable information so that the nature of incoming and outgoing messages can be detected automatically.")  %]
         </p>
-        <p>
-            <h3>[% locale.maketext("If you do want to press forward, here is the tutorial. Do not rush this. You will miss a detail. Even if you think you didn't, experience tells us that you are likely to open a support ticket asking why this process did not work. While we accept that our implementations are not flawless, it is highly likely that we will simply ask you to start over with the tutorial. It is very difficult to eyeball user errors/typos, which account for 100% of the tickets we receive. All this does for you is provide a false sense of security and a false rumor that it significantly improves email delivery. If that is worth it to you, proceed.")  %]</h3>
+        <p class="description" id="descAuthentication2">
+            [% locale.maketext("Enabling these features should reduce the number of failed delivery notifications you receive when spammers forge messages from your domain(s). These features also work to prevent spammers from forging messages that claim to be from your domain(s).")  %]
         </p>
-        <br>
-        <p>
-        <h3><a href="dkimtutorial.html">Click here for the tutorial.</a></h3>
-        </p>
-        <p>&nbsp;</p>
+
         <div id="cjt_pagenotice_container"></div>
 
         [% IF (CPANEL.CPVAR.dkim_keys_installed == "1" && CPANEL.CPVAR.mta_dkim_active == "0") ||
@@ -72,14 +68,19 @@ END; %]
         <div class="alert alert-warning" id="auth_ns_warning">
             <span class="glyphicon glyphicon-exclamation-sign"></span>
             <div class="alert-message">
-            [% locale.maketext("") %]
+            [% locale.maketext("In order to ensure that SPF or DKIM takes effect, you must confirm that this server is an authoritative nameserver for “[_1]”. If you need help, contact your hosting provider.", CPANEL.CPDATA.DNS.html) %]
             </div>
         </div>
         [% END %]
 
         <div style="[% dkim_style %]" id='dkim' class="section">
+            <h2>[% locale.maketext("DKIM") %]</h2>
 
-            <strong>[% locale.maketext("DKIM Status:") %] </strong>
+            <p class="description" id="descDKIM">
+                [% locale.maketext("[output,acronym,DKIM,DomainKeys Identified Mail] is a means of verifying incoming email. It ensures that incoming messages are unmodified and are from the sender from whom they claim to be. This feature works to prevent incoming spam messages.")  %]
+            </p>
+
+            <strong>[% locale.maketext("Status:") %] </strong>
             [% IF (CPANEL.CPVAR.dkim_keys_installed == "1" && CPANEL.CPVAR.mta_dkim_active == "1") %]
                 <span class="text-success">
                     <span id="dkimStatus">[% locale.maketext("Enabled") %]</span>
@@ -109,7 +110,6 @@ END; %]
                 </div>
             </form>
 
-The information below is for debugging, and is a work in progress. This information will be useful to some of our customers, but is not ready to be used as a replacement for the tutorial linked above.
 
             [% IF (CPANEL.CPVAR.dkim_keys_installed == "1" && CPANEL.CPVAR.mta_dkim_active == "0") %]
                 [% locale.maketext("Your current raw DKIM record is:")  %]
@@ -124,19 +124,295 @@ The information below is for debugging, and is a work in progress. This informat
                 END %]</pre>
             [% END %]
         </div>
-    [% END %]
+        <form action="set_spf.html" onsubmit="preSubmit();" method="post">
+            <div style="[% spf_style %]" id='spf' class="section">
+                <h2>
+                    <acronym title="[% locale.maketext("Sender Policy Framework") %]">
+                        [% locale.maketext("SPF") %]
+                    </acronym>
+                </h2>
+                <p class="description" id="descSPF">
+                    [% locale.maketext("The [output,acronym,SPF,Sender Policy Framework] system allows you to specify servers and IP addresses that are authorized to send mail from your domain(s). This feature works to prevent outgoing spam messages.")  %]
+                </p>
+                <strong>[% locale.maketext("Status:") %] </strong>
+                [% IF (CPANEL.CPVAR.spf_installed == "1" && CPANEL.CPVAR.spf_active == "1") %]
+                    <span class="text-success" id="spfStatus">
+                        <span id="spfStatus">[% locale.maketext("Enabled ([asis,DNS] Check Passed)") %]</span>
+                        <span id="spfStatusDns">[% locale.maketext("Active ([asis,DNS] Check Passed)") %]</span>
+                    </span>
+                [% ELSIF (CPANEL.CPVAR.spf_installed == "1" && CPANEL.CPVAR.spf_active == "0") %]
+                    <span id="spfStatus">[% locale.maketext("Enabled") %]</span>
+                    <div class="alert alert-warning" id="spfStatusDns">
+                        <span class="glyphicon glyphicon-exclamation-sign"></span>
+                        <div class="alert-message">
+                        [% locale.maketext("Warning: cPanel is unable to verify that this server is an authoritative nameserver for “[_1]”.",CPANEL.CPDATA.DNS.html) %]
+                        </div>
+                    </div>
+                [% ELSIF (CPANEL.CPVAR.spf_installed == "0") %]
+                    <span class="text-muted" id="spfStatus">[% locale.maketext("Disabled") %]</span>
+                [% END %]
 
-               	[% locale.maketext("Your current raw DKIM records are:")  %]
-               	<pre>[%
-                Api2.pre_exec("DKIMUI", "getrecords");
-               	api2_result_DKIMUI_getrecords=Api2.exec("DKIMUI" , "getrecords");
-               	Api2.post_exec("DKIMUI", "getrecords");
-               	IF api2_result_DKIMUI_getrecords.size;
-                    FOREACH hashref IN api2_result_DKIMUI_getrecords; %]
-       	       	       	<pre>[% hashref.record.html(); %]</pre>[%
+                <div class="form-group">
+                    [% IF (CPANEL.CPVAR.spf_installed == "1") %]
+                        <input class="btn btn-primary" type="submit" value="[% locale.maketext("Disable") %]" id="btnDisableSPF"/>
+                    [% ELSIF (CPANEL.CPVAR.spf_installed == "0") %]
+                        <input class="btn btn-primary" type="submit" value="[% locale.maketext("Enable") %]" id="btnEnableSPF"/>
+                    [% END %]
+                </div>
+
+                [% locale.maketext("Your current raw [output,acronym,SPF,Sender Policy Framework] record:") %]:
+                <pre>[%
+                Api2.pre_exec("SPFUI", "get_raw_record");
+                api2_result_SPFUI_get_raw_record = Api2.exec("SPFUI" , "get_raw_record" , {});
+                Api2.post_exec("SPFUI", "get_raw_record");
+                IF api2_result_SPFUI_get_raw_record.size;
+                    FOREACH hashref IN api2_result_SPFUI_get_raw_record;
+                        hashref.record.html();
                     END;
-               	END %]</pre>
+                END %]</pre>
 
+                <div class="section">
+                    <h4>[% locale.maketext("Advanced Settings:") %]</h4>
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-9">
+                                <strong>
+                                    [% locale.maketext("Additional Hosts that send mail for your domains ([asis,A]):") %]
+                                </strong>
+                                <span class="help-block">
+                                    [% locale.maketext("Your server will approve all of the hosts that you specify to send mail.") %]
+                                    [% locale.maketext("You do [output,strong,not] need to specify your primary mail exchanger or any other server for which you created an [output,acronym,MX,Mail Exchanger] record, because your server automatically includes them.") %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12 col-sm-3">
+                                <input type="button" class="btn btn-primary" onclick="add_opt('spf_a_hosts','a',checkvaliddomain);" value="[% locale.maketext("Add") %]" id="btnAddARecord"/>
+                                <input type="button" class="btn btn-primary" onclick="remove_opt('spf_a_hosts','a',checkvaliddomain);" value="[% locale.maketext("Remove") %]" id="btnRemoveARecord"/>
+                                    [%
+                                        Api2.pre_exec("SPFUI", "count_settings");
+                                        SET count_settings = Api2.exec("SPFUI" , "count_settings" , {"settings" =>"a_hosts" });
+                                        Api2.post_exec("SPFUI", "count_settings");
+                                        IF count_settings.size;
+                                            SET count = count_settings.0.count.html();
+                                        END;
+                                    %]
+                                    [%
+                                        Api2.pre_exec("SPFUI", "list_settings");
+                                        SET list_settings = Api2.exec("SPFUI" , "list_settings" , {"settings" =>"a_hosts" });
+                                        Api2.post_exec("SPFUI", "list_settings");
+                                    %]
+
+                                    <select multiple size="[% count %]" id="spf_a_hosts" name="spf_a_hosts" class="form-control">
+                                        [% IF api2_result_SPFUI_list_settings.size; %]
+                                            [% FOREACH hashref IN api2_result_SPFUI_list_settings; %]
+                                            <option selected value="[% hashref.opt.html() %]">
+                                                [% hashref.opt.html() %]
+                                            </option>
+                                            [% END %]
+                                        [% END %]
+                                    </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-9">
+                                <strong>
+                                    [% locale.maketext("Additional [output,acronym,MX,Mail Exchanger] servers for your domains ([asis,MX]):") %]
+                                </strong>
+                                <span class="help-block">[% locale.maketext("Your server will approve all of the [output,acronym,MX,Mail Exchanger] entries for every domain that you specify to send mail.") %]</span>
+                            </div>
+                            <div class="col-xs-12 col-sm-3">
+                                <input type="button" class="btn btn-primary" onclick="add_opt('spf_mx_hosts','mx',checkvaliddomain);" value="[% locale.maketext("Add") %]" id="btnAddMXRecord"/>
+                                <input type="button" class="btn btn-primary" onclick="remove_opt('spf_mx_hosts','mx',checkvaliddomain);" value="[% locale.maketext("Remove") %]" id="btnRemoveMXRecord"/>
+                                [%
+                                    Api2.pre_exec("SPFUI", "count_settings");
+                                    SET count_settings_hosts = Api2.exec("SPFUI" , "count_settings" , {"settings" =>"mx_hosts" });
+                                    Api2.post_exec("SPFUI", "count_settings");
+                                    IF count_settings_hosts.size;
+                                        SET host_count = count_settings_hosts.0.count.html();
+                                    END;
+                                 %]
+                                 [%
+                                    Api2.pre_exec("SPFUI", "list_settings");
+                                    SET mx_host_settings = Api2.exec("SPFUI" , "list_settings" , {"settings" =>"mx_hosts" });
+                                    Api2.post_exec("SPFUI", "list_settings");
+                                %]
+
+                                <select multiple size="[% host_count %]" id="spf_mx_hosts" name="spf_mx_hosts" class="form-control">
+                                [% IF mx_host_settings.size; %]
+                                    [% FOREACH hashref IN api2_result_SPFUI_list_settings; %]
+                                    <option selected value="[% hashref.opt.html() %]">[% hashref.opt.html() %]</option>
+                                    [% END %]
+                                [% END %]
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-9">
+                                <strong>[% locale.maketext("Additional [asis,IP] Address blocks for your domains ([asis,IPv4] or [asis,IPv6]):") %]</strong>
+                                <span class="help-block">
+                                    [% locale.maketext("Your server will approve all of the [asis,IP] Address blocks that you specify to send mail.") %]
+                                    [% locale.maketext("You [output,strong,must] specify [asis,IP] Address blocks in [asis,CIDR] format (for example, [asis,192.168.0.1], [asis,127.0.0.1/32], or [asis,2001:db8:1a34:56cf::/64]).") %]
+                                    [%
+                                        Api2.pre_exec("SPFUI", "getmainserverip");
+                                        SET api2_result_SPFUI_getmainserverip = Api2.exec("SPFUI" , "getmainserverip" , {});
+                                        Api2.post_exec("SPFUI", "getmainserverip");
+                                    %]
+                                [% IF CPANEL.CPVAR.mainserverip %]
+                                <br />
+                                <br />
+                                    [% locale.maketext("The main server interface IP cannot be removed from this list if it is present. The following IP is the main server interface IP:") %]
+                                    <strong>[% CPANEL.CPVAR.mainserverip.html %]</strong>
+                                [% END %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12 col-sm-3">
+                                <input type="button" class="btn btn-primary" onclick="add_opt('spf_ip_hosts','ip',checkvalidipcidr);" value="[% locale.maketext("Add") %]" id="btnAddIp"/>
+                                <input type="button" class="btn btn-primary" onclick="remove_opt('spf_ip_hosts','ip',checkvalidipcidr);" value="[% locale.maketext("Remove") %]" id="btnRemoveIp"/>
+                                [%
+                                    Api2.pre_exec("SPFUI", "count_settings");
+                                    SET ip_host_count_settings = Api2.exec("SPFUI" , "count_settings" , {"settings" =>"ip_hosts" });
+                                    Api2.post_exec("SPFUI", "count_settings");
+                                    IF ip_host_count_settings.size;
+                                        SET ip_host_count = ip_host_count_settings.0.count.html();
+                                    END
+                                %]
+                                [%
+                                    Api2.pre_exec("SPFUI", "list_settings");
+                                    SET ip_host_list_settings = Api2.exec("SPFUI" , "list_settings" , {"settings" =>"ip_hosts" });
+                                    Api2.post_exec("SPFUI", "list_settings");
+                                %]
+                                <select multiple size="[% ip_host_count %]" id="spf_ip_hosts" name="spf_ip_hosts" class="form-control">
+                                [% IF ip_host_list_settings.size; %]
+                                    [% FOREACH hashref IN ip_host_list_settings; %]
+                                    <option selected value="[% hashref.opt.html() %]">[% hashref.opt.html() %]</option>
+                                    [% END %]
+                                [% END %]
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-9">
+                                <strong>[% locale.maketext("Include List (INCLUDE)") %]</strong>
+                                <span class="help-block">
+                                    [% locale.maketext("The SPF settings for all hosts you specify in this list will be included with your SPF settings. This is useful if you will be sending mail though another service (e.g. mac.com, comcast.com, etc).") %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12 col-sm-3">
+                                <input type="button" class="btn btn-primary" onclick="add_opt('spf_include_hosts','include',checkvaliddomain);" value="[% locale.maketext("Add") %]" id="btnAddInclude"/>
+                                <input type="button" class="btn btn-primary" onclick="remove_opt('spf_include_hosts','include',checkvaliddomain);" value="[% locale.maketext("Remove") %]" id="btnRemoveInclude"/>
+                                [%  Api2.pre_exec("SPFUI", "count_settings");
+                                    SET include_host_count_settings = Api2.exec("SPFUI" , "count_settings" , {"settings" =>"include_hosts" });
+                                    Api2.post_exec("SPFUI", "count_settings");
+                                    IF include_host_count_settings.size;
+                                        SET include_host_count = include_host_count_settings.0.count.html();
+                                    END;
+                                %]
+                                [%
+                                    Api2.pre_exec("SPFUI", "list_settings");
+                                    SET include_host_list_settings = Api2.exec("SPFUI" , "list_settings" , {"settings" =>"include_hosts" });
+                                    Api2.post_exec("SPFUI", "list_settings");
+                                %]
+                                <select multiple size="[% include_host_count %]" id="spf_include_hosts" name="spf_include_hosts" class="form-control">
+                                    [% IF include_host_list_settings.size; %]
+                                        [% FOREACH hashref IN include_host_list_settings; %]
+                                            <option selected value="[% hashref.opt.html() %]">[% hashref.opt.html() %]</option>
+                                        [% END; %]
+                                    [% END %]
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-9">
+                                <label for="entries_complete">
+                                    [% locale.maketext("All Entry ([asis,ALL]):") %]
+                                </label>
+                                <span class="help-block">
+                                    [% locale.maketext("If you have entered all of the hosts that you wish to send mail for your domain, check this box to exclude all other domains.") %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12 col-sm-3">
+                                [%
+                                    Api2.pre_exec("SPFUI", "entries_complete");
+                                    api2_result_SPFUI_entries_complete=Api2.exec("SPFUI" , "entries_complete" , {});
+                                    Api2.post_exec("SPFUI", "entries_complete");
+                                    IF api2_result_SPFUI_entries_complete.size;
+                                        FOREACH hashref IN api2_result_SPFUI_entries_complete;
+                                            SET checked_state = hashref.complete ? "checked = checked" : "";
+                                        END;
+                                    END;
+                                %]
+                                <div class="checkbox">
+                                    <input type="checkbox" value="1" name="entries_complete" id="entries_complete"  [% checked_state %]/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-9">
+                                <label for="overwrite">
+                                    [% locale.maketext("Overwrite Existing Entries:") %]
+                                </label>
+                                <span class="help-block">
+                                    [% locale.maketext("If you select this option all existing SPF records will be overwritten for all your domains with these selections.") %]
+                                </span>
+                            </div>
+                            <div class="col-xs-12 col-sm-3">
+                                <div class="checkbox">
+                                    <input type="checkbox" value="1" name="overwrite" id="overwrite" checked="checked" />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                        [% IF (CPANEL.CPVAR.spf_installed == "1") %]
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-xs-12 col-sm-9">
+                                        <strong>[% locale.maketext("Save Your Changes:") %]</strong>
+                                    </div>
+                                    <div class="col-xs-12 col-sm-3">
+                                        <span style="display:none;" id="update_button_btn_ct">
+                                            <input id="update_button_btn" onclick="this.form.faction.value='install';preSubmit();this.form.submit();" type="button" class="btn btn-primary" name="update" value="[% locale.maketext("Update") %]" />
+                                        </span>
+                                        <span id="update_button_sub_ct">
+                                            <input id="update_button" onclick="this.form.faction.value='install';preSubmit();this.form.submit();" type="submit" class="btn btn-primary" name="update" value="[% locale.maketext("Update") %]" />
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        [% END %]
+                    </div>
+                </div>
+
+                [% IF !(CPANEL.CPVAR.spf_installed == "1") %]
+                    <input type="hidden" name="faction" value="install" id="hidFactionSPF"/>
+                [% ELSE %]
+                    <input type="hidden" name="faction" value="uninstall" id="hidFactionSPF"/>
+                [% END %]
+        </form>
+
+        <div id='noauth' style='display:none;'>
+            <p>[% locale.maketext("There are no email authentication systems installed.") %]</p>
+        </div>
+
+        [% IF (ExpVar.expand('$appname') == "webmail") %]
+            [% INCLUDE _assets/return_link.html.tt return_location='../index.html' return_link_text=locale.maketext('Go Back') %]
+        [% END %]
+
+    [% END %]
 </div>
 [% END %]
 

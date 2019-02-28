@@ -1,0 +1,202 @@
+<div>
+    <div class="form-group">
+        <label id="lblFwdoptFail" for="fwdopt_fail">
+            <input name="fwdopt" type="radio" id="fwdopt_fail" value="fail" checked="checked" />
+            [% locale.maketext("Discard the email while your server processes it by [output,acronym,SMTP,Secure Mail Transfer Protocol] time with an error message.") %]
+        </label>
+        <div class="row">
+            <div class="col-xs-offset-1 col-xs-11 col-sm-6 col-md-6 col-lg-6">
+                <label id="lblFailInput" for="fail_input">
+                    [% locale.maketext("Failure Message (seen by sender)") %]
+                </label>
+                <input onchange="choosefwd('fail');" id="fail_input" name="failmsgs" onkeyup="setmodded();" type="text" class="form-control" size="40" value="[% locale.maketext("No such person at this address.") %]" />
+            </div>
+            <div class="col-xs-5" id="fail_input_error"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label id="lblFwdRadio" for="fwd_radio">
+            <input name="fwdopt" id="fwd_radio" type="radio" value="fwd" />
+            [% locale.maketext("Forward to Email Address") %]
+        </label>
+        <div class="row">
+            <div class="col-xs-offset-1 col-xs-11 col-sm-6 col-md-6 col-lg-6">
+                [% IF !(FORM.item('acct') == undef) %]
+                    <a class="btn btn-primary" href="#" onclick="usenewacct();return false;">[% locale.maketext("Use Newly Created Account") %]</a>
+                [% END %]
+                <label id="lblFwdEmail" for="fwdemail">
+                    [% locale.maketext("Forward to Email Address") %]:
+                </label>
+                <input onchange="choosefwd('fwd');" onkeyup="setmodded();" id="fwdemail" name="fwdemail" type="text" class="form-control" size="40" />
+            </div>
+            <div class="col-xs-5" id="fwdemail_error"></div>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <a id="toggle_advanced_options" href="#">
+            <strong>[% locale.maketext("Advanced Options") %]</strong> <span class="caret"></span></a>
+    </div>
+
+    <div style="display: none;" id="advance" class="section">
+        <div class="form-group">
+            <label id="lblFwdOptSystem" for="fwdopt_system">
+                <input type="radio" name="fwdopt" id="fwdopt_system" value="system" />
+                [% locale.maketext("Forward to your system account “[_1]”", CPANEL.user) %]
+            </label>
+        </div>
+
+        <div class="form-group">
+            <label id="lblFwdOpt" for="fwdopt">
+                <input name="fwdopt" id="fwdopt" type="radio" value="pipe" />
+                [% locale.maketext("Pipe to a Program") %]
+            </label>
+            <div class="row">
+                <input type="hidden" id="user" name="user" value="[% CPANEL.CPDATA.item('USER').html %]" />
+                <div class="col-xs-offset-1 col-xs-11">
+                    [% SET CPANEL.CPVAR.autoinput = "pipefwd" %]
+                    [% SET CPANEL.CPVAR.autofunc = "pipeDirComplete" %]
+
+                    <span class="fas fa-home">/</span>
+                    [% PROCESS 'autodir/dirbox.html.tt' %]
+
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                             <span class="help-block">
+                             [% locale.maketext("Enter a path relative to your home directory. If the script requires an interpreter such as Perl or PHP, omit the /usr/bin/perl or /usr/bin/php portion. Make sure that your script is executable and has the appropriate [output,url,_1,target,_2,hashbang,id,lnkTarget]. If you do not know how to add the [output,url,_1,target,_2,hashbang,id,lnkTarget], save the script file with the correct extension and it will be added automatically.",'http://en.wikipedia.org/wiki/Hashbang','_blank' ) %]
+                             </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="form-group">
+            <label id="lblFwdoptBlackhole" for="fwdopt_blackhole">
+                <input name="fwdopt" type="radio" id="fwdopt_blackhole" value="blackhole" />
+                [% locale.maketext("Discard (Not Recommended)") %]
+            </label>
+        </div>
+    </div>
+</div>
+
+<div class="form-group">
+    <input class="btn btn-primary" id="submit_forwarder" type="submit" value="[% locale.maketext("Change") %]" />
+</div>
+
+<script type="text/javascript">
+var pipeDirComplete = function(inputObj) {
+    choosefwd('pipe');
+};
+
+var choosefwd = function(valr) {
+    for(var i=0; i<=document.fwdf.fwdopt.length; i++) {
+        if (document.fwdf.fwdopt[i].value == valr) {
+            document.fwdf.fwdopt[i].checked = true;
+            break;
+        }
+    }
+};
+
+var input_modded = 0;
+var setmodded = function() {
+    input_modded = 1;
+};
+
+var validate_fail_input = function() {
+    if (YAHOO.util.Dom.get("fwdopt_fail").checked == true) {
+        if (YAHOO.util.Dom.get("fail_input").value == '') {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    else {
+        return true;
+    }
+};
+
+var validate_email_address = function(email) {
+    if (CPANEL.validate.email(email) == true) return true;
+    if (email === '[% CPANEL.user %]') return true;
+    return false;
+};
+
+var validate_forward_input = function() {
+    if (YAHOO.util.Dom.get("fwd_radio").checked == true) {
+        var email = YAHOO.util.Dom.get("fwdemail").value;
+        var split = email.split(",");
+        for (var i = 0; i < split.length; i++)
+            if (!validate_email_address(split[i]))
+                return false;
+        return true;
+    }
+    else {
+        return true;
+    }
+};
+
+var validate_pipe_input = function() {
+    if (YAHOO.util.Dom.get("fwdopt").checked == true) {
+        if (YAHOO.util.Dom.get("pipefwd").value == '') {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+    else {
+        return true;
+    }
+};
+
+var init_validators = function() {
+    error_valid.add("fail_input", validate_fail_input, "[% locale.maketext("Failure message cannot be empty.") %]");
+    error_valid.attach();
+
+    forward_valid.add("fwdemail", validate_forward_input, "[% locale.maketext("Forward address must be an email address or your account name.") %]");
+    forward_valid.attach();
+
+    pipe_valid.add("pipefwd", validate_pipe_input, "[% locale.maketext("Please enter a path for “[_1]”.", locale.maketext('Pipe to a Program')) %]");
+    pipe_valid.attach();
+
+    CPANEL.validate.attach_to_form("submit_forwarder", [error_valid, forward_valid, pipe_valid]);
+};
+
+var toggle_radio_button = function() {
+    if (YAHOO.util.Dom.get("fwdopt_fail").checked == true) {
+        forward_valid.clear_messages();
+        pipe_valid.clear_messages();
+        if (YAHOO.util.Dom.get("fail_input").value != "") error_valid.verify();
+    }
+    else if (YAHOO.util.Dom.get("fwd_radio").checked == true) {
+        error_valid.clear_messages();
+        if (YAHOO.util.Dom.get("fwdemail").value != "") forward_valid.verify();
+        pipe_valid.clear_messages();
+    }
+    else if (YAHOO.util.Dom.get("fwdopt_blackhole").checked == true) {
+        error_valid.clear_messages();
+        forward_valid.clear_messages();
+        pipe_valid.clear_messages();
+    }
+    else if (YAHOO.util.Dom.get("fwdopt").checked == true) {
+        error_valid.clear_messages();
+        forward_valid.clear_messages();
+        if (YAHOO.util.Dom.get("pipefwd").value != "") pipe_valid.verify();
+    }
+};
+
+var error_valid = new CPANEL.validate.validator("Failure Message");
+var forward_valid = new CPANEL.validate.validator("Forward Address");
+var pipe_valid = new CPANEL.validate.validator("Pipe Program");
+
+var init_definclude = function() {
+    YAHOO.util.Event.on("toggle_advanced_options", "click", function() { CPANEL.animate.slide_toggle("advance") });
+
+    init_validators();
+
+    YAHOO.util.Event.on(["fwdopt","fwd_radio","fwdopt_fail","fwdopt_blackhole"], "click", toggle_radio_button);
+};
+YAHOO.util.Event.onDOMReady(init_definclude);
+</script>

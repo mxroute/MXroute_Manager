@@ -1,0 +1,143 @@
+[%
+USE CPList;
+
+SET CPANEL.CPVAR.dprefix = '../../';
+
+SET cpuser = ExpVar.expand('$user');
+SET authuser = ExpVar.expand('$authuser');
+
+SET account = (authuser == cpuser) && RAW_FORM.account || authuser;
+
+SET pops = execute_or_die('Email', 'list_pops').data.ofeach('email').sort();
+
+SET get_mailbox_status_call = execute_or_die("Mailboxes","get_mailbox_status_list", {'account'=> account }) ;
+
+SET page_data = {
+    initial_mailbox_status => get_mailbox_status_call.data(),
+    account => account,
+    cpuser => cpuser,
+    authuser => authuser,
+    pops => pops,
+};
+-%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'email_disk_usage',
+
+    #Needed in cP; no-op in Webmail
+    use_master_bootstrap = 0
+
+    include_legacy_stylesheets = 0
+
+    #We need this because of Disk_Usage_Meter
+    #include_legacy_scripts = 0
+    #include_cjt = 0
+
+    page_stylesheets = [
+        'mail/manage_disk_usage/index.css',
+        'libraries/chosen/1.5.1/chosen.min.css',
+    ]
+-%]
+
+[%
+    PROCESS '_assets/cjt2_header_include.tt';
+
+%]
+<script>
+    if (!window.CPANEL) CPANEL = {};
+    CPANEL.PAGE = [% JSON.stringify(page_data) %];
+</script>
+
+<div class='body-content'>
+    <p class="description">
+        [% locale.maketext('This utility allows you to recover disk space by deleting old messages from your mailbox.') %]
+    </p>
+
+    <div id="ng_content" class="body-content"
+        ng-controller="BaseController"
+    >
+        <div growl></div>
+
+        <div ng-if="!mailbox_status" id="page_loading_box" class="view-loading-box">
+            <i class="fas fa-spinner fa-spin fa-4x"></i>
+        </div>
+
+        <div ng-cloak ng-if="mailbox_status">
+            [% IF authuser == cpuser -%]
+                <p ng-if="show_account_selector">
+                    [% locale.maketext('Account:') %]
+                    <select chosen search-contains="true" ng-disabled="reloading" ng-model="$parent.$parent.account" ng-change="reload()" ng-bind-html="::account_options_html"></select>
+                    <span ng-if="reloading">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </span>
+                </p>
+            [% END -%]
+
+            <div>
+                <label for="mbsearch_input">[% locale.maketext('Search:') %]</label>
+            </div>
+            <div class="search-container col-xs-12 col-sm-12 col-md-4 col-lg-4">
+                <search id="mbsearch" ng-model="search_filter"></search>
+            </div>
+
+            <table class="table responsive-table">
+                <thead>
+                    <th>
+                        <span toggle-sort id="sortMailbox" sort-meta="mbsort" sort-field="mailbox">[% locale.maketext('Mailbox Name'); %]</span>
+                    </th>
+                    <th class="mailbox-count">
+                        <span toggle-sort id="sortMessages" sort-meta="mbsort" sort-field="messages" sort-reverse-default>[% locale.maketext('# of Messages') %]</span>
+                    </th>
+                    <th class="mailbox-size">
+                        <span toggle-sort id="sortSize" sort-meta="mbsort" sort-field="vsize" sort-reverse-default>[% locale.maketext('Disk Usage') %]</span>
+                    </th>
+                    <th class="mailbox-actions">[% locale.maketext('Actions') %]</th>
+                </thead>
+                <tbody>
+                    <tr class="mailbox-info" ng-class="{'stripe-yang': !!($index % 2) }" ng-repeat-start="mbdata in mailbox_status | filter:{'display_name': search_filter} | orderBy : mbsort.sortBy : mbsort.sortDirection === 'desc' track by mbdata.mailbox">
+                        <td data-title="[% locale.maketext('Mailbox Name'); %]" class="mailbox-name">{{ ::mbdata.display_name }}</td>
+                        <td data-title="[% locale.maketext('# of Messages') %]" class="mailbox-count">{{ mbdata.messages_numf }}</td>
+                        <td data-title="[% locale.maketext('Disk Usage') %]" class="mailbox-size">{{ mbdata.vsize_format_bytes }}</td>
+                        <td data-title="[% locale.maketext('Actions') %]" class="mailbox-actions">
+
+                            <a ng-if="mbdata.messages > 0" title="{{ mbmeta[account][mbdata.mailbox].action === 'expunge' ? '[% locale.maketext('Collapse') %]' : '[% locale.maketext('Expand') %]' }}" href="javascript:void(0)" ng-click="toggle_expunge(mbdata.mailbox)"><i class="fas {{ mbmeta[account][mbdata.mailbox].action === 'expunge' ? 'fa-chevron-up' : 'fa-chevron-down' }}" aria-hidden="true"></i><span class="no-underline"></span>[% locale.maketext('Manage[comment,expands this row]') %]</a>
+                        </td>
+                    </tr>
+                    <tr ng-if="mbmeta[account][mbdata.mailbox].action" class="mailbox-action" ng-class="{'stripe-yang': !!($index % 2) }" ng-repeat-end>
+                        <td colspan="99">
+                            <div ng-if="mbmeta[account][mbdata.mailbox].action === 'expunge'">
+                                <form cp-form-waiting="expunge(mbdata.mailbox)" cp-form-waiting-spinner-size="2">
+                                    <div>
+                                        <label for="{{::mbdata.mailbox}}_expunge_preset">
+                                            [% locale.maketext('Messages to delete:') -%]
+                                        </label>
+                                    </div>
+
+                                    <select id="{{::mbdata.mailbox}}_expunge_preset" ng-model="mbmeta[account][mbdata.mailbox].expunge_preset">
+                                        <option value="1y">[% locale.maketext('[quant,_1,year,years] old or more', 1) %]</option>
+                                        <option value="30mib">[% locale.maketext('[format_bytes,_1] in size or more', 30 * 1024 * 1024) %]</option>
+                                        <option value="seen">[% locale.maketext('Previously viewed') %]</option>
+                                        <option value="all">[% locale.maketext('All messages') %]</option>
+                                        <option value="custom">[% locale.maketext('Custom query …') %]</option>
+                                    </select>
+
+                                    <input required ng-if="mbmeta[account][mbdata.mailbox].expunge_preset === 'custom'" id="{{::mbdata.mailbox}}_expunge_query" ng-model="mbmeta[account][mbdata.mailbox].expunge_query" placeholder="[% locale.maketext('Dovecot query …') %]">
+                                    &nbsp;&nbsp;
+
+                                    <button class="btn btn-primary" type="submit">[% locale.maketext('Delete Permanently') %]</button>
+
+                                    <div class="help-block" ng-if="mbmeta[account][mbdata.mailbox].expunge_preset === 'custom'">
+                                        [% locale.maketext('Indicate messages to delete via [output,url,_1,Dovecot’s search query format,target,_blank]. (for example, [_2])', 'https://go.cpanel.net/doveadm_search_query', '<code>savedbefore 2weeks</code>') %]
+                                    </div>
+
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+[% END #wrapper -%]

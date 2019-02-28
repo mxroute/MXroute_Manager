@@ -1,0 +1,88 @@
+<div id="spamBoxSection">
+    <div class="row">
+        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+            <div class="form-group">
+                <toggle-switch
+                    id="toggleSpamBoxSwitch"
+                    ng-model="settings.spam_box_enabled"
+                    enabled-label="[% locale.maketext("Spam Box is enabled.") %]"
+                    disabled-label="[% locale.maketext("Spam Box is currently disabled.") %]"
+                    on-toggle="toggleEnable()" ></toggle-switch>
+            </div>
+            <callout callout-type="info" class="tab-callout">
+                [% locale.maketext('The system automatically sends messages to the [asis,SpamBox] folder when their spam score exceeds the [output,url,_1,Spam Threshold (required_score)][comment,required_score should not be translated] ([_3]).', "#/required-score","required_score", "{{ :: preferences.required_score}}") %]
+            </callout>
+        </div>
+    </div>
+
+    <div class="section" ng-if="settings.spam_box_enabled">
+        <form id="clearSpamBoxForm" name="clearSpamBoxForm" class="form layout-medium">
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+                    <toggle-label-info
+                         for="btnClearSpamBox"
+                         label-text="[% locale.maketext('Clear Spam Box') %]"
+                         label-id="btnClearSpamBoxLabel"
+                         info-icon-id="btnClearSpamBoxLabel_icon"
+                         info-block-id="btnClearSpamBoxLabel_info"
+                         show-info-block="true">
+                         [% locale.maketext('The [asis,SpamBox] folder for this account currently uses [_1].', "{{ folderSizeString }}") %]
+                         [% locale.maketext('This [output,em,spam] folder fills quickly. You should empty it regularly.') %]
+                    </toggle-label-info>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6 retro-col-12">
+                    <div class="form-group" ng-if="!showConfirmClearAll">
+                        <button
+                            id="btnClearSpamBox"
+                            ng-disabled="!folderSize"
+                            spinner-id="btnClearSpamBoxSpinner"
+                            cp-action="clearFolder()"
+                            class="btn btn-primary" >
+                                [% locale.maketext("Empty the Spam Box folder for “[_1]”", CPANEL.authuser) %]
+                                <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+
+                        <button
+                            id="btnShowConfirmClearAll"
+                            ng-click="toggleConfirmDeleteAll()"
+                            class="btn btn-default" >
+                                [% locale.maketext("Empty all Spam Box folders") %]
+                                <i class="fas fa-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+
+                    <div class="form-group" ng-if="showConfirmClearAll">
+                        <callout class="clear-all-confirm" callout-type="danger" callout-heading="[% locale.maketext('Are you certain that you want to empty all Spam Box folders?' ) %]">
+                            <p>[% locale.maketext('This will delete the Spam Box folder contents for every email address on this account, which includes the default account.') %]</p>
+                            <button
+                                id="btnShowConfirmClearAll"
+                                spinner-id="btnShowConfirmClearAllSpinner"
+                                cp-action="clearAllSpamBoxFolders()"
+                                class="btn btn-primary" >
+                                    [% locale.maketext("Empty all Spam Box folders") %]
+                            </button>
+
+                            <button
+                                id="btnShowCancelClearAll"
+                                ng-click="toggleConfirmDeleteAll()"
+                                class="btn btn-default" >
+                                    [% locale.maketext("Do not empty all Spam Box folders") %]
+                            </button>
+                        </callout>
+                    </div>
+
+                    <div class="form-group">
+                        <a href="../manage_disk_usage/"
+                            id="btnClearSelectedSpamBox"
+                            class="btn btn-default" >
+                            [% locale.maketext("Manage Email Disk Usage") %]
+                                <span class='fas fa-external-link-alt fa-lg'></span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

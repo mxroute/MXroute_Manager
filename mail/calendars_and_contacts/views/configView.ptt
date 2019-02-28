@@ -136,7 +136,7 @@
                                     <div class="row">
                                         <div class="col-xs-12">
                                             <label for="davServerAlt">[% locale.maketext('Alternative Server Path') %]</label>
-                                            <span id="iconUserNameInfo" class="glyphicon glyphicon-info-sign text-primary form-info-sign" ng-click="toggleInfoBlock()" title="[% locale.maketext('Information') %]"></span>
+                                            <span id="iconUserNameInfo_2" class="glyphicon glyphicon-info-sign text-primary form-info-sign" ng-click="toggleInfoBlock()" title="[% locale.maketext('Information') %]"></span>
                                             <span class="info-block" ng-show="showInfoBlock">[% locale.maketext('Some older applications may not support the [asis,Autodiscovery] protocols. If the above server does not work, use the complex server path to bypass [asis,Autodiscovery].') %]</span>
                                         </div>
                                     </div>
