@@ -15,8 +15,8 @@ define(
         "app/services/spamAssassin",
         "cjt/directives/toggleSwitchDirective",
         "cjt/directives/toggleLabelInfoDirective",
-        "app/directives/multiFieldEditorItem",
-        "app/directives/multiFieldEditor",
+        "cjt/directives/multiFieldEditorItem",
+        "cjt/directives/multiFieldEditor",
         "app/directives/scoreField",
         "cjt/directives/formWaiting"
     ],

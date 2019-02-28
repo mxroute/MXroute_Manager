@@ -14,8 +14,8 @@ define(
         "cjt/modules",
         "ngRoute",
         "app/services/spamAssassin",
-        "app/directives/multiFieldEditorItem",
-        "app/directives/multiFieldEditor",
+        "cjt/directives/multiFieldEditorItem",
+        "cjt/directives/multiFieldEditor",
         "app/directives/scoreField",
         "cjt/directives/callout",
         "ngAnimate"
@@ -35,8 +35,8 @@ define(
                 "cjt2.directives.toggleSwitch",
                 "cjt2.directives.callout",
                 "cpanel.apacheSpamAssassin.directives.scoreField",
-                "cpanel.apacheSpamAssassin.directives.multiFieldEditor",
-                "cpanel.apacheSpamAssassin.directives.multiFieldEditorItem"
+                "cjt2.directives.multiFieldEditor",
+                "cjt2.directives.multiFieldEditorItem"
             ]);
 
             var requires = [

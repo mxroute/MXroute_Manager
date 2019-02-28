@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Aggressive, Many False Positives ([_1])":"Aggressive, Many False Positives ([_1])","Current":"Current","Custom":"Custom","Default ([_1])":"Default ([_1])","Passive, Only Very Obvious Spam ([_1])":"Passive, Only Very Obvious Spam ([_1])","Recommended For Internet service providers ([_1])":"Recommended For Internet service providers ([_1])","Recommended for Well-Tested Servers ([_1])":"Recommended for Well-Tested Servers ([_1])"};
+    var newLex = {"Aggressive, Many False Positives ([_1])":"Aggressive, Many False Positives ([_1])","Current":"当前","Custom":"自定义","Default ([_1])":"Default ([_1])","Passive, Only Very Obvious Spam ([_1])":"Passive, Only Very Obvious Spam ([_1])","Recommended For Internet service providers ([_1])":"Recommended For Internet service providers ([_1])","Recommended for Well-Tested Servers ([_1])":"Recommended for Well-Tested Servers ([_1])"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};
