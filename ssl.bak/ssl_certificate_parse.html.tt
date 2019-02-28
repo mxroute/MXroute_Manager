@@ -1,0 +1,101 @@
+[%-
+# This template goes with CJT CPANEL.ssl.showCertificateParse()
+
+USE CPIcons;
+USE SSL;
+
+SET RECOMMENDED_MODULUS_LENGTH = SSL.DEFAULT_KEY_SIZE;
+
+SET warn_icon = CPIcons.get_common_icon_markup("warning", 16);
+SET error_icon = CPIcons.get_common_icon_markup("error", 16);
+
+SET expire_error_msg = locale.maketext("This certificate is expired.");
+SET self_signed_warn_msg = locale.maketext("Self-signed certificates will cause browser warnings.");
+SET mod_error_msg = locale.maketext("A key that does not use at least [numf,_1]-bit encryption does not provide adequate security.", RECOMMENDED_MODULUS_LENGTH);
+
+SET ssl_certificate_parse_lexicon = {
+    'Contact your certificate authority ([_1]) to reissue this certificate with a longer key.' => locale.lextext('Contact your certificate authority ([_1]) to reissue this certificate with a longer key.'),
+    'Contact your certificate authority to reissue this certificate with a longer key.' => locale.lextext('Contact your certificate authority to reissue this certificate with a longer key.'),
+    'Certificate Expiration' => locale.lextext('Certificate Expiration'),
+    'It is highly recommended that you do not install this certificate.' => locale.lextext('It is highly recommended that you do not install this certificate.')
+    'Certificate Key Sizes' => locale.lextext('Certificate Key Sizes'),
+    'Generate and install a new self-signed certificate immediately. Then, replace this certificate with a certificate signed by a valid certificate authority as soon as possible.' => locale.lextext('Generate and install a new self-signed certificate immediately. Then, replace this certificate with a certificate signed by a valid certificate authority as soon as possible.'),
+    'You should request a replacement certificate from the issuer ([_1]) as soon as possible.' => locale.lextext('You should request a replacement certificate from the issuer ([_1]) as soon as possible.'),
+    'Self-Signed Certificates' => locale.lextext('Self-Signed Certificates'),
+    'This certificate’s key is too short ([quant,_1,bit,bits]). This key will not protect against a spoofing attack. Currently, a certificate’s key should be least [quant,_2,bit,bits] long.' => locale.lextext('This certificate’s key is too short ([quant,_1,bit,bits]). This key will not protect against a spoofing attack. Currently, a certificate’s key should be least [quant,_2,bit,bits] long.'),
+    'You should generate another self-signed certificate for this domain with a [numf,_1]-bit key.' => locale.lextext('You should generate another self-signed certificate for this domain with a [numf,_1]-bit key.'),
+    'Your certificate will expire in [quant,_1,day,days].' => locale.lextext('Your certificate will expire in [quant,_1,day,days].'),
+    '[quant,_1,bit,bits] ([output,class,_2,_3] …)'       => locale.lextext('[quant,_1,bit,bits] ([output,class,_2,_3] …)'),
+    'The recommended key size for a certificate is currently [quant,_1,bit,bits].' => locale.lextext('The recommended key size for a certificate is currently [quant,_1,bit,bits].'),
+    'This certificate may be vulnerable to attack because of its key length ([quant,_1,bit,bits]).' => locale.lextext('This certificate may be vulnerable to attack because of its key length ([quant,_1,bit,bits]).'),
+    'This certificate’s key is too short ([quant,_1,bit,bits]). This key will not protect against a spoofing attack.' => locale.lextext('This certificate’s key is too short ([quant,_1,bit,bits]). This key will not protect against a spoofing attack.'),
+};
+-%]
+
+<script>
+[%
+IF CPANEL.is_debug_mode_enabled();
+    INSERT 'libraries/handlebars/handlebars.js';
+ELSE;
+    INSERT 'libraries/handlebars/handlebars.min.js';
+END;
+-%]
+
+YAHOO.lang.augmentObject( LOCALE.LEXICON, [% JSON.stringify(ssl_certificate_parse_lexicon) %] );
+</script>
+
+[%# parameters: the link class, the tooltip text -%]
+[% VIEW more_info_link; BLOCK list; -%]
+(<a href="javascript:void(0)" class="[% item.0 %]" title="[% item.1 %]">[% locale.maketext("More information").replace(' ','&nbsp;') %]</a>)
+[% END; END -%]
+
+[%
+SET self_signed_more_info = more_info_link.print([ 'self-signed-info', locale.maketext("This is a self-signed certificate. Self-signed certificates are easy for attackers to spoof, and they generate security warnings in a user’s web browser. You should only temporarily install this certificate until a valid certificate authority issues a signed certificate to replace it.") ]);
+
+SET modulus_more_info = more_info_link.print([ 'modulus-info', locale.maketext("A certificate’s key size indicates how strongly the certificate encrypts data. Computers need more time to process longer keys, whether the computer is a legitimate user or an attacker. The key should be long enough to deter attackers but short enough that it does not slow down the website significantly for legitimate users. As computers become faster, longer keys are necessary to keep websites secure. [quant,_1,bit,bits] is currently the recommended key size for general use.", SSL.DEFAULT_KEY_SIZE) ]);
+
+SET expire_info = more_info_link.print([ 'expiration-info', locale.maketext("A certificate that remains active after its expiration date will generate security warnings in users’ web browsers.") ]);
+-%]
+
+<script type="text/x-handlebars-template" id="ssl_certificate_parse_template">
+    <table class="ssl-certificate-parse">
+        {{#each leading_rows}}
+            <tr>
+                <th>{{{this.key_html}}}</th>
+                <td>{{{this.value_html}}}</td>
+            </tr>
+        {{/each}}
+        <tr>
+            <th>[% locale.maketext("Domains:") -%]</th>
+            <td {{#if domains_warn}}class='ssl-certificate-parse-error'{{/if}}>
+                <ul class="ssl-certificate-parse-domains">{{#each domains}}
+                    <li>{{this}}</li>
+                {{/each}}</ul>
+            </td>
+        </tr>
+        <tr>
+            <th>[% locale.maketext("Issuer:") -%]</th>
+            <td {{#if issuer_warn}}class='ssl-certificate-parse-warn'{{/if}}>
+                {{#if isSelfSigned}}
+                <span>[% locale.maketext("(self-signed)") %]</span>
+                {{#if issuer_warn}}[% warn_icon %]<div class="warn"><span>[% self_signed_warn_msg %] [% self_signed_more_info %]</span></div>{{/if}}
+                {{else}}<span>{{issuer}}</span>{{/if}}
+            </td>
+        </tr>
+        <tr>
+            <th>[% locale.maketext("Key Size:") -%]</th>
+            <td {{#if modulus_error}}class='ssl-certificate-parse-error'{{/if}}>
+                <span>{{{modulus_html}}}</span>
+                {{#if modulus_error}}[% error_icon %]<div class="error"><span>[% mod_error_msg %] [% modulus_more_info %]</span></div>{{/if}}
+            </td>
+        </tr>
+        <tr>
+            <th>[% locale.maketext("Expiration:") -%]</th>
+            <td {{#if expiration_warn}}class='ssl-certificate-parse-warn'{{/if}}{{#if expiration_error}}class='ssl-certificate-parse-error'{{/if}}>
+                <span>{{{expiration_html}}}</span>
+                {{#if expiration_warn}}[% warn_icon %]<div class="warn"><span>{{expire_warn_msg}} [% expire_info %]</span></div>{{/if}}
+                {{#if expiration_error}}[% error_icon %]<div class="error"><span>[% expire_error_msg %] [% expire_info %]</span></div>{{/if}}
+            </td>
+        </tr>
+    </table>
+</script>

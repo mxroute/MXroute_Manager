@@ -1,0 +1,208 @@
+[%-
+
+# See if we are saving a change?
+IF RAW_FORM('op') == 'save';
+    SET do_save = execute('SSL', 'set_key_friendly_name', {
+        id=RAW_FORM('id'),
+        new_friendly_name=RAW_FORM('fname')
+    });
+    SET save_success = do_save.status;
+END;
+
+# Get the key information.
+SET key_param_missing = RAW_FORM('id') == "";
+IF !key_param_missing;
+    SET show_key = execute('SSL', 'show_key', { id=RAW_FORM('id') });
+END;
+
+SET key_invalid = !show_key.status || (show_key.status && show_key.data.key.search('Sorry'));
+
+IF !key_invalid;
+    SET certs = execute( 'SSL', 'list_certs', {
+        'api.sort_column' => 'subject.commonName',
+        'api.filter_column' => 'modulus',
+        'api.filter_term'   => show_key.data.details.modulus,
+    } ).data;
+
+    SET csrs = execute( 'SSL', 'list_csrs', {
+        'api.sort_column' => 'commonName',
+        'api.filter_column' => 'modulus',
+        'api.filter_term'   => show_key.data.details.modulus,
+    } ).data;
+END;
+
+
+# Prepare variables for output
+SET safe_id = RAW_FORM('id').html();
+SET safe_name = show_key.status ? show_key.data.details.friendly_name : "";
+
+SET ref = FORM.ref || '';
+
+SET CPANEL.CPVAR.dprefix   = '../';
+-%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    embed_stylesheets = ["css/ssl.css"]
+    embed_scripts = ["js2/ssl/viewkey.js"]
+-%]
+<div class="body-content">
+    <div class="section">
+        <h2 id="hdrViewKey">
+            [% locale.maketext('View Private Key') %]
+        </h2>
+
+    [% IF key_param_missing %]
+        <p id="show-failed" style="display:none">
+            [% locale.maketext('The private key failed to load: The request did not contain the “[_1]” field.', 'id') %]
+        </p>
+    [% ELSIF key_invalid %]
+        <p id="show-failed" style="display:none">
+            [% locale.maketext('The private key failed to load for “[_1]”. It does not exist or you do not have permission to view it.', safe_id) %]
+            [% IF show_key.errors_as_string %]
+            <div class="error_details">
+                [% show_key.errors_as_string FILTER html %]
+            </div>
+            [% END %]
+        </p>
+    [% ELSE %]
+        <p class="description">
+            [% locale.maketext('Below is the private key you selected. If you delete this private key from the server, it cannot be recreated. We recommended that you save this private key in a safe place.') %]
+        </p>
+
+        [% #Currently this shows some errors with status = true.
+           IF show_key.errors_as_string %]
+            <p id="show-failed" style="display:none">
+                [% show_key.errors_as_string FILTER html %]
+            </p>
+        [% END %]
+
+        [% IF RAW_FORM('op') == 'save'; %]
+            <p id="save-status" style="display:none">
+            [% IF save_success %]
+                [% locale.maketext('The description for your private key was updated.') %]
+            [% ELSE %]
+                [% locale.maketext('The changes to the private key could not be saved because an error occurred: [_1]', do_save.errors.join(' ').html()) %]
+            [% END %]
+            </p>
+        [% END %]
+
+        <form action="viewkey.html" method="post" enctype="multipart/form-data">
+            <input id="hidOp" name="op" value="save" type="hidden" />
+            <input id="hidRef" name="ref" value="[% FORM.ref FILTER html %]" type="hidden" />
+            <input id="hidId" name="id" value="[% FORM.id FILTER html %]" type="hidden" />
+
+            <div class="form-group">
+                <label id="lblFname" for="fname">[% locale.maketext('Description:') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea type="text" class="form-control" name="fname" id="fname" rows="2">[%- safe_name FILTER html -%]</textarea>
+                        <span class="help-block"> [% locale.maketext('You can use this field to provide a description for this private key.') %]</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input id="genkey-action" type="submit" class="btn btn-primary" value="[% locale.maketext('Update') %]">
+            </div>
+        </form>
+
+    </div>
+
+    <div class="section">
+        <div class="form-group">
+            <label id="lblEncodedKey" for="encoded-key">[% locale.maketext('Encoded Private Key:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="encoded-key">[%- show_key.data.key FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblDecodedKey" for="decoded-key">[% locale.maketext('Decoded Private Key:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="decoded-key">[%- show_key.data.text FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        [% IF certs.size || csrs.size %]
+        <div class="form-group">
+            <p>[% locale.maketext('This private key is in use by the following resources:') %]</p>
+            <ul>
+            [% FOR item IN certs -%]
+                [% IF item.${'subject.commonName'} == item.friendly_name %]
+                <li><a id="lnkCrt[% item.id FILTER html %]" href="viewcrt.html?id=[% item.id FILTER uri %]">[% locale.maketext('Certificate “[_1]”[comment,common name of certificate]', item.${'subject.commonName'}.html()) %]</a></li>
+                [% ELSE %]
+                <li><a id="lnkCrt[% item.id FILTER html %]" href="viewcrt.html?id=[% item.id FILTER uri %]">[% locale.maketext('Certificate “[_1]”[comment,common name of certificate] - “[_2]”[comment,friendly name of certificate when it is different than the common name]', item.${'subject.commonName'}.html(), item.friendly_name.html()) %]</a></li>
+                [% END %]
+            [% END -%]
+            [% FOR item IN csrs -%]
+                [% IF item.commonName == item.friendly_name %]
+                <li><a id="lnkCsr[% item.id FILTER html %]" href="viewcsr.html?id=[% item.id FILTER uri %]">[% locale.maketext('[output,acronym,CSR,Certificate Signing Request]: [output,strong,_1]', item.commonName.html()) %]</a></li>
+                [% ELSE %]
+                <li><a id="lnkCsr[% item.id FILTER html %]" href="viewcsr.html?id=[% item.id FILTER uri %]">[% locale.maketext('[output,acronym,CSR,Certificate Signing Request]: [output,strong,_1] - [_2]', item.commonName.html(), item.friendly_name.html()) %]</a></li>
+                [% END %]
+            [% END %]
+            </ul>
+        </div>
+        [% END %]
+
+    [% END %]
+        [% urigeneratedkeyid = generate_key.data.id FILTER uri %]
+        [% htmlkey = urigeneratedkeyid || safe_id %]
+
+        <div class="form-group">
+            <a id="btnDelete" class="btn btn-primary" href="deletekeyconfirm.html?name=[% show_key.data.details.friendly_name FILTER uri %]">[% locale.maketext("Delete Key") %]</a>
+        </div>
+    </div>
+
+    <ul class="list-inline text-center">
+        [%- IF ref;
+            SWITCH ref;
+                CASE "csrs" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCSR' return_location='csrs.html?selkey=' _ htmlkey _ 'generate' return_link_text=locale.maketext('Return to SSL Certificate Signing Requests') %]
+            </li>
+        [%-     CASE "crts" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCRT' return_location='crts.html?selkey=' _ htmlkey _ 'generate' return_link_text=locale.maketext('Return to SSL Certificates') %]
+            </li>
+        [%- END;
+            END -%]
+        <li>
+        [% IF ref %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html?ref=' _ ref.uri() _ '' return_link_text=locale.maketext('Go Back') %]
+        [% ELSE %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html' return_link_text=locale.maketext('Go Back') %]
+        [% END %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    /**
+     * This module contains all the page specific constants generated by the server.
+     * @module PAGE.Properties
+     */
+     var PAGE = {
+        properties : {
+            key_properties_saved :  [% RAW_FORM('op') == 'save' ? 'true' : 'false' %],
+            key_properties_saved_success :  [% save_success ? 'true' : 'false' %]
+        }
+    }
+
+    // Publish the PAGE object;
+     window["PAGE"] = PAGE;
+})();
+</script>
+[% END %]

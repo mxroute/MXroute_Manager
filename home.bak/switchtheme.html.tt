@@ -1,0 +1,14 @@
+[% SET results = execute( 'Themes', 'update', { 'theme' => RAW_FORM.theme } );
+   SET CPANEL.CPVAR.dprefix = "../"; %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext('Switch Theme')
+-%]
+<div class="body-content">
+    <p>
+        [% locale.maketext("Loading …") %]
+    </p>
+
+    <meta http-equiv="refresh" content="0; URL=[% CPANEL.ENV.item('cp_security_token').html() %]/xfercpanel/[% CPANEL.user %]?theme=[% FORM.theme.uri() %]">
+</div>
+[% END %]

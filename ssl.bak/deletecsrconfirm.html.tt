@@ -1,0 +1,43 @@
+[%
+# Prechecks
+SET has_id   = !!RAW_FORM('id');
+SET has_host = !!RAW_FORM('host');
+
+SET CPANEL.CPVAR.dprefix = '../'; %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    embed_scripts = ['js2/ssl/deletecsrconfirm.js']
+-%]
+<div class="body-content">
+    <h2 id="hdrDelete">
+        [% locale.maketext('Delete Certificate Signing Request (CSR)') %]
+    </h2>
+
+    [% IF !has_id %]
+    <div id="noidError" class="alert alert-danger">
+        <span id="noidErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="noidErrorMsg" class="alert-message">
+            [% locale.maketext('You did not pass the “[_1]” parameter in your request.', 'id') %]
+        </div>
+    </div>
+    [% ELSIF !has_host %]
+    <div id="nohostError" class="alert alert-danger">
+        <span id="nohostErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="nohostErrorMsg" class="alert-message">
+            [% locale.maketext('You did not pass the “[_1]” parameter in your request.', 'host') %]
+        </div>
+    </div>
+    [% ELSE %]
+    <p>
+        [% locale.maketext('Are you sure you wish to delete the Certificate Signing Request for “[_1]”?', FORM.host) %]
+    </p>
+    <div class="form-group">
+        <a id="btnDelete" class="btn btn-primary" href="deletecsr.html?id=[% RAW_FORM.id FILTER uri %]&host=[% RAW_FORM.host FILTER uri %]&item=csr&itemname=Certificate+Signing+Request" title="[% locale.maketext("Delete the Certificate Signing Request for “[_1]”.", FORM.host) %]">[% locale.maketext('Delete CSR') %]</a>
+        <a id="btnCancelDelete" class="btn btn-link" href="csrs.html">[% locale.maketext('Cancel') %]</a>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='csrs.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

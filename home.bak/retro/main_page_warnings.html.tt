@@ -1,0 +1,37 @@
+[%
+    USE Master;
+    USE Api2;
+
+    Api2.pre_exec("Email", "listpopswithdisk");
+    SET mail_accounts_near_quota = Api2.exec("Email", "listpopswithdisk", {"nearquotaonly"=>"1"} );
+    Api2.post_exec("Email", "listpopswithdisk");
+%]
+
+[% IF mail_accounts_near_quota.size; %]
+    <div class="alert alert-warning">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        [% locale.maketext("[output,strong,Warning:] The following email account(s) have issues with their quota(s):") %]
+        <ul class="quota-warning">
+        [% FOREACH mail_account IN mail_accounts_near_quota; %]
+            [% SET url = 'mail/editquota.html?email=' _ mail_account.user.uri() _ '&domain=' _ mail_account.domain.uri();  %]
+            <li>
+                <a href="[% url %]">[% mail_account.email.html() %]</a>
+            </li>
+        [% END; %]
+        </ul>
+    </div>
+[% END; %]
+
+[% IF (ExpVar.expand('$disk_quota_is_full')) %]
+    <div class="alert alert-danger">
+        <span class="glyphicon glyphicon-exclamation-sign"></span>
+        [% locale.maketext("[output,strong,Warning:] This account has reached its disk usage quota.") %]
+        [% IF varcache.upgrade_app_info %]
+          <a class="lnkInlinePrefUpgrade" href="[%- CPANEL.CPVAR.dprefix _ varcache.upgrade_app_info.url -%]">
+            [%- varcache.upgrade_app_info.itemdesc -%]
+          </a>
+        [% ELSE %]
+          [% locale.maketext("If you need more disk space, contact your service provider.") %]
+        [% END %]
+    </div>
+[%  END; %]

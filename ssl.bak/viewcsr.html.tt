@@ -1,0 +1,200 @@
+[%-
+USE CPScalar;
+
+# See if we are saving a change?
+IF RAW_FORM('op') == 'save';
+    SET do_save = execute('SSL', 'set_csr_friendly_name', {
+        id=RAW_FORM('id'),
+        new_friendly_name=RAW_FORM('fname')
+    });
+    SET save_success = do_save.status;
+END;
+
+# Get the csr information.
+SET csr_param_missing = RAW_FORM('id') == "";
+IF !csr_param_missing;
+    SET show_csr = execute('SSL', 'show_csr', { id=RAW_FORM('id') });
+END;
+
+
+SET has_error     = show_csr && (!show_csr.status || (show_csr.status && show_csr.data.csr.search("Sorry")));
+SET common_name   = !has_error ? show_csr.data.details.commonName : "";
+SET domains       = !has_error ? show_csr.data.details.domains : [];
+SET friendly_name = !has_error ? show_csr.data.details.friendly_name : "";
+SET keys = execute( 'SSL', 'list_keys', {
+    'api.filter_column' => 'modulus',
+    'api.filter_term' => show_csr.data.details.modulus,
+} );
+
+SET is_wildcard = common_name.search("[*]");
+
+# Normalize the error response
+IF (show_csr.status && show_csr.data.csr.search("Sorry"));
+    SET errors_as_string = show_csr.data.csr;
+ELSIF (!show_csr.status);
+    SET errors_as_string = show_csr.errors_as_string;
+END;
+
+# Prepare variables for output
+SET safe_id = RAW_FORM('id').html();
+SET safe_friendly_name = friendly_name.html();
+SET safe_common_name = common_name.html();
+
+SET ref = FORM.ref || '';
+
+SET CPANEL.CPVAR.dprefix = '../';
+-%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    embed_stylesheets = ["css/ssl.css"]
+    embed_scripts = ["js2/ssl/viewcsr.js"]
+-%]
+<div class="body-content">
+    <div class="section">
+        <h2 id="hdrViewCsr">
+            [% locale.maketext("View Certificate Signing Request") %]
+        </h2>
+
+    [% IF csr_param_missing %]
+        <p id="show-failed" style="display:none">
+            [% locale.maketext('Failed to load the certificate signing request because the “[_1]” field was not present.', 'id') %]
+        </p>
+    [% ELSIF has_error -%]
+        <p id="show-failed" style="display:none">
+            [% locale.maketext('Unable to retrieve the requested [output,acronym,CSR,Certificate Signing Request].') %]
+            [%- IF errors_as_string -%]
+            <div class="error_details">
+                [% errors_as_string FILTER html %]
+            </div>
+            [% END %]
+        </p>
+
+    [% ELSE %]
+
+        <p>
+        [% IF !is_wildcard %]
+            [% locale.maketext('You are viewing the [output,acronym,CSR,Certificate Signing Request] you selected. To purchase a trusted certificate, you must copy the Encoded [output,acronym,CSR,Certificate Signing Request] below and send it to the Certificate Authority. Follow the instructions provided by your certificate authority.') %]
+        [% ELSE %]
+            [% locale.maketext('You are viewing the [output,acronym,CSR,Certificate Signing Request] you selected. It contains at least one wild-card domain. To purchase a wild-card certificate, you must copy the Encoded [output,acronym,CSR,Certificate Signing Request] below and send it to the Certificate Authority. Follow the instructions provided by your certificate authority.') %]
+        [% END %]
+        </p>
+
+        [% IF RAW_FORM('op') == 'save'; %]
+            <p id="save-status" style="display:none">
+            [% IF save_success %]
+                [% locale.maketext('Successfully saved the changes.') %]
+            [% ELSE %]
+                [% locale.maketext('The changes could not be saved because an error occurred: [_1]', do_save.errors.join(' ').html()) %]
+            [% END %]
+            </p>
+        [% END %]
+
+        <div class="form-group">
+            <label id="lblDomain" for="domain">[% locale.maketext('[numerate,_1,Domain,Domains]:', domains.size) %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [% IF domains && domains.size > 1 -%]
+                        <ul>
+                            [% FOREACH domain = domains %]
+                            <li>[% domain.html().breakOn('\.') %]</li>
+                            [% END %]
+                        </ul>
+                    [%- ELSE -%]
+                        <p>
+                            [% domains.0.html().breakOn('\.') %]
+                        </p>
+                    [% END -%]
+                </div>
+            </div>
+        </div>
+
+        <form action="viewcsr.html" method="post" enctype="multipart/form-data">
+            <input id="hidOp" name="op" value="save" type="hidden" />
+            <input id="hidRef" name="ref" value="[% FORM.ref FILTER html %]" type="hidden" />
+            <input id="hidId" name="id" value="[% FORM.id FILTER html %]" type="hidden" />
+
+            <div class="form-group">
+                <label id="lblFname" for="fname">[% locale.maketext('Description:') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea type="text" class="form-control" name="fname" id="fname" rows="2">[%- safe_friendly_name -%]</textarea>
+                        <span class="help-block">[% locale.maketext('You can use this field to provide context for the usage of this [output,acronym,CSR,Certificate Signing Request].') %]</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input id="update-csr-action" type="submit" class="btn btn-primary" value="[% locale.maketext('Update Name') %]">
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        <div class="form-group">
+            <label id="lblEncodedCsr" for="encoded-csr">[% locale.maketext('Encoded [output,acronym,CSR,Certificate Signing Request]:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="encoded-csr">[%- show_csr.data.csr FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblDecodedCsr" for="decoded-csr">[% locale.maketext('Decoded [output,acronym,CSR,Certificate Signing Request]:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="decoded-csr">[%- show_csr.data.text FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+    </div>
+    [% END %]
+
+    <div class="section">
+    [% IF keys && keys.status && keys.data && keys.data.0 %]
+        <div class="form-group">
+            <p>[% locale.maketext('This CSR uses the following key:') %]</p>
+            <ul>
+                [% SET item = keys.data.0 %]
+                [% IF item.friendly_name %]
+                <li><a id="lnkViewKey" href="viewkey.html?id=[% item.id FILTER uri %]">[% locale.maketext('Key ([output,strong,_1])', item.friendly_name.html()) %]</a></li>
+                [% ELSE %]
+                <li><a id="lnkViewKey" href="viewkey.html?id=[% item.id FILTER uri %]">[% locale.maketext('Key ([output,strong,_1])', item.id.html()) %]</a></li>
+                [% END %]
+            </ul>
+        </div>
+    [% END %]
+
+        <div class="form-group">
+            <a id="btnDelete" class="btn btn-primary" href="deletecsrconfirm.html?id=[% show_csr.data.details.id FILTER uri %]&host=[% show_csr.data.details.domains.0 FILTER uri %]">[% locale.maketext("Delete [output,acronym,CSR,Certificate Signing Request]") %]</a>
+        </div>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='csrs.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    /**
+     * This module contains all the page specific constants generated by the server.
+     * @module PAGE.Properties
+     */
+     var PAGE = {
+        properties : {
+            csr_properties_saved :  [% RAW_FORM('op') == 'save' ? 'true' : 'false' %],
+            csr_properties_saved_success :  [% save_success ? 'true' : 'false' %]
+        }
+    }
+
+    // Publish the PAGE object;
+     window["PAGE"] = PAGE;
+})();
+</script>
+[% END %]

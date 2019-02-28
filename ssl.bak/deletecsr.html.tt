@@ -1,0 +1,50 @@
+[%
+# Prechecks
+SET has_id = !!RAW_FORM('id');
+SET has_host = !!RAW_FORM('host');
+
+SET safe_host = FORM.host.html();
+
+IF has_id;
+    # Attempt to delete the CSR
+    SET delete_csr = execute('SSL', 'delete_csr', { id=RAW_FORM('id') });
+END;
+SET delete_successful = has_id && delete_csr && delete_csr.status;
+
+SET CPANEL.CPVAR.dprefix = '../';
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+-%]
+<div class="body-content">
+    <h2 id="hdrDelete">
+        [% locale.maketext('Delete Certificate Signing Request (CSR)') %]
+    </h2>
+
+    [% IF delete_successful %]
+    <div id="deleteSuccess" class="alert alert-success">
+        <span id="deleteSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+        <div id="deleteSuccessMsg" class="alert-message">
+            [% locale.maketext('The Certificate Signing Request for “[_1]” has been deleted.', safe_host) %]
+        </div>
+    </div>
+    [% ELSE %]
+    <div id="noidError" class="alert alert-danger">
+        <span id="noidErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+        <div id="noidErrorMsg" class="alert-message">
+            [% IF !has_id %]
+                [% locale.maketext('You did not pass the “[_1]” parameter in your request.', 'id') %]
+            [% ELSE %]
+                [% locale.maketext('Failed to delete the requested Certificate Signing Request for: [_1]', safe_host) %]
+                [% IF delete_csr.errors.0 %]
+                    [% delete_csr.errors_as_string() FILTER html %]
+                [% END %]
+            [% END %]
+        </div>
+    </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='csrs.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
