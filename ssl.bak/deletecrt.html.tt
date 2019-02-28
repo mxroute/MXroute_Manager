@@ -1,0 +1,52 @@
+[%
+# Set up the page state
+SET host = RAW_FORM('id');
+SET host_not_set = (host == "");
+
+IF !host_not_set;
+    # Delete the certificate
+    SET delete_cert = execute('SSL', 'delete_cert', { id=RAW_FORM('id') });
+END;
+
+SET failed = delete_cert.status == 0;
+
+SET CPANEL.CPVAR.dprefix = '../';
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+-%]
+<div class="body-content">
+    <h2 id="hdrDelete">
+        [% locale.maketext('Delete Certificate') %]
+    </h2>
+
+    [% IF host_not_set %]
+        <div id="noidError" class="alert alert-danger">
+            <span id="noidErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="noidErrorMsg" class="alert-message">
+                [% locale.maketext('You did not provide the “[_1]” in the request.', 'id') %]
+            </div>
+        </div>
+    [% ELSIF !failed %]
+        <div id="deleteSuccess" class="alert alert-success">
+            <span id="deleteSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="deleteSuccessMsg" class="alert-message">
+                [% locale.maketext('The certificate “[_1]” has been deleted.', FORM.id) %]
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="deleteError" class="alert alert-danger">
+            <span id="deleteErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="deleteErrorMsg" class="alert-message">
+                [% locale.maketext('Failed to delete the certificate “[_1]”. The certificate may not exist on the server or you do not have permission to access it.',FORM.id) %]
+                [% IF delete_cert.errors_as_string %]
+                    [% delete_cert.errors_as_string FILTER html %]
+                [% END %]
+            </div>
+        </div>
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='crts.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]

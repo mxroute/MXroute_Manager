@@ -1,0 +1,241 @@
+[%-
+USE CPScalar;
+
+# See if we are saving a change?
+IF RAW_FORM('op') == 'save';
+    SET do_save = execute('SSL', 'set_cert_friendly_name', {
+        id=RAW_FORM('id'),
+        new_friendly_name=RAW_FORM('fname')
+    });
+    SET save_success = do_save.status;
+END;
+# Get the certificate information.
+SET cert_param_missing = RAW_FORM('id') == "";
+IF !cert_param_missing;
+    SET show_cert = execute('SSL', 'show_cert', { id=RAW_FORM('id') });
+END;
+
+SET cert_error = !show_cert.status || show_cert.status && show_cert.data.cert.search("^Sorry");
+
+# Normalize the error response
+IF (show_cert.status && show_cert.data.csr.search("Sorry"));
+    SET errors_as_string = show_csr.data.cert;
+ELSIF (!show_cert.status);
+    SET errors_as_string = show_cert.errors_as_string;
+END;
+
+SET issuer_organization_name = !cert_error ? show_cert.data.details.issuer.organizationName : "";
+SET expiration               = !cert_error ? show_cert.data.details.not_after : "";
+SET domains                  = !cert_error ? show_cert.data.details.domains : [];
+SET friendly_name            = show_cert.status ? show_cert.data.details.friendly_name : "";
+SET keys = execute( 'SSL', 'list_keys', {
+    'api.filter_column' => 'modulus',
+    'api.filter_term' => show_cert.data.details.modulus,
+} );
+
+SET is_self_signed = show_cert.data.details.is_self_signed;
+SET now = CPANEL.now;
+SET is_expired = expiration < now;
+
+#-------------------------------------------------------------------------
+#  NEARLY_EXPIRED_WINDOW = 60 sec * 60 min * 24 hours * 30 days =>
+#                          seconds in 30 days
+#-------------------------------------------------------------------------
+SET NEARLY_EXPIRED_WINDOW = 2592000;
+SET is_nearly_expired = expiration - NEARLY_EXPIRED_WINDOW < now;
+IF is_expired;
+    SET expiration_warning = locale.maketext('This certificate has expired. If you currently host secure content on the domains below, you need to contact your certificate authority to request a new certificate for these domains.');
+ELSIF is_nearly_expired;
+    SET expiration_warning = locale.maketext('This certificate will expire soon. If you currently host secure content on the domains below, you should contact your certificate authority to request a new certificate for these domains.');
+ELSE;
+    SET expiration_warning = '';
+END;
+
+# Prepare variables for output
+SET safe_id = RAW_FORM('id').html();
+SET safe_issuer_organization_name = issuer_organization_name.html();
+SET safe_friendly_name = friendly_name.html();
+SET safe_expiration = locale.datetime(expiration,'datetime_format_full');
+SET cert_type = is_self_signed ? locale.maketext('Self-signed Certificate') : locale.maketext('Authority Issued Certificate');
+
+SET ref = FORM.ref || '';
+
+SET CPANEL.CPVAR.dprefix   = '../';
+-%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    embed_stylesheets = ["css/ssl.css"]
+    embed_scripts = ["js2/ssl/viewcrt.js"]
+-%]
+<div class="body-content">
+
+    <div class="section">
+        <h2 id="hdrView">
+            [% locale.maketext("View Certificate") %]
+        </h2>
+
+    [% IF cert_param_missing %]
+        <p id="show-failed" style="display:none">
+            [% locale.maketext('Failed to load the certificate because the “[_1]” field was not present.', 'id') %]
+        </p>
+    [% ELSIF cert_error %]
+        <p id="show-failed" style="display:none">
+            [% locale.maketext('Failed to load the certificate. It may not exist or you do not have permission to view it.') %]
+            [% IF errors_as_string %]
+            <div class="error_details">
+                [% errors_as_string FILTER html %]
+            </div>
+            [% END %]
+        </p>
+    [% ELSE %]
+        <p id="descKeepThis" class="description">
+            [% locale.maketext('The encoded certificate is the portable format for the certificate. Please be sure to keep a copy of this certificate and the associated private key in a safe location.') %]
+        </p>
+
+        [% IF is_expired || is_nearly_expired %]
+        <p id="show-expired" style="display:none">
+            [% expiration_warning %]
+        </p>
+        [% END %]
+
+        <div class="form-group">
+            <label id="blbDomainSize">[% locale.maketext('[numerate,_1,Domain,Domains]:', domains.size) %]</label>
+            [% IF domains && domains.size > 1 -%]
+            <ul>
+                [% FOREACH domain = domains %]
+                <li>[% domain.html().breakOn('\.') %]</li>
+                [% END %]
+            </ul>
+            [%- ELSE -%]
+            <div>
+                [% domains.0.html().breakOn('\.') %]
+            </div>
+            [% END -%]
+        </div>
+
+        [% IF !is_self_signed && safe_issuer_organization_name %]
+        <div class="form-group">
+            <label id="lblIssuer">[% locale.maketext('Issuer Organization:') %]</label>
+            <div>[% safe_issuer_organization_name %]</div>
+        </div>
+        [% END %]
+
+        <div class="form-group">
+            <label id="lblExpiration">[% locale.maketext('Expiration:') %]</label>
+            <div>[% safe_expiration %]</div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblType">[% locale.maketext('Certificate Type:') %]</label>
+            <div>[% cert_type %]</div>
+        </div>
+
+        [% #Currently this shows some errors with status = true.
+           IF show_certs.errors_as_string %]
+            <p id="show-failed" style="display:none">
+                [% show_certs.errors_as_string FILTER html %]
+            </p>
+        [% END %]
+
+        [% IF RAW_FORM('op') == 'save'; %]
+            <p id="save-status" style="display:none">
+            [% IF save_success %]
+                [% locale.maketext('Successfully updated the description for this certificate.') %]
+            [% ELSE %]
+                [% locale.maketext('The changes could not be saved because an error occurred: [_1]', do_save.errors.join(' ').html()) %]
+            [% END %]
+            </p>
+        [% END %]
+
+        <form action="viewcrt.html" method="post" enctype="multipart/form-data">
+            <input id="hidOp" name="op" value="save" type="hidden" />
+            <input id="hidRef" name="ref" value="[% RAW_FORM.ref FILTER html %]" type="hidden" />
+            <input id="hidId" name="id" value="[% RAW_FORM.id FILTER html %]" type="hidden" />
+
+            <div class="form-group">
+                <label id="lblFname" for="fname">[% locale.maketext('Description:') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea type="text" class="form-control" name="fname" id="fname" rows="2">[%- safe_friendly_name -%]</textarea>
+                        <span class="help-block">[% locale.maketext('You can use this field to explain the purpose of this certificate.') %]</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <input id="update-cert-action" type="submit" class="btn btn-primary" value="[% locale.maketext('Update Description') %]" />
+            </div>
+        </form>
+
+    </div>
+
+    <div class="section">
+        <div class="form-group">
+            <label id="lblEncodedCrt" for="encoded-crt">[% locale.maketext('Encoded Certificate:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="encoded-crt">[%- show_cert.data.cert FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblDecodedCert" for="decoded-cert">[% locale.maketext('Decoded Certificate:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="decoded-cert">[%- show_cert.data.text FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        [% IF keys && keys.status && keys.data && keys.data.0 %]
+            <div class="form-group">
+                <p>[% locale.maketext('This certificate uses the following key:') %]</p>
+                <ul>
+                    [% SET item = keys.data.0 %]
+                    [% IF item.friendly_name %]
+                    <li><a href="viewkey.html?id=[% item.id FILTER uri %]">[% locale.maketext('Key ([output,strong,_1])', item.friendly_name.html()) %]</a></li>
+                    [% ELSE %]
+                    <li><a href="viewkey.html?id=[% item.id FILTER uri %]">[% locale.maketext('Key ([output,strong,_1])', item.id.html()) %]</a></li>
+                    [% END %]
+                </ul>
+            </div>
+        [% END %]
+
+        <div class="form-group">
+            <a id="btnDelete" class="btn btn-primary" href="deletecrtconfirm.html?id=[% show_cert.data.details.id FILTER uri %]">[% locale.maketext("Delete Certificate") %]</a>
+        </div>
+    </div>
+
+    [% END %]
+
+    [% INCLUDE _assets/return_link.html.tt return_location='crts.html' return_link_text=locale.maketext('Go Back') %]
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    /**
+     * This module contains all the page specific constants generated by the server.
+     * @module PAGE.Properties
+     */
+     var PAGE = {
+        properties : {
+            cert_properties_saved         : [% RAW_FORM('op') == 'save' ? 'true' : 'false' %],
+            cert_properties_saved_success : [% save_success ? 'true' : 'false' %],
+            is_expired                    : [% is_expired ? 'true' : 'false' %],
+            is_nearly_expired             : [% is_nearly_expired ? 'true' : 'false' %]
+        }
+    }
+
+    // Publish the PAGE object;
+     window["PAGE"] = PAGE;
+})();
+</script>
+[% END #js_block %]

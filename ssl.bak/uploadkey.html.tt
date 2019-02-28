@@ -1,0 +1,103 @@
+[%
+CPANEL.CPVAR.dprefix = '../';
+
+# Process the upload key
+# - Pass the whole FORM is, as the upload functionality has possibly dynamic key names
+IF FORM.type == 'paste';
+    SET upload_key = execute('SSL', 'upload_key', { key => RAW_FORM('key'), friendly_name => RAW_FORM('fname') } );
+ELSE;
+    SET upload_key = execute('SSL', 'upload_key', RAW_FORM );
+END;
+SET ref = FORM.ref || '';
+
+SET safe_id = upload_key.data.0.id.html();
+SET safe_name = upload_key.data.0.friendly_name.html();
+
+# Find the name of the file from the FORM parameters
+# The file name is contained as part of the parameter
+# starting with "file-" and ending in "-key". Extracting
+# everything between is the name of the uploaded file.
+# Technically this form can upload multiple keys, but
+# in practicality, the source page for does not provide
+# this capability, so this only retrieve the first file
+# name.
+FOREACH a_key IN FORM.keys;
+    SET matches = a_key.match('^file-(.*)-key$');
+    IF matches;
+        SET safe_file_name = matches.0.html();
+    END;
+    LAST IF matches;
+END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+-%]
+<div class="body-content">
+    <h2 id="hdrUploadKey">
+        [% IF FORM.type == 'paste' %]
+        [% locale.maketext('Upload Key') %]
+        [% ELSIF FORM.type == 'upload' %]
+        [% locale.maketext('Upload Key File') %]
+        [% END %]
+    </h2>
+
+    [% IF upload_key.status; %]
+        <div id="uploadSuccess" class="alert alert-success">
+            <span id="uploadSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="uploadSuccessMsg" class="alert-message">
+        [% IF FORM.type == 'paste' %]
+            [% locale.maketext('You have successfully uploaded the private key to your account.') %]
+        [% ELSIF FORM.type == 'upload' %]
+            [% locale.maketext('You have successfully uploaded the private key file “[_1]” to your account.', safe_file_name) %]
+        [% END %]
+        [% IF upload_key.messages_as_string; %]
+            [% upload_key.messages_as_string FILTER html %]
+        [% END %]
+            <p>
+                [% locale.maketext('[output,strong,Name]: [_1]', safe_name) %]
+            </p>
+            <p>
+                [% locale.maketext('[output,strong,ID]: [_1]', safe_id) %]
+            </p>
+            </div>
+        </div>
+    [% ELSE %]
+        <div id="uploadError" class="alert alert-danger">
+            <span id="uploadErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="uploadErrorMsg" class="alert-message">
+        [% IF FORM.type == 'paste' %]
+            [% locale.maketext('The system failed to save the private key to your account.') %]
+        [% ELSIF FORM.type == 'upload' %]
+            [% locale.maketext('The system failed to save the private key file “[_1]” to your account.', safe_file_name) %]
+        [% END %]
+        [% IF upload_key.errors_as_string %]
+            [% upload_key.errors_as_string FILTER html %]
+        [% END %]
+            </div>
+        </div>
+    [% END %]
+
+    <ul class="list-inline text-center">
+        [%- IF ref;
+            SWITCH ref;
+                CASE "csrs" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCSR' return_location='csrs.html?selkey=' _ generate_key.data.id _ '' return_link_text=locale.maketext('Return to SSL Certificate Signing Requests') %]
+            </li>
+        [%-     CASE "crts" -%]
+            <li>
+                [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCRT' return_location='crts.html?selkey=' _ generate_key.data.id _ '' return_link_text=locale.maketext('Return to SSL Certificates') %]
+            </li>
+        [%- END;
+            END -%]
+        <li>
+        [% IF ref %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html?ref=' _ ref.uri() _ '' return_link_text=locale.maketext('Go Back') %]
+        [% ELSE %]
+            [% INCLUDE _assets/return_link.html.tt return_location='keys.html' return_link_text=locale.maketext('Go Back') %]
+        [% END %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]

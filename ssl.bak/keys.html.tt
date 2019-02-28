@@ -1,0 +1,330 @@
+[%-
+USE JSON;
+USE CPIcons;
+USE SSL;
+USE CPScalar;
+
+# CONSTANTS
+SET SHOW_HELPER_LINKS_RECORD_COUNT = 10;
+
+# Get the data
+SET list_keys = execute("SSL", "list_keys", { 'api.sort_column' => 'friendly_name' });
+SET has_keys_data = list_keys.status && list_keys.data.size;
+SET list_count = list_keys.data ? list_keys.data.size() : 0;
+
+SET MINIMUM_MODULUS_LENGTH = SSL.DEFAULT_KEY_SIZE;
+SET RECOMMENDED_MODULUS_LENGTH = MINIMUM_MODULUS_LENGTH;
+
+# List the supported key sizes in this array.
+SET key_sizes = [
+    2048,
+    4096,
+];
+
+CPANEL.CPVAR.dprefix = '../';
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    embed_stylesheets = ["css/ssl.css"]
+    page_stylesheets = ["css2-min/ssl/keys.css"]
+-%]
+[% PROCESS _assets/_ajaxapp_header.html.tt -%]
+
+<div class="body-content">
+    <div class="section">
+        [% IF list_count > SHOW_HELPER_LINKS_RECORD_COUNT %]
+        <a id="top"></a>
+        <div class="related related-top">
+            <a id="generate-link" href="javascript:void(0)" class="dependent-action">[% locale.maketext('Generate a Private Key.') %]</a>
+            <a id="upload-link" href="javascript:void(0)" class="dependent-action">[% locale.maketext('Upload a Private Key.') %]</a>
+        </div>
+        [% END %]
+
+        <h2 id="h2Header">
+            [% locale.maketext('Private Keys') %]
+        </h2>
+
+        <p id="descPrivate" class="description">
+          [%- locale.maketext('A private key is used to decrypt information transmitted over SSL. When you create an SSL certificate, the first step is to generate a private key file associated with that SSL certificate. You should generate a private key for each SSL certificate you create. This private key is very important and should be kept confidential. A copy of each private key should be kept in a safe place; there is no way to recover a lost private key.') -%]
+        </p>
+
+        [% IF list_keys.data.size %]
+        <h2 id="hdrOnserver">[% locale.maketext("Keys on Server") %]</h2>
+        <table class="sortable table table-striped" id="ssltable">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext('Description') %]</th>
+                    <th>[% locale.maketext('ID') %]</th>
+                    <th class="sorttable_numeric sorttable_transform_size_column">[% locale.maketext('Size') %]</th>
+                    <th nonsortable="true">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF list_keys.data.size;
+
+                SET warn_icon = CPIcons.get_common_icon_markup("warning", 16);
+                SET error_icon = CPIcons.get_common_icon_markup("error", 16);
+
+                FOREACH key = list_keys.data;
+                    SET modulus_length = key.modulus_length;
+                    SET modulus_class = '';
+                    SET modulus_error = 0;
+                    IF modulus_length < MINIMUM_MODULUS_LENGTH;
+                        modulus_class = 'modulus-critical';
+                        modulus_error = 1;
+                    END;
+            -%]
+                <tr class="[% modulus_class %]">
+                    <td class="name-column">
+                        <div class="name-column column" title="[% key.friendly_name FILTER html %]">[% key.friendly_name.html().breakOn('\.') %]</div>
+                    </td>
+                    <td class="id-column">
+                        <div class="id-column column" title="[% key.id FILTER html %]">[% key.id.html().breakOn('_') %]</div>
+                    </td>
+                    <td class="size-column" sorttable_customkey="[% key.modulus_length FILTER html %]">
+                        <div class="size-column column">
+                            <span class="value" title="[% locale.maketext('[quant,_1,bit,bits]',key.modulus_length) %]">[% key.modulus_length FILTER html %]</span>
+                            [% IF modulus_error %]
+                                [% error_icon %]
+                            [% END %]
+                        </div>
+                    </td>
+                    <td>
+                        <a id="view-key-[%loop.index%]" class="btn btn-link" href="viewkey.html?id=[% key.id FILTER uri %]&name=[% key.friendly_name FILTER uri %]" title="[% locale.maketext('This option allows you to view the key and edit the key’s description.') %]">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext('Edit') %]</a>
+                        <a id="remove-key-[%loop.index%]" class="btn btn-link" href="deletekeyconfirm.html?name=[% key.friendly_name FILTER uri %]" title="[% locale.maketext('Delete the key from the account.') %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext("Delete") %]</a>
+                    </td>
+                </tr>
+              [% END %]
+            [% ELSE %]
+                <tr>
+                    <td colspan="4" class="errors">
+                        [% locale.maketext('There are no private keys on the server.') %]
+                    </td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+        [% END %]
+    </div>
+
+    <div class="section">
+        [% IF list_count > SHOW_HELPER_LINKS_RECORD_COUNT %]
+        <a id="generate"></a>
+        <div class="related">
+            <a id="list-link" href="javascript:void(0)" class="dependent-action">[% locale.maketext('List Private Keys') %]</a>
+            <a id="upload2-link" href="javascript:void(0)" class="dependent-action">[% locale.maketext('Upload a Private Keys.') %]</a>
+        </div>
+        [% END %]
+        <h2 id="hdrNewPrivate" class="secondary">[% locale.maketext('Generate a New Private Key.') %]</h2>
+        <p id="descNewPrivate" class="description">
+            [%- locale.maketext('You should generate a new key file for each certificate you install. A key size of [quant,_1,bit,bits] is recommended.', RECOMMENDED_MODULUS_LENGTH) -%]
+        </p>
+
+        <form id="genkey" action="genkey.html" name="keyform" method="post">
+            <input id="hidDogenerate" type="hidden" name="do_generate" value="1">
+            <div class="form-group">
+                <label id="lblKeysize" for="keysize">[% locale.maketext('Key Size') %]
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="keysize" id="keysize" class="form-control">
+                            [% FOREACH key_size = key_sizes %]
+                            <option value="[% key_size %]" [% IF RECOMMENDED_MODULUS_LENGTH == key_size %]selected="selected"[% END %]>
+                              [% IF key_size == RECOMMENDED_MODULUS_LENGTH  %]
+                              [% locale.maketext('[quant,_1,bit,bits] (Recommended)',key_size) %]
+                              [% ELSIF key_size < MINIMUM_SAFE_MODULUS_LENGTH %]
+                              [% locale.maketext('[quant,_1,bit,bits] (Insecure)',key_size) %]
+                              [% ELSE %]
+                              [% locale.maketext('[quant,_1,bit,bits]',key_size) %]
+                              [% END %]
+                            </option>
+                            [% END %]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblGenfname" for="gen-fname">[% locale.maketext('Description:') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea name="fname" id="gen-fname" type="text" class="form-control" rows="2"></textarea>
+                        <div class="help-block">
+                            [% locale.maketext('[output,strong,Optional]: You can use this field to provide a description for this private key.') %]
+                        </div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="hidRef" name="ref" value="[% FORM.ref %]" type="hidden" />
+                <input id="genkey-action" type="submit" class="btn btn-primary" value="[% locale.maketext("Generate") %]">
+            </div>
+        </form>
+    </div>
+
+    <div class="section">
+        [% IF list_count > SHOW_HELPER_LINKS_RECORD_COUNT %]
+        <a id="upload"></a>
+        <div class="related">
+            <a id="list2-link" href="javascript:void(0)" class="dependent-action">[% locale.maketext('List Private Keys') %]</a>
+            <a id="generate2-link" href="javascript:void(0)" class="dependent-action">[% locale.maketext('Generate a Private Key.') %]</a>
+        </div>
+        [% END %]
+
+        <h2 id="hdrNewPrivate" class="secondary">
+            [% locale.maketext('Upload a New Private Key.') %]
+        </h2>
+
+        <p id="descExisting" class="description">
+        [%- locale.maketext('If you have an existing key, paste the key below, or upload it to the server.') -%]
+        </p>
+
+        <div class="section">
+            <form id="uploadkey" action="uploadkey.html" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label id="lblKey" for="key">[% locale.maketext("Paste the key into the following text box:") %]</label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <textarea dir="ltr" id="key" name="key" rows="15" class="textarea-base64 form-control"></textarea>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblUpfname" for="up-fname">
+                        [% locale.maketext('Description:') %]
+                    </label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <textarea type="text" class="form-control" name="fname" id="up-fname" rows="2"></textarea>
+                            <div class="help-block">
+                                [% locale.maketext('[output,strong,Optional]: You can use this field to provide a description for this private key.') %]
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input id="hidRef2" name="ref" value="[% FORM.ref %]" type="hidden" />
+                    <input id="hidType" name="type" value="paste" type="hidden" />
+                    <input id="pastekey-action" type="submit" class="btn btn-primary" title="[% locale.maketext('Click to save the above key to your server.') %]"  value="[% locale.maketext("Save") %]">
+                </div>
+            </form>
+        </div>
+
+        <div class="or-separator">
+            <strong>[% locale.maketext("or[comment,this is meant to be a horizontal separator of 2 things stacked vertically]") %]</strong>
+        </div>
+
+        <div class="section">
+            <form id="uploadkey2" action="uploadkey.html" method="post" enctype="multipart/form-data">
+                <div class="form-group">
+                    <label id="lblUploadKeyfile" for="uploadkey-file">[% locale.maketext("Choose a [asis,.key] file.") %]:</label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input id="uploadkey-file" type="file" name="keyfile" />
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label id="lblUp2fname" for="up2-fname">[% locale.maketext('Description:') %]</label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <textarea type="text" class="form-control" name="friendly_name" id="up2-fname" rows="2"></textarea>
+                            <div class="help-block">
+                                [% locale.maketext('[output,strong,Optional]: You can use this field to provide a description for this private key.') %]
+                            </div>
+                        </div>
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        </div>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <input id="hidRef3" name="ref" value="[% FORM.ref %]" type="hidden" />
+                    <input id="hidType2" name="type" value="upload" type="hidden" />
+                    <input id="uploadkey-action" type="submit" class="btn btn-primary" title="[% locale.maketext('Click to upload the above key to your server.') %]"  value="[% locale.maketext('Upload') %]">
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <ul class="list-inline text-center">
+        [%- IF FORM.ref;
+            SWITCH FORM.ref;
+                CASE "csrs" -%]
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCSR' return_location='csrs.html' return_link_text=locale.maketext('Return to SSL Certificate Signing Requests') %]
+        </li>
+        [%-     CASE "crts" -%]
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCRT' return_location='crts.html' return_link_text=locale.maketext('Return to SSL Certificates') %]
+        </li>
+        [%- END;
+            END -%]
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkHome' return_location='index.html' return_link_text=locale.maketext('Return to SSL Manager') %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    /**
+     * This module contains all the page specific constants generated by the server.
+     * @module PAGE.Properties
+     */
+    var PAGE = {
+        properties : {
+            has_keys_data: [% has_keys_data ? "true" : "false" %]
+        }
+    }
+     // Publish the PAGE object;
+     window["PAGE"] = PAGE;
+}());
+
+[% INSERT 'cjt/ssl-min.js' -%]
+[% INSERT 'sharedjs/ssl_optimized.js' %]
+[% INSERT 'yui/event-mouseenter/event-mouseenter-min.js' %]
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('sharedjs/form_submit_handler_optimized.js');
+    INSERT $lex_path IF lex_path;
+    INSERT 'sharedjs/form_submit_handler_optimized.js';
+%]
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('js2/ssl/keys.js');
+    INSERT $lex_path IF lex_path;
+    INSERT 'js2/ssl/keys.js';
+%]
+
+[% SET lexicon = {
+    'Processing …' => locale.lextext('Processing …'),
+    'A key size shorter than [quant,_1,bit,bits] is not supported.' => locale.lextext('A key size shorter than [quant,_1,bit,bits] is not supported.'),
+    'A key size shorter than [quant,_1,bit,bits] is insecure.' => locale.lextext('A key size shorter than [quant,_1,bit,bits] is insecure.'),
+    'The key is shorter than the recommended length of [quant,_1,bit,bits].' => locale.lextext('The key is shorter than the recommended length of [quant,_1,bit,bits].'),
+} -%]
+
+YAHOO.lang.augmentObject( LOCALE.LEXICON, [% lexicon.json() %] );
+</script>
+[% PROCESS _assets/_ajaxapp_footer.html.tt -%]
+[% END %]
+
+
+

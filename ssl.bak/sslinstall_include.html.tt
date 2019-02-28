@@ -1,0 +1,168 @@
+[%# Parameters:
+    cert_browser_users - a list, sorted
+-%]
+
+[%-
+USE HTMLOptions;
+USE NVData;
+
+SET browse_source_is_apache = (NVData.get_page_nvdata().browse_source == 'apache');
+-%]
+
+<script type="text/plain" id="browsessl_default_form">
+    <p>{{{introBlurb_html}}}</p>
+    [% IF CPANEL.is_whm() && !CPANEL.is_dnsonly() %]
+        <input id="cert_browser_users_radio" type="radio" name="browse_source" value="user" [% browse_source_is_apache ? '' : 'checked' %]>
+        <label for="cert_browser_users_radio">[% locale.maketext("Browse Account:") %]</label>
+
+        <select id="users" name="users" [% browse_source_is_apache ? 'disabled' : '' %]>
+        [%- # data.users needs to be presorted in perl for speed -%]
+        [% cert_browser_users.options_as_html( {
+            'value' => 'user',
+            'text'  => 'user',
+            'class' => 'class',
+            'selected' => CPANEL.authuser,
+        } ) -%]
+        </select>
+
+        <p>
+        <input id="cert_browser_apache_radio" type="radio" name="browse_source" value="apache" [% browse_source_is_apache ? 'checked' : '' %]>
+        <label for="cert_browser_apache_radio">[% locale.maketext("Browse Apache") %]</label>
+        </p>
+
+    [% END %]
+    <label for="certlist">[% locale.maketext("Certificate:") %]</label>
+    <div id="certlist">
+    </div>
+</script>
+
+<script type="text/x-handlebars-template" id="hiddenWhiteSpaceListTemplate">
+<ul>
+  {{#each data}}
+  <li title={{{this.title}}}>{{{this.value}}}</li>
+  {{/each}}
+</ul>
+</script>
+
+<script type="text/x-handlebars-template" id="ipSelectorItemTemplate">
+<div class="ip_combo_item {{#if hasssl}}ip_combo_hasssl{{else}}ip_combo_nossl{{/if}}">
+{{#if isShared}}
+    [% locale.maketext("[_1], shared", '{{{ip}}}') %]
+{{else}}
+    {{{ip}}}
+{{/if}}
+{{#if ipInfo_html}}
+    ({{{ipInfo_html}}})
+{{/if}}
+</div>
+</script>
+
+<script type="text/x-handlebars-template" id="installSuccessTemplate">
+<div class="success-popup">
+    <div class="success-popup-body">
+        <p>{{{statusMessageHTML}}}</p>
+        <p>
+            {{{workingDomainsMessage}}}
+            <ul class='working-domains'>
+            {{#each workingDomains}}
+                {{#if this.makeLink}}
+                    <li><a target="_blank" href="https://{{this.domain}}">{{this.domain}}</a></li>
+                {{else}}
+                    <li>{{{this.domain}}}</li>
+                {{/if}}
+            {{/each}}
+            </ul>
+
+            {{#if warningDomains}}
+                {{{warningDomainsMessage}}}
+                <ul class='warning-domains'>
+                {{#each warningDomains}}
+                    {{#if this.makeLink}}
+                        <li><a target="_blank" href="https://{{this.domain}}">{{this.domain}}</a></li>
+                    {{else}}
+                        <li>{{{this.domain}}}</li>
+                    {{/if}}
+                {{/each}}
+                </ul>
+            {{/if}}
+
+            {{#if extraCertificateDomains}}
+                {{{extraCertificateDomainsMessage}}}
+                <ul class='extra-certificate-domains'>
+                {{#each extraCertificateDomains}}
+                    {{#if this.makeLink}}
+                        <li><a target="_blank" href="https://{{this.domain}}">{{this.domain}}</a></li>
+                    {{else}}
+                        <li>{{this.domain}}</li>
+                    {{/if}}
+                {{/each}}
+                </ul>
+            {{/if}}
+        </p>
+        {{#if needReload}}
+            [% locale.maketext("Click “[_1]” to reload this page.", locale.maketext("OK")) %]
+        {{/if}}
+    </div>
+</div>
+</script>
+
+[% SET sslinstall_lexicon = {
+    'Certificate Authority Bundle' => locale.lextext('Certificate Authority Bundle'),
+    'Certificate' => locale.lextext('Certificate'),
+    'Description'                                  => locale.lextext('Description'),
+    'Domain names on the certificate.'             => locale.lextext('Domain names on the certificate.'),
+    'Domain'                                       => locale.lextext('Domain'),
+    'Domains'                                      => locale.lextext('Domains'),
+    'The certificate’s expiration date'            => locale.lextext('The certificate’s expiration date'),
+    'Expiration'                                   => locale.lextext('Expiration'),
+    'Hide'                                         => locale.lextext('Hide'),
+    'IP'                                           => locale.lextext('IP'),
+    'Installing …'                                 => locale.lextext('Installing …'),
+    'Issuer organization name.'                    => locale.lextext('Issuer organization name.'),
+    'Issuer'                                       => locale.lextext('Issuer'),
+    'Key'                                          => locale.lextext('Key'),
+    'Loading certificates for “[output,strong,_1]” …' => locale.lextext('Loading certificates for “[output,strong,_1]” …'),
+    'Choose a domain.' => locale.lextext('Choose a domain.'),
+    'Provide or retrieve a certificate.' => locale.lextext('Provide or retrieve a certificate.'),
+    'Provide or retrieve a key.' => locale.lextext('Provide or retrieve a key.'),
+    'Enter a valid IP address.' => locale.lextext('Enter a valid IP address.'),
+    'SSL Certificate List'                         => locale.lextext('SSL Certificate List'),
+    'SSL Certificate Successfully Updated'         => locale.lextext('SSL Certificate Successfully Updated'),
+    'SSL Host Successfully Installed'              => locale.lextext('SSL Host Successfully Installed'),
+    'Select a certificate below:'                  => locale.lextext('Select a certificate below:'),
+    'Self-Signed'                                  => locale.lextext('Self-Signed'),
+    'Show'                                         => locale.lextext('Show'),
+    'The CA bundle does not match the certificate.' => locale.lextext('The CA bundle does not match the certificate.'),
+    'The CA bundle is invalid.'                    => locale.lextext('The CA bundle is invalid.'),
+    'The IP address “[_1]” is not available, or you do not have permission to use it.' => locale.lextext('The IP address “[_1]” is not available, or you do not have permission to use it.'),
+    'The SSL certificate also supports [numerate,_1,this domain,these domains], but [numerate,_1,this domain does,these domains do] not refer to the SSL website mentioned above:' => locale.lextext('The SSL certificate also supports [numerate,_1,this domain,these domains], but [numerate,_1,this domain does,these domains do] not refer to the SSL website mentioned above:'),
+    'The SSL website is also accessible via [numerate,_1,this domain,these domains], but the certificate does not support [numerate,_1,this domain,these domains]. Web browsers will show a warning when a user accesses [numerate,_1,this domain,these domains] via HTTPS:' => locale.lextext('The SSL website is also accessible via [numerate,_1,this domain,these domains], but the certificate does not support [numerate,_1,this domain,these domains]. Web browsers will show a warning when a user accesses [numerate,_1,this domain,these domains] via HTTPS:'),
+    'The SSL website is now active and accessible via HTTPS on [numerate,_1,this domain,these domains]:' => locale.lextext('The SSL website is now active and accessible via HTTPS on [numerate,_1,this domain,these domains]:'),
+    'The certificate does not match your selected domain.' => locale.lextext('The certificate does not match your selected domain.'),
+    'The certificate information could not be retrieved because of an error: [_1]' => locale.lextext('The certificate information could not be retrieved because of an error: [_1]'),
+    'The certificate is not valid.' => locale.lextext('The certificate is not valid.'),
+    'The certificate list could not be retrieved because of an error: [_1]' => locale.lextext('The certificate list could not be retrieved because of an error: [_1]'),
+    'The key does not match the certificate.' => locale.lextext('The key does not match the certificate.'),
+    'The key is invalid.' => locale.lextext('The key is invalid.'),
+    'The lookup failed because of an error: [_1]' => locale.lextext('The lookup failed because of an error: [_1]'),
+    'This SSL certificate was already installed.' => locale.lextext('This SSL certificate was already installed.'),
+    'Use Certificate' => locale.lextext('Use Certificate'),
+    'A user-defined description for the certificate.' => locale.lextext('A user-defined description for the certificate.'),
+    'You have successfully configured SSL.' => locale.lextext('You have successfully configured SSL.'),
+    'You have successfully updated the SSL website’s certificate.' => locale.lextext('You have successfully updated the SSL website’s certificate.'),
+    'Cancel' => locale.lextext('Cancel'),
+    'Certificates that do not have a domain associated with your account are not listed here.' => locale.lextext('Certificates that do not have a domain associated with your account are not listed here.'),
+    'Choose a certificate to install.' => locale.lextext('Choose a certificate to install.'),
+    'Choose the account that contains the desired certificate to install. Then, select the certificate.' => locale.lextext('Choose the account that contains the desired certificate to install. Then, select the certificate.'),
+    'The SSL website is also accessible via [numerate,_1,this domain,these domains], but the certificate does not support [numerate,_1,it,them]. Web browsers will show a warning when accessing [numerate,_1,this domain,these domains] via HTTPS:' => locale.lextext('The SSL website is also accessible via [numerate,_1,this domain,these domains], but the certificate does not support [numerate,_1,it,them]. Web browsers will show a warning when accessing [numerate,_1,this domain,these domains] via HTTPS:'),
+    'This account does not have any installable certificates.' => locale.lextext('This account does not have any installable certificates.'),
+    'You can manage all of your saved certificates on the [output,url,_1,“Certificates” page].' => locale.lextext('You can manage all of your saved certificates on the [output,url,_1,“Certificates” page].'),
+    'SSL is installed; “[_1]” ([numerate,_2,alias,aliases] [list_and,_3]) is primary.' => locale.lextext('SSL is installed; “[_1]” ([numerate,_2,alias,aliases] [list_and,_3]) is primary.'),
+    'SSL is installed; “[_1]” is primary.' => locale.lextext('SSL is installed; “[_1]” is primary.'),
+    'We recommend that users manage individual subdomains (e.g., “[_1]”, “[_2]”) instead of a single wildcard subdomain (e.g., “[_3]”).' => locale.lextext('We recommend that users manage individual subdomains (e.g., “[_1]”, “[_2]”) instead of a single wildcard subdomain (e.g., “[_3]”).'),
+} -%]
+<script>
+YAHOO.lang.augmentObject( LOCALE.LEXICON, [% JSON.stringify(sslinstall_lexicon) %] );
+</script>
+
+[% PROCESS 'ssl/ssl_certificate_parse.html.tt' -%]

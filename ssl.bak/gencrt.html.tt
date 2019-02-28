@@ -1,0 +1,160 @@
+[%
+USE CPScalar;
+
+SET domains_ar = RAW_FORM('domains').trim().split('[,;\s]+').unique();
+
+SET key_id = RAW_FORM('key_id');
+IF !key_id && RAW_FORM('domains');
+    SET generate_key = execute('SSL', 'generate_key', {
+        friendly_name => locale.list_and( domains_ar ),
+    } );
+    IF generate_key.status;
+        key_id = generate_key.data.id;
+    END;
+END;
+
+# Attempt to generate the self-signed certificate
+IF key_id;
+    SET generate_cert = execute('SSL', 'generate_cert', {
+        'key_id' => key_id,
+        'domains' => domains_ar.join(' '),
+        'countryName' => CPScalar.uc( RAW_FORM('country') ),
+        'stateOrProvinceName' => RAW_FORM('state'),
+        'localityName' => RAW_FORM('city'),
+        'organizationName' => RAW_FORM('company'),
+        'organizationalUnitName' => RAW_FORM('companydivision'),
+        'emailAddress' => RAW_FORM('email'),
+        'friendly_name' => RAW_FORM('friendly_name'),
+    });
+    SET generate_successful = generate_cert.status;
+
+    IF generate_successful;
+        SET show_cert = execute('SSL', 'show_cert', { id=generate_cert.data.id });
+    END;
+
+    SET domains = generate_successful && show_cert.data.details.domains ? show_cert.data.details.domains : [];
+
+    SET safe_hosts = [];
+    FOR host = domains;
+        SET safe_host = host.html();
+        safe_hosts.push(safe_host);
+    END;
+
+    SET show_key = execute( 'SSL', 'show_key', { id => key_id } );
+END;
+
+SET CPANEL.CPVAR.dprefix = '../';
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    embed_stylesheets = ["css/ssl.css"]
+    embed_scripts = ["js2/ssl/gencrt.js"]
+-%]
+<div class="body-content">
+    <h2 id="hdrGenerate">[% locale.maketext('Generate Certificate') %]</h2>
+
+    [% IF generate_successful %]
+        <div id="generateSuccess" class="alert alert-success">
+            <span id="generateSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
+            <div id="generateSuccessMsg" class="alert-message">
+                [% locale.maketext('The certificate for [list_and_quoted,_1] has been created and saved in your directory. It has [output,strong,NOT] been installed on your domain. Please note that the certificate will display [output,strong,untrusted] in web browsers after it is installed, since it is self-signed.', safe_hosts) %]
+                <ul>
+                    <li>[% locale.maketext('If you would like to install this certificate now, you can do so using the [output,url,_1,Installer,id,_2].','install.html','lnkInstall') %]</li>
+                    <li>[% locale.maketext('If you would like to install this certificate externally, copy and paste the information from the Encoded Certificate field below.') %]</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblDomain" for="domain">[% locale.maketext('[numerate,_1,Domain,Domains]:', domains.size) %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [% IF domains && domains.size > 1 -%]
+                        <ul>
+                            [% FOREACH domain = domains %]
+                            <li>[% domain.html().breakOn('\.') %]</li>
+                            [% END %]
+                        </ul>
+                    [%- ELSE -%]
+                        <p>
+                            [% domains.0.html().breakOn('\.') %]
+                        </p>
+                    [% END -%]
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblDescription" for="description">[% locale.maketext('Description:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [%- show_cert.data.details.friendly_name FILTER html -%]
+                </div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label id="lblEncodedCsr" for="encoded-csr">[% locale.maketext('Encoded Certificate:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="encoded-csr">[%- show_cert.data.cert FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="form-group">
+            <label id="lblDecodedCsr" for="decoded-csr">[% locale.maketext('Decoded Certificate:') %]</label>
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <pre id="decoded-csr">[%- show_cert.data.text FILTER html -%]</pre>
+                </div>
+            </div>
+        </div>
+
+        [% IF generate_key.status -%]
+            <div class="form-group">
+                <label id="lblEncodedKey" for="encoded-key">[% locale.maketext('Encoded Key:') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <pre id="encoded-key">[% generate_key.data.text -%]</pre>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label id="lblDecodedKey" for="decoded-key">[% locale.maketext('Decoded Key:') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <pre id="decoded-key">[% show_key.data.text -%]</pre>
+                    </div>
+                </div>
+            </div>
+        [% END -%]
+    [% ELSE %]
+        <div id="generateError" class="alert alert-danger">
+            <span id="generateErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="generateErrorMsg" class="alert-message">
+                [% locale.maketext("Sorry, there was a problem generating the certificate.") %]
+                [% IF generate_cert.errors.0 %]
+                    [% generate_cert.errors_as_string() FILTER html %]
+                [% ELSIF generate_key.errors.0 -%]
+                    [% generate_key.errors_as_string() FILTER html %]
+                [% END %]
+            </div>
+        </div>
+    [% END %]
+
+    <ul class="list-inline text-center">
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkCRT' return_location='crts.html' return_link_text=locale.maketext('Return to SSL Certificates') %]
+        </li>
+        <li>
+            [% INCLUDE _assets/return_link.html.tt id_prefix='lnkHome' return_location='index.html' return_link_text=locale.maketext('Return to SSL Manager') %]
+        </li>
+    </ul>
+</div>
+[% END #wrapper %]

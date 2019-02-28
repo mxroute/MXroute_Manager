@@ -1,0 +1,369 @@
+[%
+# Includes
+USE CPList;
+USE JSON;
+USE SSL;
+USE Geo;
+USE CPScalar;
+
+# CONSTANTS
+SET SHOW_HELPER_LINKS_RECORD_COUNT = 10;
+
+# Gather the data
+# Fetch the certificate signing requests for this user
+SET list_csrs = execute('SSL', 'list_csrs', {
+        'api.sort_column' => 'commonName',
+    } );
+SET has_csr_error = !list_csrs.status;
+SET has_csr_data = !has_csr_error && list_csrs.data.size;
+
+SET creation_date = locale.get_lookup_hash_of_multi_epoch_datetime( list_csrs.data.ofeach('created'), 'date_format_short' );
+SET creation_datetime = locale.get_lookup_hash_of_multi_epoch_datetime( list_csrs.data.ofeach('created'), 'datetime_format_short' );
+
+# Fetch the keys for this user.
+SET list_keys = execute('SSL', 'list_keys', {
+        'api.sort_column' => 'friendly_name',
+    } );
+SET has_keys_error = !list_keys.status;
+SET has_keys_data = !has_keys_error && list_keys.data.size;
+
+SET list_count = list_csrs.data ? list_csrs.data.size() : 0;
+
+SET CPANEL.CPVAR.dprefix = '../';
+
+#Domains
+SET list_mail_domains = execute('WebVhosts','list_domains', {
+    'api.sort_column' => 'domain',
+});
+
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'ssl_tls'
+    include_legacy_scripts = 1
+    include_cjt = 1
+    page_js = js_code
+    embed_stylesheets = ["css/ssl.css"]
+    page_stylesheets = ["css2-min/ssl/csrs.css"]
+-%]
+<div class="body-content">
+    [% PROCESS _assets/_ajaxapp_header.html.tt -%]
+    <div class="section">
+        [% IF list_count > SHOW_HELPER_LINKS_RECORD_COUNT %]
+        <a id="top"></a>
+        <div class="related related-top">
+            <a id="generate-link" class="dependent-action">[% locale.maketext('Generate a Certificate Signing Request.') %]</a>
+        </div>
+        [% END %]
+
+        <h2 id="hdrCsr">
+            [% locale.maketext('SSL Certificate Signing Request') %]
+        </h2>
+
+        <p id="descCsr" class="description">
+            [% locale.maketext('If you obtain a certificate from a trusted SSL provider, you must complete the Certificate Signing Request form to provide the information needed to generate your SSL certificate.') %]
+        </p>
+
+        [% IF has_csr_error %]
+        <div id="retrieveCsrError" class="alert alert-danger">
+            <span id="retrieveCsrErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="retrieveCsrErrorMsg" class="alert-message">
+                [% locale.maketext('Unable to retrieve the certificate signing requests for your account.') %]
+            [% IF list_csrs.errors.0 %]
+                [% list_csrs.errors_as_string() FILTER html %]
+            [% END %]
+            </div>
+        </div>
+        [% END %]
+
+        <h2 id="hdrCsrOnserver">[% locale.maketext("Certificate Signing Requests on Server") %]</h2>
+        <table class="sortable table table-striped" id="ssltable">
+            <thead>
+                <tr>
+                    <th>[% locale.maketext('Domains') %]</th>
+                    <th>[% locale.maketext('Created (UTC)') %]</th>
+                    <th>[% locale.maketext('Description') %]</th>
+                    <th class="sorttable_nosort">[% locale.maketext("Actions") %]</th>
+                </tr>
+            </thead>
+            <tbody>
+            [% IF has_csr_data %]
+                [% FOREACH csr = list_csrs.data %]
+                <tr>
+                    <td class="domain-column column"><div title="[% locale.list_and(csr.domains) FILTER html %]">[% csr.domains.join("\n").html().breakOn('\.').replace("\n",'<br>') %]</div></td>
+                    <td class="created-column column" title="[% creation_datetime.${csr.created} %]"><div>[% creation_date.${csr.created} %]</div></td>
+                    <td class="description-column column"><div title="[% csr.friendly_name.html() %]">[% csr.friendly_name.html().breakOn('\.') %]</div></td>
+                    <td>
+                        <a id="show-csr-[% loop.index %]" class="btn btn-link" href="viewcsr.html?id=[% csr.id FILTER uri %]&host=[% csr.commonName FILTER uri %]">
+                            <span class="glyphicon glyphicon-pencil"></span>
+                            [% locale.maketext('Edit') %]
+                        </a>
+                        <a id="remove-csr-[% loop.index %]" class="btn btn-link" href="deletecsrconfirm.html?id=[% csr.id FILTER uri %]&host=[% csr.commonName FILTER uri %]">
+                            <span class="glyphicon glyphicon-trash"></span>
+                            [% locale.maketext("Delete") %]
+                        </a>
+                    </td>
+                </tr>
+                [% END %]
+            [% ELSE %]
+                <tr>
+                    <td id="nocsrErrorMsg" colspan="4" class="errors">[% locale.maketext("There are no certificate signing requests on the server.") %]</td>
+                </tr>
+            [% END %]
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        [% IF list_count > SHOW_HELPER_LINKS_RECORD_COUNT %]
+        <a id="generate"></a>
+        <div class="related">
+            <a id="top-link" class="dependent-action">[% locale.maketext('List Certificate Signing Requests') %]</a>
+        </div>
+        [% END %]
+
+        <h2 id="hdrGenerateCsr">[% locale.maketext("Generate a New Certificate Signing Request (CSR)") %]</h2>
+        [% IF has_keys_error %]
+
+        <div id="retrievePrivateError" class="alert alert-danger">
+            <span id="retrievePrivateErrorImg" class="glyphicon glyphicon-remove-sign"></span>
+            <div id="retrievePrivateErrorMsg" class="alert-message">
+                [% locale.maketext('Unable to retrieve the private keys for your account.') %]
+            [% IF list_keys.errors_as_string %]
+                [% list_keys.errors_as_string FILTER html %]
+            [% END %]
+            </div>
+        </div>
+        [% END %]
+
+        [% IF !has_keys_data %]
+        <div id="privateWarning" class="alert alert-warning">
+            <span id="privateWarningImg" class="glyphicon glyphicon-exclamation-sign"></span>
+            <div id="privateWarningMsg" class="alert-message">
+                [% locale.maketext('You do not have any Private Keys setup for this account. You must generate or upload a key before you can generate any certificate signing requests.') %]
+            </div>
+        </div>
+        [% END %]
+
+        <div id="cjt_pagenotice_container" class="cjt-pagenotice-container cjt-notice-container"></div>
+        <p id="descNewsrc" class="description">
+            [% locale.maketext('Use this form to generate a new certificate signing request for your domain. Your SSL certificate authority (CA) will ask for a certificate signing request to complete the certificate purchase. Your CA may require specific information in the form below. Check with the CA’s CSR requirements for the Apache web server.') %]
+        </p>
+        <form action="gencsr.html" method="post" id="csrform" name="csrform">
+            <div class="form-group">
+                <label id="lblKey" for="key"><span>[% locale.maketext('Key') %]</span><span class="extra">*</span></label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select name="key_id" id="key" class="form-control">
+                            <option value="">[% locale.maketext('Generate a new [quant,_1,bit,bit] key.[comment,non-en locales may need to quantify so we quant here]', SSL.DEFAULT_KEY_SIZE) %]</option>
+                            [% FOREACH key = list_keys.data -%]
+                                <option value="[% key.id.html() %]">[% key.friendly_name.html() %]</option>
+                            [% END -%]
+                        </select>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        [% IF has_keys_data -%]
+                        <a id="view-key" class="dependent-action" href="javascript:void(0)" title="[% locale.maketext('This option allows you to view the CSR and edit the CSR’s description.') %]"><span class="glyphicon glyphicon-pencil"></span> [% locale.maketext('Edit') %]</a>
+                        [% END -%]
+                        <div id="key_error"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+
+                <label id="lblDomains" for="domains">
+                    [% locale.maketext('Domains') %]
+                    <span class="extra">*</span>
+                </label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea name="domains" id="domains" rows="3" cols="15" class="form-control"></textarea>
+                        <div class="help-block">
+                            [% locale.maketext('Provide the [output,acronym,FQDN,Fully Qualified Domain Name]s that you are trying to secure, one per line. You may use a wildcard domain by adding an asterisk in a domain name in the form: [output,em,_1].', '*.example.com') %]
+                            [% locale.maketext('NOTE: Many [output,acronym,CA,Certificate Authority]s charge a higher price to issue multiple-domain certificates (sometimes called “[output,acronym,UCC,Unified Communications Certificate]s” or “[output,acronym,SAN,subjectAltName] certificates”) and certificates that include wildcard domains.') %]
+                        </div>
+                    </div>
+                    <div id="domains_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblCity" for="city"><span>[% locale.maketext("City") %]</span><span class="extra">*</span></label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                         <input id="city" type="text" name="city" class="form-control" />
+                         <div class="help-block">[% locale.maketext('Provide the complete name for the city or locality. Do not use abbreviations.') %]</div>
+                    </div>
+                    <div id="city_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                 <label id="lblState" for="state"><span>[% locale.maketext("State") %]</span><span class="extra">*</span></label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="state" type="text" name="state" class="form-control" />
+                        <div class="help-block">[% locale.maketext('Provide the complete name for the state or province. Do not use abbreviations.') %]</div>
+                    </div>
+                    <div id="state_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblCountry" for="country"><span>[% locale.maketext("Country") %]</span><span class="extra">*</span></label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <select id="country" name="country" class="form-control">
+                            <option value="">[% locale.maketext('Choose a country.') %]</option>
+                            [% SET locales_obj = locale.get_locales_obj() -%]
+                            [% FOR country_code = Geo.COUNTRY_CODES -%]
+                                [% SET country_name = locales_obj.get_territory_from_code(country_code) -%]
+                                <option value="[% country_code | upper %]">
+                                    [% country_code | upper %]
+                                    [% country_name ? " ($country_name)" : '' %]
+                                </option>
+                            [% END -%]
+                        </select>
+                        <span class="help-block">[% locale.maketext("Choose the country of origin for the certificate’s company.") %]</span>
+                    </div>
+                    <div id="country_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+               <label id="lblCompany" for="company"><span>[% locale.maketext("Company") %]</span><span class="extra">*</span></label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="company" type="text" name="company" class="form-control" />
+                        <div class="help-block">[% locale.maketext('Provide the legally-registered name for your business. If your company name includes symbols other than a period or comma, check with your certificate authority to confirm that they are acceptable.') %]</div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="company_error"></div>
+                        <div id="company_warning"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblCompanyDivision" for="companydivision">[% locale.maketext("Company Division") %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input id="companydivision" type="text" name="companydivision" class="form-control" />
+                        <div class="help-block">[% locale.maketext('Provide the name of the division or group within the above company. If the division includes symbols other than a period or comma, check with your certificate authority to confirm that they are acceptable.') %]</div>
+                    </div>
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <div id="companydivision_error"></div>
+                        <div id="companydivision_warning"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblEmail" for="email">[% locale.maketext("Email") %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                         <input id="email" type="text" name="email" class="form-control" />
+                         <span class="help-block">[% locale.maketext('Provide a valid email address where you can be contacted for verification of domain ownership.') %]</span>
+                    </div>
+                    <div id="email_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblPass" for="pass">[% locale.maketext("Passphrase") %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <input type="text" id="pass" name="pass" class="form-control" />
+                        <span class="help-block">[% locale.maketext('Some certificate authorities may require CSRs to have a passphrase. The certificate authority can use a CSR passphrase to confirm the identity of the person or organization with whom you wish to communicate. CSR passphrases are stored [output,strong,unencrypted] in the CSR. Because of this, and also because you will share this passphrase with a third party, do not use an important password here.') %]</span>
+                    </div>
+                    <div id="pass_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label id="lblFriendlyName" for="friendly_name">[% locale.maketext('Description') %]</label>
+                <div class="row">
+                    <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                        <textarea id="friendly_name" type="text" name="friendly_name" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div id="friendly_name_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <input id="hidItem" type="hidden" name="item" value="csr" />
+                <input id="hidItemname" type="hidden" name="itemname" value="Certificate Signing Request" />
+                <input id="submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Generate") %]"  title="[% locale.maketext('Click to generate the certificate signing request.') %]" />
+            </div>
+        </form>
+    </div>
+
+    [% INCLUDE _assets/return_link.html.tt return_location='index.html' return_link_text=locale.maketext('Return to SSL Manager') %]
+</div><!-- end body-content -->
+[% END #wrapper %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+(function() {
+    /**
+     * This module contains all the page specific constants generated by the server.
+     * @module PAGE.Properties
+     */
+     var PAGE = {
+        properties : {
+            installable_domains: [% JSON.stringify(list_mail_domains.data.ofeach('domain')) -%],
+            has_csr_data: [% has_csr_data ? "true" : "false" %],
+            desiredKey: '[% FORM.selkey %]'
+        },
+        lexicon : {
+
+        }
+     };
+     // Publish the PAGE object;
+     window["PAGE"] = PAGE;
+}());
+
+[% SET lexicon = {
+    '[numf,_1] of the [numerate,_2,domain,domains] that you have entered [numerate,_1,is a domain,are domains] that you do not control.' => locale.lextext('[numf,_1] of the [numerate,_2,domain,domains] that you have entered [numerate,_1,is a domain,are domains] that you do not control.'),
+    'Choose a country.' => locale.lextext('Choose a country.'),
+    'Domain' => locale.lextext('Domain'),
+    'ForwarderEmailNotEmpty' => locale.maketext('The “[_1]” field cannot be left blank.', locale.maketext('Email')),
+    'Private Key' => locale.lextext('Private Key'),
+    'Processing …' => locale.maketext('Processing …'),
+    'SSLCity' => locale.lextext('City'),
+    'SSLCoDivision' => locale.lextext('Company Division'),
+    'SSLCompany' => locale.lextext('Company'),
+    'SSLCountry' => locale.lextext('Country'),
+    'SSLEmail' => locale.lextext('Email'),
+    'SSLPassPhrase' => locale.lextext('Passphrase'),
+    'SSLState' => locale.lextext('State'),
+    'The certificate signing request passphrase can contain only alphanumeric characters.' => locale.lextext('The certificate signing request passphrase can contain only alphanumeric characters.'),
+    'The certificate signing request passphrase must be at least [quant,_1,character,characters] long.' => locale.lextext('The certificate signing request passphrase must be at least [quant,_1,character,characters] long.'),
+    'The passphrase must be no longer than [quant,_1,character,characters].' => locale.lextext('The passphrase must be no longer than [quant,_1,character,characters].'),
+    'This field should only contain letters, numbers, and basic punctuation (e.g., period, dash, space, underscore, comma).' => locale.lextext('This field should only contain letters, numbers, and basic punctuation (e.g., period, dash, space, underscore, comma).'),
+    'ValidatorCity' => locale.maketext('The “[_1]” field cannot be left blank.', locale.maketext('City')),
+    'ValidatorCompany' => locale.maketext('The “[_1]” field cannot be left blank.', locale.maketext('Company')),
+    'ValidatorCompanyDiv' => locale.maketext('The “[_1]” field cannot be left blank.', locale.maketext('Company Division')),
+    'ValidatorEmailFormat' => locale.lextext('Please use an email format (for example: [asis,user@example.com]).'),
+    'ValidatorState' => locale.maketext('The “[_1]” field cannot be left blank.', locale.maketext('State')),
+    'You can only enter valid domains.' => locale.lextext('You can only enter valid domains.'),
+    'You do not control this domain.' => locale.lextext('You do not control this domain.'),
+} -%]
+
+YAHOO.lang.augmentObject( LOCALE.LEXICON, [% lexicon.json() %] );
+
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('sharedjs/form_submit_handler_optimized.js');
+    INSERT $lex_path IF lex_path;
+    INSERT 'sharedjs/form_submit_handler_optimized.js';
+%]
+[% INSERT "sharedjs/ssl_optimized.js" %]
+[% INSERT 'cjt/ssl-min.js' %]
+[%
+    SET lex_path = CPANEL.get_js_lex_app_rel_path('js2/ssl/csrs.js');
+    INSERT $lex_path IF lex_path;
+    INSERT 'js2/ssl/csrs.js';
+%]
+</script>
+[% PROCESS _assets/_ajaxapp_footer.html.tt -%]
+[% END %]
