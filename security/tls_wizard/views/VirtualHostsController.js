@@ -33,7 +33,24 @@ define(
 
         var app = angular.module("App");
 
-        function VirtualHostsController($rootScope, $scope, $controller, $location, $filter, $timeout, $sce, $routeParams, $window, CertificatesService, IdVerDefaults, SpinnerAPI, growl, COUNTRIES, LocationService, SearchSettingsModel) {
+        function VirtualHostsController(
+            $rootScope,
+            $scope,
+            $controller,
+            $location,
+            $filter,
+            $timeout,
+            $sce,
+            $routeParams,
+            $window,
+            CertificatesService,
+            IdVerDefaults,
+            SpinnerAPI,
+            growl,
+            COUNTRIES,
+            LocationService,
+            SearchSettingsModel,
+            alertService) {
 
             $scope.show_introduction_block = CertificatesService.show_introduction_block;
 
@@ -53,29 +70,29 @@ define(
 
             $scope.COUNTRIES = COUNTRIES;
 
-            var identity_verification = {};
-            $scope.identity_verification = identity_verification;
+            var identityVerification = {};
+            $scope.identity_verification = identityVerification;
 
-            var saved_idver = CertificatesService.get_stored_extra_settings().advanced_identity_verification;
+            var savedIDVer = CertificatesService.get_stored_extra_settings().advanced_identity_verification;
 
             for (var vh = 0; vh < $scope.virtual_hosts.length; vh++) {
-                var vh_name = $scope.virtual_hosts[vh].get_display_name();
+                var vHostName = $scope.virtual_hosts[vh].get_display_name();
 
-                identity_verification[vh_name] = {};
+                identityVerification[vHostName] = {};
 
-                if (saved_idver && saved_idver[vh_name]) {
-                    IdVerDefaults.restore_previous(identity_verification[vh_name], saved_idver[vh_name]);
+                if (savedIDVer && savedIDVer[vHostName]) {
+                    IdVerDefaults.restore_previous(identityVerification[vHostName], savedIDVer[vHostName]);
                 } else {
-                    IdVerDefaults.set_defaults(identity_verification[vh_name]);
+                    IdVerDefaults.set_defaults(identityVerification[vHostName]);
                 }
             }
 
             // reset on visit to purchase certs
-            angular.forEach($scope.virtual_hosts, function(virtual_host) {
-                virtual_host.reset();
+            angular.forEach($scope.virtual_hosts, function(virtualHost) {
+                virtualHost.reset();
 
                 /* don't show wildcards in this interface */
-                virtual_host.show_wildcards = false;
+                virtualHost.show_wildcards = false;
             });
 
             /* to reset after reset */
@@ -89,7 +106,7 @@ define(
                 return !vhost.display_name.match(/^\*\./);
             });
 
-            var default_search_values = {
+            var defaultSearchValues = {
                 "certTerms": {
                     "1_year": true,
                     "2_year": false,
@@ -97,7 +114,7 @@ define(
                 }
             };
 
-            $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), default_search_values);
+            $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), defaultSearchValues);
 
             $scope.filter_products = function() {
 
@@ -119,7 +136,7 @@ define(
                 $scope.slow_scroll_to_top();
             };
 
-            var build_steps = ["domains", "providers", "cert-info"];
+            var buildSteps = ["domains", "providers", "cert-info"];
             var qaFilter = $filter("qaSafeID");
 
             $scope.get_cart_certs_title = function() {
@@ -131,33 +148,33 @@ define(
                 return LOCALE.maketext("[output,strong,Showing] [numf,_1] of [quant,_2,website,websites]", vhosts.length, $scope.get_virtual_hosts().length);
             };
 
-            $scope.get_domains_showing_text = function(virtual_host) {
-                var num_start = 1 + virtual_host.display_meta.start;
-                var num_limit = virtual_host.display_meta.limit;
-                var num_of = virtual_host.get_domain_count(true);
-                return LOCALE.maketext("[output,strong,Showing] [numf,_1] - [numf,_2] of [quant,_3,domain,domains].", num_start, num_limit, num_of);
+            $scope.get_domains_showing_text = function(virtualHost) {
+                var numStart = 1 + virtualHost.display_meta.start;
+                var numLimit = virtualHost.display_meta.limit;
+                var numOf = virtualHost.get_domain_count(true);
+                return LOCALE.maketext("[output,strong,Showing] [numf,_1] - [numf,_2] of [quant,_3,domain,domains].", numStart, numLimit, numOf);
             };
 
-            $scope.deselect_unresolved_msg = function(virtual_host) {
-                var unresolved_count = virtual_host.get_selected_domains().filter(function(domain) {
+            $scope.deselect_unresolved_msg = function(virtualHost) {
+                var unresolvedCount = virtualHost.get_selected_domains().filter(function(domain) {
                     return domain.resolved === 0;
                 }).length;
-                return LOCALE.maketext("Deselect all unresolved domains ([numf,_1]).", unresolved_count);
+                return LOCALE.maketext("Deselect all unresolved domains ([numf,_1]).", unresolvedCount);
             };
 
-            $scope.go_to_pending = function(order_item_id) {
-                if (order_item_id) {
-                    $location.path("/pending-certificates/" + order_item_id);
+            $scope.go_to_pending = function(orderItemID) {
+                if (orderItemID) {
+                    $location.path("/pending-certificates/").search("orderItemID", orderItemID);
                 } else {
                     $location.path("/pending-certificates");
                 }
             };
 
-            $scope.pending_certificate = function(virtual_host) {
+            $scope.pending_certificate = function(virtualHost) {
                 var result = false;
                 angular.forEach($scope.pending_certificates, function(pcert) {
-                    angular.forEach(pcert.vhost_names, function(vhost_name) {
-                        if (vhost_name === virtual_host.display_name) {
+                    angular.forEach(pcert.vhost_names, function(vhostName) {
+                        if (vhostName === virtualHost.display_name) {
                             result = pcert.order_item_id;
                         }
                     });
@@ -165,56 +182,56 @@ define(
                 return result;
             };
 
-            $scope.get_certpanel_class = function(virtual_host) {
-                if (!$scope.pending_certificate(virtual_host)) {
+            $scope.get_certpanel_class = function(virtualHost) {
+                if (!$scope.pending_certificate(virtualHost)) {
                     return "panel-primary";
                 } else {
                     return "panel-default";
                 }
             };
 
-            $scope.view_pending_certificate = function(virtual_host) {
-                var order_item_id = $scope.pending_certificate(virtual_host);
-                $scope.go_to_pending(order_item_id);
+            $scope.view_pending_certificate = function(virtualHost) {
+                var orderItemID = $scope.pending_certificate(virtualHost);
+                $scope.go_to_pending(orderItemID);
             };
 
-            $scope.get_currency_string = function(num, price_unit) {
+            $scope.get_currency_string = function(num, priceUnit) {
                 num += 0.001;
                 var str = LOCALE.numf(num);
                 str = "$" + str.substring(0, str.length - 1);
-                if (price_unit) {
-                    str += " " + price_unit;
+                if (priceUnit) {
+                    str += " " + priceUnit;
                 }
                 return str;
             };
 
             $scope.get_virtual_hosts = function() {
-                var virtual_hosts = $scope.virtual_hosts;
+                var virtualHosts = $scope.virtual_hosts;
                 if ($scope.filterValue) {
-                    virtual_hosts = $filter("filter")(virtual_hosts, $scope.filterValue);
+                    virtualHosts = $filter("filter")(virtualHosts, $scope.filterValue);
                 }
                 if ($scope.checkout_mode) {
-                    virtual_hosts = $filter("filter")(virtual_hosts, {
+                    virtualHosts = $filter("filter")(virtualHosts, {
                         added_to_cart: true
                     });
                 }
-                return virtual_hosts;
+                return virtualHosts;
             };
 
-            $scope.get_virtual_host_classes = function(virtual_host) {
+            $scope.get_virtual_host_classes = function(virtualHost) {
                 return {
                     "col-lg-4": $scope.virtual_hosts.length > 2,
                     "col-lg-6": $scope.virtual_hosts.length <= 2,
-                    "panel-success": virtual_host.is_ssl
+                    "panel-success": virtualHost.is_ssl
                 };
             };
 
-            $scope.get_step_panel_classes = function(virtual_host, current) {
+            $scope.get_step_panel_classes = function(virtualHost, current) {
                 var classes = ["col-sm-12", "col-xs-12"];
 
                 // add step type specific classes
 
-                if ($scope.working_virtual_host === virtual_host.display_name) {
+                if ($scope.working_virtual_host === virtualHost.display_name) {
                     classes.push("col-md-4");
                     classes.push("col-lg-4");
                 } else {
@@ -232,8 +249,8 @@ define(
 
             $scope.get_cart_price = function() {
                 var price = 0;
-                angular.forEach($scope.get_cart_items(), function(virtual_host) {
-                    price += virtual_host.get_price();
+                angular.forEach($scope.get_cart_items(), function(virtualHost) {
+                    price += virtualHost.get_price();
                 });
                 return price;
             };
@@ -253,13 +270,13 @@ define(
                 return [];
             };
 
-            $scope.get_step = function(virtual_host) {
-                return virtual_host.get_step();
+            $scope.get_step = function(virtualHost) {
+                return virtualHost.get_step();
             };
 
-            $scope.go_step = function(virtual_host, step) {
-                if ($scope.can_step(virtual_host, step)) {
-                    return virtual_host.go_step(step);
+            $scope.go_step = function(virtualHost, step) {
+                if ($scope.can_step(virtualHost, step)) {
+                    return virtualHost.go_step(step);
                 }
             };
 
@@ -268,19 +285,23 @@ define(
                 // $scope.working_virtual_host = virtual_host.display_name;
             };
 
-            $scope.check_selected_domains = function(virtual_host) {
+            $scope.check_selected_domains = function(virtualHost) {
                 if ($scope.resolution_timeout) {
                     $timeout.cancel($scope.resolution_timeout);
                 }
-                if (virtual_host && virtual_host.added_to_cart) {
-                    var domains = $filter("filter")(virtual_host.get_selected_domains(), function(domain) {
+                if (virtualHost && virtualHost.added_to_cart) {
+                    var domains = $filter("filter")(virtualHost.get_selected_domains(), function(domain) {
                         if (domain.resolved !== 1) {
                             return true;
                         }
                     });
                     if (domains.length) {
-                        growl.warning(LOCALE.maketext("You have altered an item in your cart. The system has removed that item. After you make the necessary changes, add that item back to your cart."));
-                        $scope.remove_from_cart(virtual_host);
+                        alertService.add({
+                            type: "danger",
+                            message: LOCALE.maketext("You have altered an item in your cart. The system has removed that item. After you make the necessary changes, add that item back to your cart."),
+                            group: "tlsWizard"
+                        });
+                        $scope.remove_from_cart(virtualHost);
                     }
                 }
                 $scope.resolution_timeout = $timeout(function(domains) {
@@ -310,15 +331,15 @@ define(
                     domain.resolving = true;
                     SpinnerAPI.start($scope.get_spinner_id(domain.domain));
                 });
-                var provider_name = $scope.get_current_or_default_provider();
-                return CertificatesService.ensure_domains_can_pass_dcv(domains, provider_name).finally(function() {
-                    var to_focus_element;
+                var providerName = $scope.get_current_or_default_provider();
+                return CertificatesService.ensure_domains_can_pass_dcv(domains, providerName).finally(function() {
+                    var toFocusElement;
                     angular.forEach(domains, function(domain) {
                         if (domain.resolved === 0 && domain.selected) {
 
                             /* checked domain doesn't resolve */
-                            var vhost_index = CertificatesService.get_virtual_host_by_display_name(domain.vhost_name);
-                            var vhost = $scope.virtual_hosts[vhost_index];
+                            var vhostIndex = CertificatesService.get_virtual_host_by_display_name(domain.vhost_name);
+                            var vhost = $scope.virtual_hosts[vhostIndex];
                             if (vhost && vhost.get_step() === "providers") {
 
                                 /* if we are on the providers section, send them back to the domains section to see errors */
@@ -326,12 +347,12 @@ define(
 
                                 /* set focus to top domain in domains list */
                                 var element = $window.document.getElementById($scope.get_domain_id(domain));
-                                if (element && !to_focus_element) {
+                                if (element && !toFocusElement) {
 
                                     /* only focus first element */
-                                    to_focus_element = element;
+                                    toFocusElement = element;
                                     $timeout(function() {
-                                        to_focus_element.focus();
+                                        toFocusElement.focus();
                                     });
                                 }
                             }
@@ -341,31 +362,31 @@ define(
                 });
             };
 
-            $scope.get_domain_id = function(domain_obj) {
-                return qaFilter(domain_obj.vhost_name + "_" + domain_obj.domain);
+            $scope.get_domain_id = function(domainObject) {
+                return qaFilter(domainObject.vhost_name + "_" + domainObject.domain);
             };
 
-            $scope.check_product_match = function(product_a, product_b) {
-                if (!product_a || !product_b) {
+            $scope.check_product_match = function(productA, productB) {
+                if (!productA || !productB) {
                     return false;
                 }
-                if (product_a.id === product_b.id && product_a.provider === product_b.provider) {
+                if (productA.id === productB.id && productA.provider === productB.provider) {
                     return true;
                 }
             };
 
-            $scope.can_step = function(virtual_host, step) {
-                if (step === build_steps[0]) {
+            $scope.can_step = function(virtualHost, step) {
+                if (step === buildSteps[0]) {
                     return true;
-                } else if (step === build_steps[1]) {
+                } else if (step === buildSteps[1]) {
 
                     // providers
                     /* can progress if domains are selected, after they are resolved they user is kicked back to domains if there is an error */
-                    return virtual_host.get_selected_domains().length ? true : false;
-                } else if (step === build_steps[2]) {
+                    return virtualHost.get_selected_domains().length ? true : false;
+                } else if (step === buildSteps[2]) {
 
                     // cert-info
-                    var product = virtual_host.get_product();
+                    var product = virtualHost.get_product();
                     if (!product) {
                         return false;
                     }
@@ -380,35 +401,35 @@ define(
                 return false;
             };
 
-            $scope.get_product_by_id = function(provider_name, product_id) {
-                return CertificatesService.get_product_by_id(provider_name, product_id);
+            $scope.get_product_by_id = function(providerName, productID) {
+                return CertificatesService.get_product_by_id(providerName, productID);
             };
 
-            $scope.can_next_step = function(virtual_host) {
-                var current_step = virtual_host.get_step();
-                var next_step;
-                angular.forEach(build_steps, function(step, index) {
-                    if (step === current_step) {
-                        next_step = build_steps[index + 1];
+            $scope.can_next_step = function(virtualHost) {
+                var currentStep = virtualHost.get_step();
+                var nextStep;
+                angular.forEach(buildSteps, function(step, index) {
+                    if (step === currentStep) {
+                        nextStep = buildSteps[index + 1];
                     }
                 });
 
-                return $scope.can_step(virtual_host, next_step);
+                return $scope.can_step(virtualHost, nextStep);
 
             };
 
-            $scope.next_step = function(virtual_host) {
-                var current_step = virtual_host.get_step();
-                var next_step;
-                angular.forEach(build_steps, function(step, index) {
-                    if (step === current_step) {
-                        next_step = build_steps[index + 1];
+            $scope.next_step = function(virtualHost) {
+                var currentStep = virtualHost.get_step();
+                var nextStep;
+                angular.forEach(buildSteps, function(step, index) {
+                    if (step === currentStep) {
+                        nextStep = buildSteps[index + 1];
                     }
                 });
 
-                if ($scope.can_step(virtual_host, next_step)) {
-                    $scope.focus_virtual_host(virtual_host);
-                    virtual_host.go_step(next_step);
+                if ($scope.can_step(virtualHost, nextStep)) {
+                    $scope.focus_virtual_host(virtualHost);
+                    virtualHost.go_step(nextStep);
                 }
             };
 
@@ -428,8 +449,8 @@ define(
                 virtualHost.set_product(product);
             };
 
-            $scope.all_domains_resolved = function(virtual_host) {
-                var domains = virtual_host.get_selected_domains();
+            $scope.all_domains_resolved = function(virtualHost) {
+                var domains = virtualHost.get_selected_domains();
 
                 domains = $filter("filter")(domains, function(domain) {
                     if (domain.resolved !== 1) {
@@ -447,8 +468,8 @@ define(
                 return true;
             };
 
-            $scope.can_add_to_cart = function(virtual_host) {
-                var product = virtual_host.get_product();
+            $scope.can_add_to_cart = function(virtualHost) {
+                var product = virtualHost.get_product();
                 if (!product) {
                     return false;
                 }
@@ -463,16 +484,19 @@ define(
 
             };
 
-            $scope.add_to_cart = function(virtual_host) {
-                if (!$scope.can_add_to_cart(virtual_host) || !$scope.all_domains_resolved(virtual_host)) {
+            $scope.add_to_cart = function(virtualHost) {
+                if (!$scope.can_add_to_cart(virtualHost) || !$scope.all_domains_resolved(virtualHost)) {
                     return false;
                 }
-                virtual_host.added_to_cart = true;
-                virtual_host.go_step("added-to-cart");
+                virtualHost.added_to_cart = true;
+                virtualHost.go_step("added-to-cart");
 
-                virtual_host.set_identity_verification($scope.identity_verification[virtual_host.display_name]);
+                virtualHost.set_identity_verification($scope.identity_verification[virtualHost.display_name]);
 
                 $scope.working_virtual_host = null;
+
+                // REFACTOR:: Should find a way to do this with CJT2/alertService and remove
+                // growl usage here.
                 if ($rootScope.addToCartGrowl) {
                     $rootScope.addToCartGrowl.ttl = 0;
                     $rootScope.addToCartGrowl = null;
@@ -498,12 +522,12 @@ define(
 
             };
 
-            $scope.get_virtual_host_certificate = function(virtual_host) {
-                return CertificatesService.get_virtual_host_certificate(virtual_host);
+            $scope.get_virtual_host_certificate = function(virtualHost) {
+                return CertificatesService.get_virtual_host_certificate(virtualHost);
             };
 
-            $scope.build_csr_url = function(virtual_host) {
-                var ihost = $scope.get_virtual_host_certificate(virtual_host);
+            $scope.build_csr_url = function(virtualHost) {
+                var ihost = $scope.get_virtual_host_certificate(virtualHost);
                 if (ihost && ihost.certificate) {
                     var url = "";
                     url += "../../ssl/install.html?id=";
@@ -512,8 +536,8 @@ define(
                 }
             };
 
-            $scope.get_existing_certificate_name = function(virtual_host) {
-                var ihost = $scope.get_virtual_host_certificate(virtual_host);
+            $scope.get_existing_certificate_name = function(virtualHost) {
+                var ihost = $scope.get_virtual_host_certificate(virtualHost);
 
                 var name;
                 if (ihost && ihost.certificate) {
@@ -535,8 +559,8 @@ define(
                 return name;
             };
 
-            $scope.get_domain_lock_classes = function(virtual_host) {
-                var ihost = $scope.get_virtual_host_certificate(virtual_host);
+            $scope.get_domain_lock_classes = function(virtualHost) {
+                var ihost = $scope.get_virtual_host_certificate(virtualHost);
                 if (ihost && ihost.certificate) {
                     if (ihost.certificate.is_self_signed) {
                         return "grey-padlock";
@@ -546,13 +570,13 @@ define(
                 }
             };
 
-            $scope.remove_from_cart = function(virtual_host) {
+            $scope.remove_from_cart = function(virtualHost) {
                 if ($rootScope.addToCartGrowl) {
                     $rootScope.addToCartGrowl.ttl = 0;
                     $rootScope.addToCartGrowl.destroy();
                     $rootScope.addToCartGrowl = null;
                 }
-                virtual_host.added_to_cart = false;
+                virtualHost.added_to_cart = false;
             };
 
             $scope.go_to_simple = function() {
@@ -570,11 +594,15 @@ define(
                 }
 
                 var success = CertificatesService.save({
-                    advanced_identity_verification: identity_verification,
+                    advanced_identity_verification: identityVerification,
                 });
 
                 if (!success) {
-                    growl.error(LOCALE.maketext("Failed to save information to browser cache."));
+                    alertService.add({
+                        type: "danger",
+                        message: LOCALE.maketext("Failed to save information to browser cache."),
+                        group: "tlsWizard"
+                    });
                 } else {
                     $location.path("/purchase");
                 }
@@ -596,7 +624,27 @@ define(
 
         }
 
-        app.controller("VirtualHostsController", ["$rootScope", "$scope", "$controller", "$location", "$filter", "$timeout", "$sce", "$routeParams", "$window", "CertificatesService", "IdVerDefaults", "spinnerAPI", "growl", "CountriesService", "LocationService", "SearchSettingsModel", VirtualHostsController]);
+        app.controller("VirtualHostsController",
+            [
+                "$rootScope",
+                "$scope",
+                "$controller",
+                "$location",
+                "$filter",
+                "$timeout",
+                "$sce",
+                "$routeParams",
+                "$window",
+                "CertificatesService",
+                "IdVerDefaults",
+                "spinnerAPI",
+                "growl",
+                "CountriesService",
+                "LocationService",
+                "SearchSettingsModel",
+                "alertService",
+                VirtualHostsController
+            ]);
 
 
     });

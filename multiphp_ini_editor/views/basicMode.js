@@ -27,8 +27,8 @@ define(
 
         var controller = app.controller(
             "basicMode",
-            ["$scope", "$location", "configService", "$routeParams", "$timeout", "spinnerAPI", "alertService", "growl", "growlMessages",
-                function($scope, $location, configService, $routeParams, $timeout, spinnerAPI, alertService, growl, growlMessages) {
+            ["$scope", "$location", "configService", "$routeParams", "$timeout", "spinnerAPI", "alertService", "growl",
+                function($scope, $location, configService, $routeParams, $timeout, spinnerAPI, alertService, growl) {
 
                     // Setup data structures for the view
                     var iniUserPaths = []; // This will contain all data about INI paths.
@@ -57,7 +57,7 @@ define(
                     $scope.loadDirectives = function() {
 
                         // Destroy all growls before attempting to submit something.
-                        growlMessages.destroyAllMessages();
+                        alertService.clear();
 
                         if ($scope.selectedIniPath.type) {
                             spinnerAPI.start("loadingSpinner");
@@ -107,11 +107,23 @@ define(
                                                     return item;
                                                 });
                                             }, function(error) {
-                                                growl.error(error);
+                                                alertService.add({
+                                                    type: "danger",
+                                                    message: error,
+                                                    closeable: true,
+                                                    replace: false,
+                                                    group: "multiphpIniEditor"
+                                                });
                                             });
                                     }
                                 }, function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "multiphpIniEditor"
+                                    });
                                 })
                                 .then(function() {
                                     $scope.loadingDirectiveList = false;
@@ -130,6 +142,8 @@ define(
                     var informUser = function() {
                         if (!alreadyInformed) {
                             alreadyInformed = true;
+
+                            // TODO: Replace this info growl with alert service.
                             growl.info(LOCALE.maketext("You must click “[_1]” to apply the new changes.", LOCALE.maketext("Apply")),
                                 {
                                     ttl: -1,
@@ -195,7 +209,7 @@ define(
                         if ($scope.basicModeForm.$valid) {
 
                             // Destroy all growls before attempting to submit something.
-                            growlMessages.destroyAllMessages();
+                            alertService.clear();
                             alreadyInformed = false;
                             if ( typeof infoGrowlHandle !== "undefined" ) {
                                 infoGrowlHandle.destroy();
@@ -204,7 +218,14 @@ define(
                                 .then(
                                     function(data) {
                                         if (data !== undefined) {
-                                            growl.success(LOCALE.maketext("Successfully applied the settings."));
+                                            alertService.add({
+                                                type: "success",
+                                                message: LOCALE.maketext("Successfully applied the settings."),
+                                                closeable: true,
+                                                replace: false,
+                                                autoClose: 10000,
+                                                group: "multiphpIniEditor"
+                                            });
                                         }
                                     }, function(error) {
 
@@ -212,7 +233,13 @@ define(
                                         // CJT2/uapi.js->find_messages() again applies escape() to the text.
                                         // This is causing issue EA-3862. Removing escape() in uapi.js may break any existing stuff.
                                         // So applying a hack here specific to this API.
-                                        growl.error(_.unescape(error));
+                                        alertService.add({
+                                            type: "danger",
+                                            message: _.unescape(error),
+                                            closeable: true,
+                                            replace: false,
+                                            group: "multiphpIniEditor"
+                                        });
                                     });
                         }
                     };
@@ -248,7 +275,7 @@ define(
                                     $scope.iniPathNames.push({ type: iniPath.type, name: iniPath.vhost });
                                 } else if (iniPath.main_domain) {
 
-                                // Save the Primary Domain name
+                                    // Save the Primary Domain name
                                     mainDomainName = iniPath.vhost;
                                 }
                             });
@@ -270,7 +297,7 @@ define(
                     $scope.$on("$viewContentLoaded", function() {
 
                         // Destroy all growls before attempting to submit something.
-                        growlMessages.destroyAllMessages();
+                        alertService.clear();
 
                         var phpIniData = PAGE.php_ini_data;
                         $scope.localeIsRTL = PAGE.locale_is_RTL ? true : false;
@@ -283,12 +310,11 @@ define(
                                 alertService.add({
                                     type: "danger",
                                     message: error,
-                                    id: "alertMessages",
                                     replace: false,
-                                    closeable: true
+                                    closeable: true,
+                                    group: "multiphpIniEditor"
                                 });
                             });
-                            growl.error(LOCALE.maketext("Errors occurred while retrieving the [asis,PHP INI] locations."));
                         } else {
 
                             // Bind PHP INI Files specific to dropdown

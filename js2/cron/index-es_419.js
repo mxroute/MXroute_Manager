@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"AJAX Error":"AJAX Error","Error":"Error","JSON parse failed.":"JSON parse failed.","Loading …":"Cargando...","Please refresh the page and try again.":"Please refresh the page and try again.","less »":"less »"};
+    var newLex = {"AJAX Error":"Error AJAX","Error":"Error","JSON parse failed.":"Error en el análisis JSON.","Loading …":"Cargando...","Please refresh the page and try again.":"Actualice la página y vuelva a intentarlo.","less »":"menos »"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

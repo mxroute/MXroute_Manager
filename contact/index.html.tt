@@ -16,7 +16,7 @@
     page_scripts = scripts
 %]
 
-[% IF CPANEL.feature("updatecontact") && !ExpVar.expand('$isarchiveuser') %]
+[% IF (CPANEL.feature('updatenotificationprefs') || CPANEL.feature("updatecontact")) && !ExpVar.expand('$isarchiveuser') %]
     [% IF CPANEL.appname != "webmail" || CPANEL.authuser == CPANEL.user %]
         [% Api1.exec("include", ["contact_validator.html.tt"]) %]
     [% END %]

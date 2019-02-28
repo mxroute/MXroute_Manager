@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"A problem has occurred: [_1]":"A problem has occurred: [_1]","The form has returned [quant,_1,error,errors]":"The form has returned [quant,_1,error,errors]"};
+    var newLex = {"A problem has occurred: [_1]":"出现以下问题: [_1]","The form has returned [quant,_1,error,errors]":"表单已返回 [quant,_1,个错误,个错误]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

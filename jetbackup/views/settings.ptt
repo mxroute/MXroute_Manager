@@ -1,0 +1,55 @@
+<div ng-if="PERMS.canViewSettings == false">
+	<ng-include src="'views/permissionserror.ptt'"></ng-include>
+</div>
+<div ng-if="PERMS.canViewSettings">
+    <div ng-controller="settings" class="section">
+        <div class="section">
+            <form id="settingsForm" name="settingsForm" novalidate>
+                <div class="form-group">
+                    <label id="lblSettings" for="email">{{ LOCALE.maketext("Email Address") }}</label>
+                    <div class="row">
+                        <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                            <input id="email" name="email"
+                                type="text"
+                                title="{{ LOCALE.maketext('Email Address') }}"
+                                ng-disabled="!PERMS.canManageSettings"
+                                class="form-control"
+                                size="64"
+                                ng-model="settings.email"
+                                value="settings.email"
+                                required
+                                maxlength="64"
+                                email-allowed-chars
+                                email-fulllength="254"
+                                placeholder="{{ LOCALE.maketext('Enter your Email Address') }}"
+                                />
+                            <p class="help-block">{{LOCALE.maketext("Enter your email and we will send a notification when the action you have selected is completed.")}}</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="row add-spacing-after" ng-show="PERMS.canManageSettings">
+                    <div class="col-xs-12 col-sm-6">
+                        <div class="row">
+                            <div class="col-xs-12 col-sm-5 col-md-4 col-lg-3">
+                                <button id="save"
+                                    class="btn btn-primary"
+                                    type="submit"
+                                    cp-action="saveChanges()"
+                                    spinner-id="spinnerSaveChanges">{{ LOCALE.maketext("Save Settings") }}</button>
+                            </div>
+                            <div class="col-xs-12 col-sm-7 col-md-8 col-lg-9 status-bar" ng-if="saveChangesStatus">
+                                <cp-alert ng-model="saveChangesStatus" on-close="clearStatus()" auto-close="saveChangesStatus.closeable ? saveChangesStatus.ttl : null"></cp-alert>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    <div class="return-link">
+        <a id="lnkReturn" href="" ng-click="changeView('/')">
+            <span class="glyphicon glyphicon-circle-arrow-left"></span>
+            {{ LOCALE.maketext("Go Back") }}
+        </a>
+    </div>
+</div>

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]"};
+    var newLex = {"Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"Mostrando [numf,_1] a [numf,_2] de [quant,_3,Artículo ,Artículos ]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

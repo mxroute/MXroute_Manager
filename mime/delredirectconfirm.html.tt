@@ -10,7 +10,7 @@
         [% locale.maketext("Are you certain that you wish to [output,strong,permanently] remove the redirect “[output,inline,_1,class,status]” on “[output,inline,_2,class,status]”?", redirect_info.data.url.html, redirect_info.data.domain.html ) %]
     </p>
     <p>
-        <a id="btnRemoveConfirm" class="btn btn-primary" href="delredirect.html?docroot=[% RAW_FORM.docroot FILTER uri %]&domain=[% RAW_FORM.domain FILTER uri %]&path=[% RAW_FORM.path FILTER uri %]">[% locale.maketext('Remove Redirect') %]</a>
+        <a id="btnRemoveConfirm" class="btn btn-primary" href="delredirect.html?docroot=[% RAW_FORM.docroot FILTER uri %]&domain=[% RAW_FORM.domain FILTER uri %]&path=[% RAW_FORM.path FILTER uri %]&args=[% RAW_FORM.args FILTER uri %]">[% locale.maketext('Remove Redirect') %]</a>
         <a id="btnCancel"
             class="btn btn-link"
             href="redirect.html">

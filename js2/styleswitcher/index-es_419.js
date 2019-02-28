@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Applying styles and reloading the page.":"Applying styles and reloading the page.","Setting default style and reloading the page …":"Setting default style and reloading the page …","[output,strong,Error]: The system failed to apply the style you selected.":"[output,strong,Error]: The system failed to apply the style you selected.","[output,strong,Error]: The system failed to set the default style.":"[output,strong,Error]: The system failed to set the default style."};
+    var newLex = {"Applying styles and reloading the page.":"Aplicando estilos y recargando la página.","Setting default style and reloading the page …":"Estableciendo el estilo predeterminado y volviendo a cargar la página …","[output,strong,Error]: The system failed to apply the style you selected.":"[output,strong,Error]: El sistema no pudo aplicar el estilo que seleccionó.","[output,strong,Error]: The system failed to set the default style.":"[output,strong,Error]: El sistema no pudo establecer el estilo predeterminado."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

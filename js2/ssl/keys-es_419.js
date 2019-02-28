@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"A key that does not use at least [numf,_1]-bit encryption does not provide adequate security.":"A key that does not use at least [numf,_1]-bit encryption does not provide adequate security."};
+    var newLex = {"A key that does not use at least [numf,_1]-bit encryption does not provide adequate security.":"Una clave que no usa una codificación de al menos [numf,_1] bits no proporciona suficiente seguridad."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

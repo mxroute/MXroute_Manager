@@ -1,0 +1,51 @@
+<tbody>
+    <tr ng-repeat="domain in getDomains() track by domain.domain" id="{{domain.domain}}" class="domain-lister-view no-animate">
+        <td data-title="{{ :: headerItems[0].label }}" id="{{domain.domain}}_domain">
+            <span id="{{domain.domain}}_domain_link" class="btn no-animate" ng-if="domain.isWildcard"  disable="disabled">
+                {{ :: domain.domain }}
+            </span>
+            <a id="{{domain.domain}}_domain_link"
+                class="btn btn-link cutoff_with_ellipses no-animate"
+                title="[% locale.maketext('Click to display the “[_1]” website.', '{{ domain.domain }}') %]"
+                ng-if="!domain.isWildcard"
+                ng-href="{{ domain.protocol }}://{{ :: domain.domain }}"
+                target="_blank">
+                    <span title="[% locale.maketext('This is “[_1]”’s associated subdomain.', '{{ :: domain.associatedAddonDomain.domain || domain.associatedAddonDomain }}') %]" aria-hidden="true">
+                        <i ng-if="domain.associatedAddonDomain" class="fas fa-link"></i>
+                    </span>
+                    {{ :: domain.domain }}
+                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+            </a>
+            <span ng-if="domain.type === DOMAIN_TYPE_CONSTANTS.MAIN" class="label label-info no-animate">[% locale.maketext('Main Domain') %]</span>
+        </td>
+        <td ng-if="webserverRoleAvailable" data-title="{{ :: headerItems[1].label }}" id="{{domain.domain}}_documentRoot" class="col-md-3">
+            <docroot id="{{domain.domain}}_documentRoot_docroot" docroot="{{ domain.documentRoot }}" homedir="{{ :: domain.homedir }}"></docroot>
+        </td>
+        <td data-title="{{ :: headerItems[2].label }}" id="{{domain.domain}}_redirect">
+            <a id="{{ :: domain.domain}}_redirect_link" title="[% locale.maketext('Click to display the “[_1]” website.', '{{ domain.redirectsTo }}') %]" ng-if="domain.redirectsTo" class="btn btn-link cutoff_with_ellipses no-animate" ng-href="{{ :: domain.redirectsTo }}" target="_blank">
+                {{ :: domain.redirectsTo }}
+                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+            </a>
+            <p ng-if="!domain.redirectsTo" class="btn" disable="disabled">[% locale.maketext("Not Redirected"); %]</p>
+        </td>
+        <td data-title="{{ :: headerItems[3].label }}" id="{{domain.domain}}_actions" class="domain-lister-view-actions no-animate">
+            <button
+                id="{{ :: domain.domain}}_manage_btn"
+                class="btn btn-link no-animate"
+                ng-click="actionButtonClicked('manage', domain)">
+                <i class="fas fa-wrench" aria-hidden="true"></i>
+                <span>[% locale.maketext('Manage') %]</span>
+            </button>
+            <a
+                id="{{ :: domain.domain}}_createEmail_btn"
+                class="btn btn-link no-animate"
+                ng-if="EMAIL_ACCOUNTS_APP_EXISTS && !domain.isWildcard"
+                ng-href="../email_accounts/index.html#/create?domain={{ :: domain.domain}}"
+                target="_blank">
+                <span>[% locale.maketext('Create Email') %]</span>
+                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+            </a>
+        </td>
+        <td ng-if="showConfigColumn"><!-- for configurations --></td>
+    </tr>
+</tbody>

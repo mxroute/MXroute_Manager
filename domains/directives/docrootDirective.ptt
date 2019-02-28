@@ -1,0 +1,21 @@
+<span>
+    <a
+        ng-if="fileManager"
+        id="{{parentID}}_link"
+        ng-href="{{ :: fileManager.url}}?dir={{ fullDocroot }}"
+        target="{{ :: fileManager.target}}"
+        class="btn btn-link cutoff_with_ellipses no-animate"
+        title="{{ rawDocroot }}" >
+            <span class="fas fa-home fa-lg"></span>
+            /{{ docroot }}
+    </a>
+    <span
+        ng-if="!fileManager"
+        id="{{parentID}}_nolink"
+        class="cutoff_with_ellipses no-animate"
+        title="{{ rawDocroot }}"
+        style="display:inline-block" >
+            <span class="fas fa-home fa-lg"></span>
+            /{{ docroot }}
+    </span>
+</span>

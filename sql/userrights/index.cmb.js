@@ -18,7 +18,11 @@ define(
         "cjt/io/uapi",  // preload
         "cjt/modules",
         "cjt/directives/formWaiting",
-        "cjt/decorators/growlAPIReporter",
+        "cjt/services/alertService",
+        "cjt/directives/alert",
+        "cjt/directives/alertList",
+
+        // "cjt/decorators/growlAPIReporter",
         "uiBootstrap",
         "cjt/services/APICatcher",
     ],
@@ -37,7 +41,8 @@ define(
                     // First create the application
                     var app = angular.module("App", [
                         "cjt2.cpanel",
-                        "cjt2.decorators.growlAPIReporter",
+
+                        // "cjt2.decorators.growlAPIReporter",
                         "ui.bootstrap",
                     ]);
 
@@ -45,8 +50,8 @@ define(
                         "$rootScope",
                         "$scope",
                         "APICatcher",
-                        "growl",
-                        function($rootScope, $scope, api, growl) {
+                        "alertService",
+                        function($rootScope, $scope, api, alertService) {
                             angular.extend(
                                 $scope,
                                 {
@@ -91,7 +96,15 @@ define(
                                                 }
                                             }
 
-                                            growl.success( LOCALE.maketext("You saved “[_1]”’s privileges on the database “[_2]”.", _.escape(CPANEL.PAGE.username), _.escape(CPANEL.PAGE.dbname)) );
+                                            // growl.success( LOCALE.maketext("You saved “[_1]”’s privileges on the database “[_2]”.", _.escape(CPANEL.PAGE.username), _.escape(CPANEL.PAGE.dbname)) );
+                                            alertService.add({
+                                                type: "success",
+                                                message: LOCALE.maketext("You saved “[_1]”’s privileges on the database “[_2]”.", _.escape(CPANEL.PAGE.username), _.escape(CPANEL.PAGE.dbname)),
+                                                closeable: true,
+                                                replace: false,
+                                                autoClose: 10000,
+                                                group: "userrights"
+                                            });
                                         } );
                                     },
                                 }

@@ -864,9 +864,12 @@ html[dir="rtl"] .alert .close {
     vertical-align: middle;
 }
 
-.table > tbody > td.active,
-.table > tbody > tr.active {
-    border-left: 2px solid #323232;
+.table > tbody > tr.active > td:first-child {
+    box-shadow: inset 2px 0 #323232;
+}
+
+html[dir="rtl"] .table > tbody > tr.active > td:first-child {
+    box-shadow: inset -2px 0 #323232;
 }
 
 .table > tbody > tr > td.active,
@@ -875,9 +878,12 @@ html[dir="rtl"] .alert .close {
     color: #323232;
 }
 
-.table > tbody > td.danger,
-.table > tbody > tr.danger {
-    border-left: 2px solid #e74c3c;
+.table > tbody > tr.danger > td:first-child {
+    box-shadow: inset 2px 0 #e74c3c;
+}
+
+html[dir="rtl"] .table > tbody > tr.danger > td:first-child {
+    box-shadow: inset -2px 0 #e74c3c;
 }
 
 .table > tbody > tr > td.danger,
@@ -885,9 +891,12 @@ html[dir="rtl"] .alert .close {
     background-color: #f2dede;
 }
 
-.table > tbody > td.info,
-.table > tbody > tr.info {
-    border-left: 2px solid #2980b9;
+.table > tbody > tr.info > td:first-child {
+    box-shadow: inset 2px 0 #2980b9;
+}
+
+html[dir="rtl"] .table > tbody > tr.info > td:first-child {
+    box-shadow: inset -2px 0 #2980b9;
 }
 
 .table > tbody > tr > td.info,
@@ -895,9 +904,12 @@ html[dir="rtl"] .alert .close {
     background-color: #d7edf9;
 }
 
-.table > tbody > td.success,
-.table > tbody > tr.success {
-    border-left: 2px solid #27ae60;
+.table > tbody > tr.success > td:first-child {
+    box-shadow: inset 2px 0 #27ae60;
+}
+
+html[dir="rtl"] .table > tbody > tr.success > td:first-child {
+    box-shadow: inset -2px 0 #27ae60;
 }
 
 .table > tbody > tr > td.success,
@@ -905,19 +917,17 @@ html[dir="rtl"] .alert .close {
     background-color: #dff2d5;
 }
 
-.table > tbody > td.warning,
-.table > tbody > tr.warning {
-    border-left: 2px solid #f1c40f;
+.table > tbody > tr.warning > td:first-child {
+    box-shadow: inset 2px 0 #f1c40f;
+}
+
+html[dir="rtl"] .table > tbody > tr.warning > td:first-child {
+    box-shadow: inset -2px 0 #f1c40f;
 }
 
 .table > tbody > tr > td.warning,
 .table > tbody > tr.warning > td {
     background-color: #fcf8e1;
-}
-
-.table > tbody > td.emptyrow,
-.table > tbody > tr.emptyrow {
-    border-left: none;
 }
 
 .table th.checkColumn {
@@ -1395,12 +1405,20 @@ html[dir="rtl"] .cjt-dynamic-pagenotice-close-link {
     position: relative;
 }
 
-.validation-error > .glyphicon {
+.validation-error > .glyphicon,
+.validation-error > .fas {
     color: #a94442;
     display: inline-block;
     position: absolute;
-    left: 0;
     top: 4px;
+}
+
+html[dir="ltr"] .validation-error > .glyphicon {
+    left: 0;
+}
+
+html[dir="rtl"] .validation-error > .glyphicon {
+    right: 0;
 }
 
 .validation-message {

@@ -13,6 +13,8 @@
     <div class="body-content"
         ng-controller="BaseController as base"
         class="ng-cloak">
+        <!-- NOTE: leave the alert-group in single quotes -->
+        <cp-alert-list alert-group="'emailExternalAuth'"></cp-alert-list>
         <div ng-view></div>
     </div>
 

@@ -1,0 +1,24 @@
+<div class="form-group">
+    <p ng-if="config.limit_downloads">{{ config.limit_downloads | backupLocaleString:"Note that we are saving only the last “[_1]” downloads in our server. older downloads will be deleted. are you sure you want to download this backup?" }}</p>
+    <p ng-if="!config.limit_downloads">{{ LOCALE.maketext("Are you sure you want to download this backup?") }}</p>
+</div>
+<div class="row" ng-show="backup.require_encryption_key">
+    <div class="col-md-4">
+        <div class="form-group">
+            <div class="input-group" style="margin-top: 5px;">
+                <span class="input-group-addon">{{LOCALE.maketext("Encryption Key")}}</span>
+                <input type="text" value="" class="form-control" ng-model="backup.encryption_key" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="form-group">
+    <button
+        id="backup_table_download_confirm_{{$index}}"
+        type="submit"
+        class="btn btn-primary"
+        spinner-id="spinnerDownloadBackup"
+        cp-action="onClickDownloadConfirm()">{{ LOCALE.maketext("Add to Download Queue") }}</button>
+    <button class="btn btn-link" ng-click="cancelAction()" ng-class="{ 'hide': downloadingBackup }">{{ LOCALE.maketext("Cancel") }}</button>
+</div>
+<div id="download_backup_status_{{index}}"></div>

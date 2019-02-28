@@ -27,7 +27,16 @@ define(
         return function() {
 
             // First create the application
-            angular.module("cpanel.versionControl", ["ngRoute", "ui.bootstrap", "cjt2.cpanel", "cpanel.versionControl.service", "cpanel.services.directoryLookup", "cpanel.versionControl.sseAPIService", "localytics.directives"]);
+            angular.module("cpanel.versionControl", [
+                "ngRoute",
+                "ui.bootstrap",
+                "cjt2.cpanel",
+                "cpanel.versionControl.service",
+                "cpanel.versionControl.sshKeyVerificationService",
+                "cpanel.services.directoryLookup",
+                "cpanel.versionControl.sseAPIService",
+                "localytics.directives",
+            ]);
 
             // Then load the application dependencies
             var app = require(

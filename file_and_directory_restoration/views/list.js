@@ -12,183 +12,153 @@ define(
     [
         "angular",
         "lodash",
+        "cjt/util/table",
         "cjt/util/locale",
-        "cjt/services/cpanel/nvDataService",
+        "cjt/util/parse",
+        "cjt/decorators/paginationDecorator",
+        "cjt/directives/actionButtonDirective",
+        "cjt/validator/datatype-validators",
+        "app/filters/fileSizeFilter",
         "app/services/backupAPI",
-        "app/services/backupTypeService",
-        "uiBootstrap",
         "cjt/services/alertService",
         "cjt/directives/alert",
-        "cjt/directives/alertList"
+        "cjt/directives/alertList",
+        "cjt/services/cpanel/componentSettingSaverService",
     ],
-    function(angular, _, LOCALE) {
+    function(angular, _, Table, LOCALE, PARSE) {
         "use strict";
 
         // Retrieve the current application
         var app = angular.module("App");
-
-        app.controller("restoreModalController", [
-            "$scope",
-            "backupTypeService",
-            "$uibModalInstance",
-            "fileExists",
-            function(
-                $scope,
-                backupTypeService,
-                $uibModalInstance,
-                fileExists
-            ) {
-                $scope.fileExists = fileExists;
-                $scope.itemType = backupTypeService.getBackupType();
-                $scope.closeModal = function() {
-                    $uibModalInstance.close();
-                };
-
-                $scope.runIt = function() {
-                    $uibModalInstance.close(true);
-                };
-            }
-        ]);
+        app.value("PAGE", PAGE);
 
         // Setup the controller
         var controller = app.controller(
             "listController", [
                 "$scope",
+                "$anchorScroll",
+                "PAGE",
                 "backupAPIService",
-                "backupTypeService",
-                "$uibModal",
-                "nvDataService",
                 "alertService",
+                "componentSettingSaverService",
                 function(
                     $scope,
+                    $anchorScroll,
+                    PAGE,
                     backupAPIService,
-                    backupTypeService,
-                    $uibModal,
-                    nvDataService,
-                    alertService
+                    alertService,
+                    componentSettingSaverService
                 ) {
 
-                    /**
-                     * Called when path changes
-                     *
-                     * @scope
-                     * @method buildBreadcrumb
-                     */
-                    $scope.buildBreadcrumb = function() {
-                        $scope.directoryBreadcrumb = [];
+                    var directoryContentsTable = new Table();
+                    directoryContentsTable.setSort("name", "asc");
 
-                        var directories = $scope.currentPath.split("/");
-                        var parentFolder = "/";
-                        for (var i = 0, length = directories.length; i < length - 1; i++) {
-                            if (i === 0) {
-                                $scope.directoryBreadcrumb.push({
-                                    folder: parentFolder,
-                                    path: parentFolder,
-                                    displayPath: directories[i]
-                                });
-                            } else {
-                                $scope.directoryBreadcrumb.push({
-                                    folder: parentFolder,
-                                    path: parentFolder + directories[i] + "/",
-                                    displayPath: directories[i]
-                                });
-                                parentFolder = parentFolder + directories[i] + "/";
-                            }
-                        }
-                    };
+                    var backupsTable = new Table();
+                    backupsTable.setSort("backupDate,backupType,lastModifiedTime,fileSize", "desc");
 
-                    /**
-                     * Conditionally change to the home directory. Prevents
-                     * superfluous page reloads.
-                     *
-                     * @scope
-                     * @method goHome
-                     */
-                    $scope.goHome = function() {
-                        if ($scope.currentPath !== "/") {
-                            $scope.changeDirectory("/");
-                        }
-                    };
-
-                    /**
-                     * Change to a different directory and get the list of files in that directory
-                     *
-                     * @scope
-                     * @method changeDirectory
-                     * @param  {String} path file system path user is directing to
-                     */
-                    $scope.changeDirectory = function(path) {
-                        $scope.loadingData = true;
-                        $scope.backupList = [];
-                        var newPath;
-
-                        if (!path) {
-                            newPath = $scope.directoryBreadcrumb[$scope.directoryBreadcrumb.length - 2].path;
+                    $scope.setDirectoryContentsPage = function(updatePageSize) {
+                        $scope.clearBackupList();
+                        $scope.actions.loadingData = true;
+                        if (updatePageSize) {
+                            setPagination("pagination");
                         } else {
-                            newPath = path;
+                            getDirectoryContents($scope.currentDirectory, $scope.directoryContentsMeta.pageNumber, $scope.directoryContentsMeta.pageSize);
                         }
-
-                        // add necessary trailing slash to path string for proper API format
-                        if (newPath.charAt(newPath.length - 1) !== "/") {
-                            newPath = newPath + "/";
-                        }
-
-                        // add necessary leading slash for proper API format
-                        if (newPath.charAt(0) !== "/") {
-                            newPath = "/" + newPath;
-                        }
-
-                        // Calculate pagination parameters
-                        $scope.meta.start = ($scope.meta.currentPage - 1) * $scope.meta.pageSize + 1;
-
-                        // Reset pagination if going to a different path or changing page size larger than total items
-                        if (newPath !== $scope.currentPath || $scope.meta.start > $scope.meta.totalItems) {
-                            $scope.meta.currentPage = 1;
-                            $scope.meta.start = 1;
-                        }
-
-                        // checks to see if directory user is navigating into exists on the disk
-                        for (var i = 0, length = $scope.currentDirectoryContent.length; i < length; i++) {
-                            if ($scope.currentDirectoryContent[i].fullPath === path) {
-                                $scope.selectedItemExists = $scope.currentDirectoryContent[i].exists;
-                                break;
-                            }
-                        }
-
-                        // Call API to fetch the new directory info
-                        backupAPIService.listDirectory(newPath, $scope.meta.currentPage, $scope.meta.pageSize)
-                            .then(function(apiResult) {
-                                $scope.currentPath = newPath;
-                                $scope.buildBreadcrumb();
-                                $scope.addPaths(apiResult.data);
-
-                                // Update pagination
-                                var pagination = apiResult.meta.paginate;
-                                $scope.updatePagination(pagination);
-                            }, function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    group: "cpanel-restoration"
-                                });
-                            })
-                            .finally(function() {
-                                $scope.loadingData = false;
-                            });
                     };
 
-                    /**
-                     * Update page size for pagination
-                     *
-                     * @scope
-                     * @method changePageSize
-                     */
-                    $scope.changePageSize = function() {
-                        nvDataService.setObject({
-                            "file_restoration_page_size": $scope.meta.pageSize
-                        });
-                        $scope.changeDirectory($scope.currentPath);
+                    $scope.navigateBreadcrumb = function(directoryPath) {
+                        $scope.clearBackupList();
+                        $scope.actions.loadingData = true;
+                        var parsedPath = "/";
+                        for (var i = 0, len = $scope.breadCrumb.length; i < len; i++) {
+                            if (directoryPath === $scope.breadCrumb[i]) {
+                                parsedPath = parsedPath + $scope.breadCrumb[i] + "/";
+                                break;
+                            } else {
+                                parsedPath = parsedPath + $scope.breadCrumb[i] + "/";
+                            }
+
+                        }
+                        $scope.currentDirectory = parsedPath;
+                        var pageNumber = 1;
+                        getDirectoryContents($scope.currentDirectory, pageNumber, $scope.directoryContentsMeta.pageSize);
+                        buildBreadcrumb($scope.currentDirectory);
+                    };
+
+                    $scope.goToDirectory = function(directoryPath) {
+                        $scope.actions.loadingData = true;
+                        if (directoryPath === "/") {
+                            $scope.breadcrumb = "";
+                        }
+
+                        // Remove backup list if navigating to a different directory
+                        $scope.clearBackupList();
+
+                        // Reset current page to beginning of list when navigating to new directory
+                        if ($scope.currentDirectory !== directoryPath) {
+                            $scope.directoryContentsMeta.pageNumber = 1;
+                        }
+
+
+                        $scope.currentDirectory = directoryPath;
+                        var pathLength = $scope.currentDirectory.length;
+
+                        if ($scope.currentDirectory.charAt(pathLength - 1) !== "/") {
+                            $scope.currentDirectory = $scope.currentDirectory + "/";
+                        }
+                        getDirectoryContents($scope.currentDirectory, $scope.directoryContentsMeta.pageNumber, $scope.directoryContentsMeta.pageSize);
+                        buildBreadcrumb($scope.currentDirectory);
+                    };
+
+                    $scope.toggleSelectedBackup = function(backupDate) {
+                        if (backupDate === $scope.backupSelected) {
+                            $scope.backupSelected = "";
+                        } else {
+                            $scope.backupSelected = backupDate;
+                        }
+                    };
+
+                    $scope.listBackups = function(content) {
+
+                        // when retrieving backup by directory browse, query_file_info API call
+                        // does not need to check for item existing
+                        var checkForExists = 0;
+                        $scope.actions.loadingBackups = true;
+                        return getBackupList(content.backupPath, checkForExists, content.exists);
+                    };
+
+                    $scope.toggleRestoreConfirmation = function(backup) {
+                        if (backup) {
+                            $scope.confirmSelected = backup.backupDate;
+                            $scope.isConfirmingRestoration = true;
+                        } else {
+                            $scope.confirmSelected = "";
+                            $scope.isConfirmingRestoration = false;
+                        }
+
+                    };
+
+                    $scope.restoreSelectedBackup = function(backup) {
+                        return restoreBackup(backup);
+                    };
+
+                    $scope.goToParentDirectory = function() {
+                        $scope.actions.loadingData = true;
+                        $scope.currentDirectory = buildParentDirectoryPath();
+                        var pageNumber = 1;
+                        getDirectoryContents($scope.currentDirectory, pageNumber, $scope.directoryContentsMeta.pageSize);
+                        buildBreadcrumb($scope.currentDirectory);
+                    };
+
+                    $scope.findByPathInput = function(path) {
+
+                        // when getting backups by path input we need the query_file_info API to return if that item
+                        // exists locally
+                        var exists = 1;
+                        path = checkForSlashAtStart(path);
+                        $scope.getBackupsError = "";
+                        $scope.selectedContent = path;
+                        return getBackupList(path, exists);
                     };
 
                     /**
@@ -197,270 +167,335 @@ define(
                      * @param {Number} pageNumber - page number that user is going to
                      * @param {String} currentPath - current directory path
                      */
-                    $scope.goToPage = function(pageNumber, currentPath) {
-                        var pageExists = $scope.checkIfPageExists(pageNumber);
+                    $scope.goToPage = function(pageNumber, currentDirectory) {
+                        var pageExists = checkIfPageExists(pageNumber);
 
                         // when the page input is empty do not do anything
                         if (pageNumber === null || isNaN(pageNumber)) {
                             return;
                         } else {
                             if (pageExists) {
-                                $scope.meta.currentPage = parseInt(pageNumber, 10);
-                                $scope.changeDirectory(currentPath);
+                                getDirectoryContents(currentDirectory, pageNumber, $scope.directoryContentsMeta.pageSize);
                             } else {
                                 $scope.pageDoesNotExist = true;
                             }
                         }
                     };
 
-                    /**
-                     * Create pagination message
-                     *
-                     * @scope
-                     */
-                    $scope.setPaginationMessage = function(start, limit, totalItems) {
+                    $scope.sortDirectoryContentsTable = function() {
 
-                        if (totalItems === 0) {
-                            start = 0;
-                            limit = 0;
+                        // necessary because Table directive pagination is not handling total items
+                        var totalItems = $scope.directoryContentsMeta.totalItems;
+
+                        if ($scope.directoryContentsMeta.pageNumber >= 2) {
+                            var tempPageNumber = $scope.directoryContentsMeta.pageNumber;
+                            directoryContentsTable.meta.pageNumber = 1;
+                            directoryContentsTable.update();
+                            directoryContentsTable.meta.pageNumber = tempPageNumber;
+                        } else {
+                            directoryContentsTable.update();
                         }
-                        $scope.paginationMessage = LOCALE.maketext("Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]", start, limit, totalItems);
+
+
+                        $scope.directoryContentsMeta.totalItems = totalItems;
+                        $scope.directoryContents = directoryContentsTable.getList();
                     };
 
-                    /**
-                     * Update pagination values
-                     *
-                     * @scope
-                     * @param {Object} pagination - object containing pagination values
-                     */
-                    $scope.updatePagination = function(pagination) {
-                        $scope.meta.totalItems = parseInt(pagination.total_records);
-                        $scope.meta.currentPage = parseInt(pagination.current_page);
-                        $scope.meta.pageSize = parseInt(pagination.page_size);
-
-                        if ($scope.meta.totalItems < $scope.meta.pageSize) {
-                            $scope.meta.limit = $scope.meta.totalItems;
-                        } else {
-                            $scope.meta.limit = $scope.meta.currentPage * $scope.meta.pageSize;
-                        }
-                        $scope.setPaginationMessage($scope.meta.start, $scope.meta.limit, $scope.meta.totalItems);
+                    $scope.sortBackupsTable = function() {
+                        backupsTable.update();
+                        $scope.backupList = backupsTable.getList();
+                        $scope.backupsPaginationMessage = backupsTable.paginationMessage();
                     };
 
-                    /**
-                     * Check if page number entered exists
-                     *
-                     * @scope
-                     * @param {Number} pageNumber - page number entered by user
-                     * @return {Boolean}
-                     */
-                    $scope.checkIfPageExists = function(pageNumber) {
-                        if (pageNumber * $scope.meta.page_size > $scope.meta.total_records) {
-                            return false;
+                    $scope.clearBackupList = function() {
+                        $scope.isConfirmingRestoration = false;
+                        $scope.getBackupsError = "";
+                        $scope.isBackupSelected = false;
+                        $scope.selectedContent = "";
+                    };
+
+                    $scope.checkForEmptyInput = function(pathInput) {
+                        if (pathInput === "") {
+                            $scope.isPathInputEmpty = true;
                         } else {
-                            return true;
+                            $scope.isPathInputEmpty = false;
                         }
                     };
 
-                    /**
-                     * Select an item, get the backup list of that item or change to that directory
-                     *
-                     * @scope
-                     * @method selectItem
-                     * @param  {Object} item file or directory user selects
-                     */
-                    $scope.selectItem = function(item) {
-                        $scope.selectedItemName = item.parsedName;
-                        if (item.type.indexOf("dir") !== -1) {
-                            $scope.changeDirectory(item.fullPath);
+                    $scope.getBackupsPanelClass = function(isPanelOpen) {
+                        var panelClass = "panel panel-default";
+                        if (isPanelOpen) {
+                            panelClass = panelClass + " restorationPanel";
+                        }
+                        return panelClass;
+                    };
+
+                    $scope.getDirContentsPanelClass = function(isPanelOpen) {
+                        var panelClass = "panel panel-default";
+                        if (isPanelOpen) {
+                            panelClass = panelClass + " restorationPanel";
+                        }
+                        return panelClass;
+                    };
+
+                    $scope.scrollToBackupList = function() {
+                        $anchorScroll("viewContent");
+                    };
+
+                    function checkForSlashAtStart(path) {
+                        if (path.indexOf("/") !== 0) {
+                            path = "/" + path;
+                        }
+                        return path;
+                    }
+
+                    function getDirectoryContents(directoryPath, pageNumber, pageSize) {
+                        clearDirectoryContentsTableData();
+
+                        backupAPIService.listDirectoryContents(directoryPath, pageNumber, pageSize)
+                            .then(function(directoryContents) {
+                                var tempContents = buildBackupPaths(directoryContents.data);
+                                loadDirectoryContentsTable(tempContents, directoryContents.meta.paginate);
+                            })
+                            .catch(function(error) {
+                                $scope.noMetadataMessage = error;
+                            })
+                            .finally(function() {
+                                $scope.actions.loadingUI = false;
+                                $scope.actions.loadingData = false;
+                                if ($scope.directoryContents.length === 0) {
+                                    $scope.emptyDirectory = true;
+                                } else {
+                                    $scope.emptyDirectory = false;
+                                }
+                            });
+                    }
+
+                    function loadDirectoryContentsTable(directoryContents, pagination) {
+                        directoryContentsTable.load(directoryContents);
+                        createGoToPageNumbers(pagination);
+                        updateDirectoryContentsTable(pagination);
+                    }
+
+                    function updateDirectoryContentsTable(pagination) {
+
+                        // This is a hacky way of making sure that the table is updated properly
+                        $scope.directoryContentsMeta.pageNumber = 1;
+
+                        directoryContentsTable.update();
+
+                        // Overwrite pagination created by table because API call was paginated
+                        $scope.directoryContentsMeta.maxPages = parseInt(pagination.total_pages, 10);
+                        $scope.directoryContentsMeta.totalItems = parseInt(pagination.total_records, 10);
+                        $scope.directoryContentsMeta.start = parseInt(pagination.current_record, 10);
+                        $scope.directoryContentsMeta.pageNumber = pagination.current_page;
+
+                        if (($scope.directoryContentsMeta.start + $scope.directoryContentsMeta.pageSize) > $scope.directoryContentsMeta.totalItems) {
+                            $scope.directoryContentsMeta.limit = $scope.directoryContentsMeta.totalItems;
                         } else {
-                            $scope.selectedItemExists = item.exists;
-                            $scope.loadingData = true;
-                            backupAPIService.listBackups(item.fullPath)
-                                .then(function(itemData) {
-                                    $scope.backupList = itemData;
-                                })
-                                .catch(function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        group: "cpanel-restoration"
-                                    });
-                                })
-                                .finally(function() {
-                                    $scope.loadingData = false;
+                            $scope.directoryContentsMeta.limit = ($scope.directoryContentsMeta.start + $scope.directoryContentsMeta.pageSize) - 1;
+                        }
+
+                        $scope.directoryContents = directoryContentsTable.getList();
+                        $scope.directoryContentsPaginationMessage = directoryContentsTable.paginationMessage();
+                    }
+
+                    function clearDirectoryContentsTableData() {
+                        directoryContentsTable.items = [];
+                        directoryContentsTable.filteredList = [];
+                        directoryContentsTable.last_id = 0;
+                    }
+
+                    function buildBackupPaths(directoryContents) {
+                        var addedPath = [];
+
+                        directoryContents.forEach(function(content) {
+                            if (!content.backupPath || !content.parentDir) {
+                                if ($scope.currentDirectory === "/") {
+                                    content["backupPath"] = "/" + content.name;
+                                    content["parentDir"] = "/";
+                                } else {
+                                    content["backupPath"] = $scope.currentDirectory + content.name;
+                                    content["parentDir"] = $scope.currentDirectory;
+                                }
+                            }
+                            addedPath.push(content);
+                        });
+                        $scope.parentDirectory = $scope.currentDirectory;
+                        return addedPath;
+                    }
+
+                    function buildBreadcrumb(content) {
+                        var breadCrumbArray = content.split("/");
+                        $scope.breadCrumb = breadCrumbArray.slice(1, breadCrumbArray.length - 1);
+                    }
+
+                    function buildParentDirectoryPath() {
+                        var parentDirectoryPath = "/";
+                        for (var i = 0, len = $scope.breadCrumb.length - 1; i < len; i++) {
+                            parentDirectoryPath = parentDirectoryPath + $scope.breadCrumb[i] + "/";
+
+                        }
+                        return parentDirectoryPath;
+                    }
+
+                    function createBackupTable() {
+                        backupsTable.update();
+                        $scope.backupsMeta = backupsTable.getMetadata();
+                        $scope.backupList = backupsTable.getList();
+                        $scope.backupsPaginationMessage = backupsTable.paginationMessage();
+                    }
+
+                    function getBackupList(backupPath, shouldReturnExists, doesContentExist) {
+                        $scope.clearBackupList();
+                        return backupAPIService.listBackups(backupPath, shouldReturnExists)
+                            .then(function(backupList) {
+                                if (shouldReturnExists) {
+                                    $scope.doesContentExist = PARSE.parsePerlBoolean(backupList[0].exists);
+                                }
+                                $anchorScroll("viewContent");
+                                $scope.isContentTypeDirectory = backupList[0].type === "Directory" ? true : false;
+                                $scope.isBackupSelected = true;
+                                backupsTable.load(backupList);
+                                createBackupTable();
+                            })
+                            .catch(function(error) {
+                                $scope.getBackupsError = error;
+                            })
+                            .finally(function() {
+                                if (!shouldReturnExists) {
+                                    $scope.doesContentExist = doesContentExist;
+                                }
+                                $scope.selectedContent = backupPath;
+                                $scope.actions.loadingBackups = false;
+                            });
+                    }
+
+                    function getDirectoryContentsPagination(componentName) {
+                        componentSettingSaverService.get(componentName)
+                            .then(function(pagination) {
+                                if (!pagination) {
+                                    registerComponent(componentName);
+                                } else {
+                                    $scope.directoryContentsMeta.pageSize = pagination.pageSize;
+                                    getDirectoryContents($scope.currentDirectory, $scope.directoryContentsMeta.pageNumber, $scope.directoryContentsMeta.pageSize);
+                                }
+                            })
+                            .catch(function(error) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    group: "backup-restoration",
+                                    closeable: true
                                 });
-                        }
-                    };
+                            });
+                    }
 
-                    /**
-                     * List all backups of directory user is currently in
-                     *
-                     * @scope
-                     * @method getBackupListForDirectory
-                     */
-                    $scope.getBackupListForDirectory = function() {
-                        $scope.selectedItemName = $scope.currentPath;
-                        $scope.loadingData = true;
-                        backupAPIService.listBackups($scope.currentPath)
+                    function setPagination(componentName) {
+                        componentSettingSaverService.set(componentName, {
+                            pageSize: $scope.directoryContentsMeta.pageSize
+                        })
                             .then(function(response) {
-                                $scope.backupList = response;
+                                getDirectoryContents($scope.currentDirectory, $scope.directoryContentsMeta.pageNumber, $scope.directoryContentsMeta.pageSize);
+                            })
+                            .catch(function(error) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    group: "backup-restortion",
+                                    closeable: true
+                                });
+                            });
+                    }
+
+                    function registerComponent(componentName) {
+                        componentSettingSaverService.register(componentName)
+                            .then(function(componentResponse) {
+                                setPagination(componentName, true);
+                            })
+                            .catch(function(error) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    group: "backup-restoration",
+                                    closeable: true
+                                });
+                            });
+
+                    }
+
+                    function restoreBackup(backup) {
+                        $scope.actions.restoring = true;
+                        return backupAPIService.restoreBackup(backup.path, backup.backupID)
+                            .then(function(response) {
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("The system successfully restored the “[_1]” backup file from the date “[_2]”.", _.escape(backup.path), _.escape(backup.backupDate)),
+                                    autoClose: 10000,
+                                    group: "backup-restoration"
+                                });
+                                $scope.clearBackupList();
+                                $scope.goToDirectory($scope.currentDirectory);
                             })
                             .catch(function(error) {
                                 alertService.add({
                                     type: "danger",
                                     message: error,
                                     closeable: true,
-                                    group: "cpanel-restoration"
+                                    group: "backup-restoration"
                                 });
                             })
                             .finally(function() {
-                                $scope.loadingData = false;
+                                $scope.actions.restoring = false;
+                                $scope.toggleRestoreConfirmation();
                             });
-                    };
+                    }
 
-                    /**
-                     * Adds the full path to the data and the path to the parent directory
-                     * as properties on the data object
-                     * Also adds a parsed name and where regular space
-                     * characters are replaced with a non breaking space
-                     * @scope
-                     * @method addPaths
-                     * @param {Array} directories Array of data objects that need path properties added.
-                     **/
-                    $scope.addPaths = function(directories) {
-                        $scope.currentDirectoryContent = [];
-                        for (var i = 0, length = directories.length; i < length; i++) {
-                            directories[i]["path"] = $scope.currentPath;
-                            directories[i]["fullPath"] = $scope.currentPath + directories[i].name;
-                            directories[i]["parsedName"] = directories[i].name.replace(/\s/g, "\u00A0");
-                            $scope.currentDirectoryContent.push(directories[i]);
+                    function checkIfPageExists(pageNumber) {
+                        if (pageNumber * $scope.directoryContentsMeta.page_size > $scope.directoryContentsMeta.total_records) {
+                            return false;
+                        } else {
+                            return true;
                         }
-                        $scope.meta.totalItems = $scope.currentDirectoryContent.length;
-                    };
+                    }
 
-                    /**
-                     * Process requested backup version to restore a single file
-                     *
-                     * @scope
-                     * @method restore
-                     * @param {Object} backup selected to be processed
-                     *   @param {string} fullpath The full path to the target file location
-                     *   @param {string} backupPath The backup's path on the disk
-                     **/
-                    $scope.restore = function(backup) {
-                        $scope.selectedFilePath = backup.path;
-                        $scope.selectedBackupID = backup.backupID;
-                        backupTypeService.setBackupType(backup.type);
-                        var $uibModalInstance = $uibModal.open({
-                            templateUrl: "restoreModalContent.tmpl",
-                            controller: "restoreModalController",
-                            resolve: {
-                                fileExists: $scope.selectedItemExists
-                            }
-                        });
+                    function createGoToPageNumbers(metadata) {
+                        var goToPages = [];
+                        var i = 1;
+                        while (i <= metadata.total_pages) {
+                            i.toString();
+                            goToPages.push(i);
+                            parseInt(i, 10);
+                            i++;
+                        }
+                        $scope.goToPages = goToPages;
+                    }
 
-                        $uibModalInstance.result.then(function(proceedRestoration) {
-                            if (proceedRestoration) {
+                    function init() {
+                        var paginationComponent = "pagination";
 
-                                // Run restoration
-                                $scope.dataRestoring = true;
-                                backupAPIService.restore($scope.selectedFilePath, $scope.selectedBackupID)
-                                    .then(function(response) {
-                                        if (response.success) {
-                                            if (backup.type === "file" || backup.type === "symlink") {
-                                                alertService.add({
-                                                    type: "success",
-                                                    message: LOCALE.maketext("The system successfully restored the “[_1]” backup file from the date “[_2]”.", _.escape($scope.selectedFilePath), _.escape($scope.selectedBackupID)),
-                                                    autoClose: 10000,
-                                                    group: "cpanel-restoration"
-                                                });
-                                            } else if (backup.type === "dir") {
-                                                alertService.add({
-                                                    type: "success",
-                                                    message: LOCALE.maketext("The system successfully restored the “[_1]” backup directory from the date “[_2]”.", _.escape($scope.selectedFilePath), _.escape($scope.selectedBackupID)),
-                                                    autoClose: 10000,
-                                                    group: "cpanel-restoration"
-                                                });
-                                            } else {
-                                                throw "DEVELOPER ERROR: invalid backup type";
-                                            }
-                                        }
-                                    })
-                                    .catch(function(error) {
-                                        if (backup.type === "file" || backup.type === "symlink") {
-                                            alertService.add({
-                                                type: "danger",
-                                                message: LOCALE.maketext("File restoration failure: [_1]", error),
-                                                closeable: true,
-                                                group: "cpanel-restoration"
-                                            });
-                                        } else if (backup.type === "dir") {
-                                            alertService.add({
-                                                type: "danger",
-                                                message: LOCALE.maketext("Directory restoration failure: [_1]", error),
-                                                closeable: true,
-                                                group: "cpanel-restoration"
-                                            });
-                                        } else {
-                                            throw "DEVELOPER ERROR: invalid backup type";
-                                        }
-                                    })
-                                    .finally(function() {
-                                        $scope.dataRestoring = false;
-                                    });
-                            }
-                        });
-                    };
+                        // root dir representing /home/USER
+                        $scope.userHomeDirDisplay = PAGE.homeDir + "/";
+                        $scope.navigateMethod = "input";
+                        $scope.dirContentsPanelOpen = true;
+                        $scope.backupsPanelOpen = true;
+                        $scope.currentDirectory = "/";
+                        $scope.homeDir = "/";
+                        $scope.noMetadataMessage = "";
+                        $scope.isPathInputEmpty = true;
 
-                    /**
-                     * Initializes data
-                     * @scope
-                     * @method init
-                     **/
-                    $scope.init = function() {
-
-                        // Displays directory structure starting at /home/USERNAME
-                        $scope.currentPath = "/";
-                        $scope.initialDataLoaded = false;
-                        $scope.currentDirectoryContent = [];
-                        $scope.meta = {
-
-                            // pager settings
-                            showPager: true,
-                            maxPages: 0,
-                            totalItems: 0,
-                            currentPage: 1,
-                            pageSize: 10,
-                            pageSizes: [10, 20, 50, 100],
-                            start: 1,
-                            limit: 10
+                        $scope.directoryContentsMeta = directoryContentsTable.getMetadata();
+                        $scope.backupsMeta = backupsTable.getMetadata();
+                        $scope.doesContentExistInfo = LOCALE.maketext("When you restore a backup, the system will overwrite existing files and restore deleted files.");
+                        $scope.findByPathInfo = LOCALE.maketext("Enter the exact path to the file or directory that you wish to restore.");
+                        $scope.actions = {
+                            loadingUI: true,
+                            loadingData: false,
+                            loadingBackups: false
                         };
-
-                        // TODO: Move to a common control for pageSize management
-                        nvDataService.get("file_restoration_page_size")
-                            .then(function(pairs) {
-                                $scope.meta.pageSize = pairs[0].value || 10;
-
-                                backupAPIService.listDirectory("/", $scope.meta.start, $scope.meta.pageSize)
-                                    .then(function(apiResult) {
-                                        $scope.currentPath = "/";
-                                        $scope.buildBreadcrumb();
-                                        $scope.addPaths(apiResult.data);
-
-                                        // Update pagination
-                                        var pagination = apiResult.meta.paginate;
-                                        $scope.updatePagination(pagination);
-                                    }, function(error) {
-                                        $scope.noMetadataError = error;
-                                    })
-                                    .finally(function() {
-                                        $scope.initialDataLoaded = true;
-                                    });
-                            });
-                    };
-
-                    $scope.init();
+                        getDirectoryContentsPagination(paginationComponent);
+                    }
+                    init();
                 }
             ]
         );

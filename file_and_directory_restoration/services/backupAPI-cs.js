@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Komprimováno","Incremental":"Přírůstkové","Uncompressed":"Nekomprimováno"};
+    var newLex = {"Compressed":"Komprimováno","Directory":"Adresář","File":"Soubor","Incremental":"Přírůstkové","Symlink":"Symlink","Uncompressed":"Nekomprimováno"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

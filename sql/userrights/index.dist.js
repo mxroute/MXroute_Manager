@@ -21,11 +21,4 @@ function() {
             .deferStartMaster();
     });
 
-    /*
-    // The following lines are a workaround for CPANEL-3887. Having a dummy mt call
-    // ensures that the minified version of this file is not deleted during a build.
-    require(["cjt/util/locale"], function(LOCALE) {
-        LOCALE.maketext("Enabled");
-    });
-    */
 });

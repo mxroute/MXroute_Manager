@@ -22,7 +22,6 @@ define(
         "cjt/directives/cpanel/searchSettingsPanel",
         "cjt/models/searchSettingsModel",
         "app/services/DomainsService",
-        "cjt/decorators/growlDecorator",
         "cjt/directives/actionButtonDirective"
     ],
     function(angular, CJT, LOCALE, QUERY) {
@@ -43,8 +42,8 @@ define(
             "SearchSettingsModel",
             "user_domains",
             "search_filter_settings",
-            "growl",
-            function ViewDomainsController($scope, $timeout, $filter, $window, $location, $service, $routeParams, SearchSettingsModel, user_domains, search_filter_settings, growl) {
+            "alertService",
+            function ViewDomainsController($scope, $timeout, $filter, $window, $location, $service, $routeParams, SearchSettingsModel, user_domains, search_filter_settings, alertService) {
 
                 $scope.domains = user_domains;
                 $scope.filteredDomains = $scope.domains;
@@ -118,7 +117,14 @@ define(
                     });
 
                     return $service.autossl_include_domains(flat_domains).then(function() {
-                        growl.success(LOCALE.maketext("The following domains have had their [asis,AutoSSL] exclusion removed: [list_and_quoted,_1]", flat_domains));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("The following domains have had their [asis,AutoSSL] exclusion removed: [list_and_quoted,_1]", flat_domains),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsStatus"
+                        });
                         domains.forEach(function(domain) {
                             domain.excluded_from_autossl = false;
                             domain.domain_autossl_status = "included";
@@ -139,7 +145,14 @@ define(
                     });
 
                     return $service.autossl_exclude_domains(flat_domains).then(function() {
-                        growl.success(LOCALE.maketext("The following domains will now be excluded from the [asis,AutoSSL] process: [list_and_quoted,_1]", flat_domains));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("The following domains will now be excluded from the [asis,AutoSSL] process: [list_and_quoted,_1]", flat_domains),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsStatus"
+                        });
                         domains.forEach(function(domain) {
                             domain.excluded_from_autossl = true;
                             domain.domain_autossl_status = "excluded";
@@ -423,6 +436,9 @@ define(
                 };
 
                 function _buildCheckCycle() {
+                    var pollingInterval = 1000 * 60;
+                    var messageTime = 5;
+                    var messageTimeMs = messageTime * 1000;
                     $timeout(function() {
 
                         // Check the status of the AutoSSL check
@@ -431,19 +447,22 @@ define(
                             // If it's not in progress, notify and reload
                             if (!inProgress) {
                                 $scope.autoSSLCheckActive = false;
-                                var messageTime = 5;
-                                growl.success(LOCALE.maketext("The [asis,AutoSSL] check has completed. The page will refresh in [quant,_1,second,seconds].", messageTime), {
-                                    ttl: messageTime * 1000,
-                                    disableCountDown: false
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("The [asis,AutoSSL] check has completed. The page will refresh in [quant,_1,second,seconds].", messageTime),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: messageTimeMs,
+                                    group: "tlsStatus"
                                 });
                                 $timeout(function() {
                                     $window.location.reload();
-                                }, 1000 * messageTime);
+                                }, messageTimeMs);
                             } else {
                                 _buildCheckCycle();
                             }
                         });
-                    }, 1000 * 60);
+                    }, pollingInterval);
                 }
 
                 /**
@@ -511,7 +530,7 @@ define(
 
                     });
 
-                    $scope.market_products_available = !!$service.get_products().length;
+                    $scope.market_products_available = $service.areMarketProductsAvailable();
 
                     $scope.unsecuredDomains = unsecuredActuals;
 
@@ -535,9 +554,9 @@ define(
                                     if (status.error) {
                                         $scope.autoSSLErrorsExist = true;
                                         domainObj.certificate_status = "has_autossl_problem";
-                                        domainObj.autoSSLStatus.lastRunMessage = LOCALE.maketext("An error occurred the last time [asis,AutoSSL] ran, on [datetime,_1]:", domainObj.autoSSLStatus.runTime.getTime() / 1000);
+                                        domainObj.autoSSLStatus.lastRunMessage = LOCALE.maketext("An error occurred the last time [asis,AutoSSL] ran, on [local_datetime,_1]:", domainObj.autoSSLStatus.runTime.getTime() / 1000);
                                     } else {
-                                        domainObj.autoSSLStatus.lastRunMessage = LOCALE.maketext("[asis,AutoSSL] last ran on [datetime,_1].", domainObj.autoSSLStatus.runTime.getTime() / 1000);
+                                        domainObj.autoSSLStatus.lastRunMessage = LOCALE.maketext("[asis,AutoSSL] last ran on [local_datetime,_1].", domainObj.autoSSLStatus.runTime.getTime() / 1000);
                                     }
 
                                 });

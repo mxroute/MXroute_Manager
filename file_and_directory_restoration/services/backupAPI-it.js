@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Compresso","Incremental":"Incrementale","Uncompressed":"Non compresso"};
+    var newLex = {"Compressed":"Compresso","Directory":"Directory","File":"File","Incremental":"Incrementale","Symlink":"Symlink","Uncompressed":"Non compresso"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

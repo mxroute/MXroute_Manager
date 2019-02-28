@@ -171,14 +171,16 @@ define(
     ],
     function(angular, LOCALE) {
 
+        "use strict";
+
         // Retrieve the current application
         var app = angular.module("App");
 
         // Setup the controller
         var controller = app.controller(
             "publishController", [
-                "$scope", "publishService", "$timeout", "alertService", "growl", "$q",
-                function($scope, publishService, $timeout, alertService, growl, $q) {
+                "$scope", "$routeParams", "publishService", "$timeout", "alertService", "growl", "$q",
+                function($scope, $routeParams, publishService, $timeout, alertService, growl, $q) {
                     $scope.domainList = [];
                     $scope.templateList = [];
 
@@ -199,6 +201,7 @@ define(
                         start: 0,
                         limit: 10
                     };
+
 
                     /**
                      * Clears the selected template object properties
@@ -316,7 +319,7 @@ define(
                     };
 
                     var fetchDomainsList = function() {
-                        publishService.listDomains($scope.meta)
+                        return publishService.listDomains($scope.meta)
                             .then(function(response) {
                                 processDomainList(response);
                             }, function(error) {
@@ -356,7 +359,7 @@ define(
                     $scope.getSiteAddress = function(domain) {
 
                         // TODO: get protocol for domain
-                        return "http://" + domain.domain;
+                        return "//" + domain.domain;
                     };
 
                     /**
@@ -561,6 +564,19 @@ define(
 
                             // Otherwise, retrieve it via ajax
                             fetchDomainsList();
+                        }
+
+                        if ($routeParams["domain"]) {
+
+                            // Allow Deep-linking of a domain
+                            $scope.meta.filterValue = $routeParams["domain"];
+                            $scope.selectPage(1).then(function() {
+                                $scope.domainList.forEach(function(domain, key) {
+                                    if (domain.domain === $routeParams["domain"]) {
+                                        $scope.selectDomain(key);
+                                    }
+                                });
+                            });
                         }
                     };
 

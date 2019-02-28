@@ -1,0 +1,91 @@
+.navigation-types ul li {
+    display: block;
+    position: relative;
+}
+html[dir=ltr] .navigation-types > ul > li {
+    float: left;
+}
+html[dir=rtl] .navigation-types > ul > li {
+    float: right;
+}
+
+.navigation-types ul li a, .navigation-types ul li div {
+    color: #fff;
+    display: block;
+    text-decoration: none;
+}
+.navigation-types > ul > li > a,
+.navigation-types > ul > li > div {
+    background: linear-gradient(to bottom, #0096f6 0%, #0f527f 100%) repeat scroll 0 0 rgba(0, 0, 0, 0);
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    display: block;
+    font-size: 18px;
+    margin-right: 5px;
+    padding: 20px 0;
+    text-align: center;
+}
+.navigation-types > ul > li > a,
+.navigation-types > ul > li > div {
+    min-width: 180px;
+}
+
+.navigation-types.insidepage li {
+    width: 228px;
+}
+.navigation-types.insidepage li a,
+.navigation-types.insidepage li div {
+    background: none repeat scroll 0 0 #eaeaea !important;
+    border: 1px solid #d8d8d8;
+    color: #4c4c4c;
+    font-size: 14px;
+    margin-bottom: 5px;
+    padding: 40px 0;
+}
+
+.terms {
+    position: relative;
+}
+
+.terms > h4 {
+    position: absolute;
+    top: -20px;
+    left: 40px;
+    z-index: 2;
+    background: #fff;
+    display: inline-block;
+    padding: 0 10px 5px;
+    font-weight: bold;
+}
+
+.terms > div {
+    height: 500px;
+    overflow: auto;
+    border: 1px solid #ccc;
+    padding: 20px 10px 10px;
+    border-radius: 5px;
+    white-space: pre-wrap;
+}
+
+table > tbody > tr > td.actions-cell {
+    padding: 0;
+    border: 0;
+}
+table > tbody > tr > td.actions-cell > div {
+    margin: 8px;
+}
+/* "odd" rows */
+.table-striped-child > tbody > tr:nth-child(4n + 1) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 2) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 1) > th,
+.table-striped-child > tbody > tr:nth-child(4n + 2) > th {
+    background-color: #f1f1f1;
+}
+/* "even" rows */
+.table-striped-child > tbody > tr:nth-child(4n + 0) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 3) > td,
+.table-striped-child > tbody > tr:nth-child(4n + 0) > th,
+.table-striped-child > tbody > tr:nth-child(4n + 3) > th {
+    background-color: #f8f8f8;
+}

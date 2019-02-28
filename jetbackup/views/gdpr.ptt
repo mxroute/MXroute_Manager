@@ -1,0 +1,149 @@
+<div ng-if="PERMS.canViewGDPR == false">
+	<ng-include src="'views/permissionserror.ptt'"></ng-include>
+</div>
+<div ng-if="PERMS.canViewGDPR">
+    <p class="description" ng-show="settings.enabled">
+        {{LOCALE.maketext("Congratulations, your hosting provider has enabled the option for you to select encrypted backups on your cPanel account!")}}<br />
+        {{LOCALE.maketext("Please select the backup type that is right for your account.  You can change this setting later if you change your mind.")}}<br />
+        {{LOCALE.maketext("If your company or data is subject to the European Union's General Data Protection Regulation (GDPR) we recommend choosing the settings marked *GDPR Best Practice.")}}
+    </p>
+    <div ng-controller="gdpr" class="section">
+
+        <div class="alert alert-danger" ng-show="!loading && !settings.enabled">
+            <span class="glyphicon glyphicon-exclamation-sign"></span>
+            <div class="alert-message">
+                {{LOCALE.maketext("GDPR mode is disabled")}}
+            </div>
+        </div>
+
+        <div ng-hide="loading || !settings.enabled || showTerms">
+
+            <div class="alert alert-warning" ng-show="encryptionKey">
+                <span class="glyphicon glyphicon-exclamation-sign"></span>
+                <div class="alert-message">
+                    <p style="font-weight: bold;">{{LOCALE.maketext("Your Private Encryption Key")}}</p>
+                    <code>{{encryptionKey}}</code>
+                    <p style="font-size: 11px; margin-top: 5px;">{{LOCALE.maketext("PLEASE COPY THE KEY AND SAVE IT IN A SAFE PLACE. This key might be required to restore data from backups, without it data might be lost.")}}</p>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>{{LOCALE.maketext("Backup Type")}}</label>
+                <div class="radio">
+                    <label for="backupRegular">
+                        <input id="backupRegular" name="backuptype" value="1" ng-model="settings.backupType" type="radio" />
+                        {{LOCALE.maketext("Regular Backups")}}
+                    </label>
+                </div>
+                <div class="radio">
+                    <label for="backupEncrypted">
+                        <input id="backupEncrypted" name="backuptype" value="2" ng-model="settings.backupType" type="radio" />
+                        {{LOCALE.maketext("Encrypted Backups (*GDPR Best Practice)")}}
+                    </label>
+                </div>
+                <div class="radio">
+                    <label for="backupNo">
+                        <input id="backupNo" name="backuptype" value="3" ng-model="settings.backupType" type="radio" />
+                        {{LOCALE.maketext("No Backups")}}
+                    </label>
+                </div>
+            </div>
+            <div class="form-group" ng-show="settings.backupType == 2">
+                <label>{{LOCALE.maketext("Encryption Key")}}</label>
+                <div class="radio" style="margin-bottom: 0;">
+                    <label for="saveLocally">
+                        <input id="saveLocally" name="encryptionKeyLocation" value="1" ng-model="settings.encryptionKeyLocation" type="radio" />
+                        {{LOCALE.maketext("Local Encryption Key")}}
+                    </label>
+                </div>
+                <p class="help-block" style="margin: 0 20px;">{{LOCALE.maketext("This should be used if you trust your hosting provider with your encryption key. Your hosting provider will be able to access your backups and perform actions for you (restore from backups).")}}</p>
+                <div class="radio" style="margin-bottom: 0;">
+                    <label for="saveRemote">
+                        <input id="saveRemote" name="encryptionKeyLocation" value="2" ng-model="settings.encryptionKeyLocation" type="radio" />
+                        {{LOCALE.maketext("Remote Encryption Key (*GDPR Best Practice)")}}
+                    </label>
+                </div>
+                <p class="help-block" style="margin: 0 20px;">{{LOCALE.maketext("This should be used if you *DON'T* trust your hosting provider with your encryption key. Your hosting provider will *NOT* be able to access your backups or perform any action for you (restore from backups) without having the key.")}}</p>
+                <p class="help-block" style="margin: 0 20px;">{{LOCALE.maketext("CAUTION:  If your encryption key is LOST, you will not be able to restore account backups to your account in case of data loss or disaster recovery.")}}</p>
+
+            </div>
+            <div class="form-group">
+                <label>{{LOCALE.maketext("Privacy Options")}}</label>
+                <div class="checkbox" style="margin-bottom: 0;">
+                    <label for="forgotten">
+                        <input id="forgotten" value="1" type="checkbox" ng-model="settings.theRightToBeForgotten" />
+                        {{LOCALE.maketext("The Right To Be Forgotten (*GDPR Best Practice)")}}
+                    </label>
+                </div>
+                <p class="help-block" style="margin: 0 20px;">{{ LOCALE.makevar("If this option is enabled when your account is closed/terminated all data (including backups) related to your account will be permanently deleted within [_1] days (This time value is set by your hosting provider).", "" + settings.dataTTL) }}</p>
+            </div>
+            <div class="form-group" style="margin-top: 40px;">
+                <div class="row add-spacing-after">
+                    <div class="col-xs-12 col-sm-12">
+                        <div class="row" ng-show="settings.enabled">
+                            <div class="col-xs-12 col-sm-5 col-md-4 col-lg-3" ng-hide="settings.secretKey">
+                                <button id="save"
+                                        class="btn btn-primary"
+                                        type="submit"
+                                        cp-action="saveChanges()"
+                                        spinner-id="spinnerSaveChanges">{{ LOCALE.maketext("Save Settings") }}</button>
+                            </div>
+                            <div class="col-xs-12 col-sm-5 col-md-5 col-lg-5" ng-show="settings.secretKey">
+                                <p style="font-weight: bold;">{{LOCALE.maketext("In order to save change you need to provide Encryption Key")}}</p>
+                                <div class="input-group" style="margin-top: 5px;">
+                                    <span class="input-group-addon">{{LOCALE.maketext("Encryption Key")}}</span>
+                                    <input type="text" value="" class="form-control" ng-model="submitEncryptionKey" />
+                                    <span class="input-group-btn">
+                                    <button id="confirm"
+                                            class="btn btn-primary"
+                                            type="submit"
+                                            cp-action="saveChanges()"
+                                            spinner-id="spinnerSaveChanges">{{ LOCALE.maketext("Save Changes") }}</button>
+                                </span>
+                                </div>
+                            </div>
+                            <div class="col-xs-12 col-sm-7 col-md-7 col-lg-7 status-bar" ng-if="status">
+                                <cp-alert ng-model="status" on-close="clearStatus()" auto-close="status.closeable ? status.ttl : null"></cp-alert>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" ng-show="settings.enabled && showTerms">
+            <div class="col-lg-4 col-md-12 terms">
+                <h4>{{ LOCALE.maketext("User Agreement") }}</h4>
+                <div>{{settings.userAgreement}}</div>
+                <label><input type="checkbox" value="1" ng-model="userAgreement" /> {{LOCALE.maketext("I Agree to the User Agreement")}}</label>
+
+            </div>
+            <div class="col-lg-4 col-md-12 terms">
+                <h4>{{ LOCALE.maketext("Privacy Policy") }}</h4>
+                <div>{{settings.privacyPolicy}}</div>
+                <label><input type="checkbox" value="1" ng-model="privacyPolicy" /> {{LOCALE.maketext("I Agree to the Privacy Policy")}}</label>
+            </div>
+            <div class="col-lg-4 col-md-12 terms">
+                <h4>{{ LOCALE.maketext("Backup Destination Information") }}</h4>
+                <div>{{settings.destinationInfo}}</div>
+                <label><input type="checkbox" value="1" ng-model="backupDestinations" /> {{LOCALE.maketext("I Agree and Understand where my backup data is being stored")}}</label>
+            </div>
+            <div class="col-sm-12" style="padding-top: 10px;">
+                <div class="row" ng-show="settings.enabled">
+                    <div class="col-xs-12 col-sm-5 col-md-4 col-lg-3">
+                        <a href="" class="btn btn-primary" ng-click="confirmTerms()">{{LOCALE.maketext("Continue")}}</a>
+                    </div>
+                    <div class="col-xs-12 col-sm-7 col-md-7 col-lg-7 status-bar" ng-if="status">
+                        <cp-alert ng-model="status" on-close="clearStatus()" auto-close="status.closeable ? status.ttl : null"></cp-alert>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="return-link">
+            <a id="lnkReturn" href="{{ settings.enabled && showTerms ? '../index.html' : '#/' }}">
+                <span class="glyphicon glyphicon-circle-arrow-left"></span>
+                {{ LOCALE.maketext("Go Back") }}
+            </a>
+        </div>
+    </div>
+</div>

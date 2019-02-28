@@ -63,6 +63,10 @@
 [% PROCESS "version_control/views/manageRepositoriesView.ptt" %]
 </script>
 
+<script id="views/sshKeyVerification.ptt" type="text/ng-template">
+[% PROCESS "version_control/views/sshKeyVerification.ptt" %]
+</script>
+
 [% PROCESS '_assets/cjt2_header_include.tt' %]
 
 [% BLOCK js_block %]

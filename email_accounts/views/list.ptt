@@ -1,0 +1,497 @@
+<div id="popsAccountList">
+    <div class="row">
+        <div class="col-sm-8 col-md-9">
+            <p id="descEmailAccounts" class="description">
+            [% locale.maketext("This feature lets you create and manage email accounts.") %]
+            [% locale.maketext("Want to learn more? Read our [output,url,_1,documentation,class,externalLink,target,_2,id,_3].", "//go.cpanel.net/Accounts", "_blank", "lnkEmailAccountsDocumentation") %]
+            </p>
+        </div>
+        <div class="col-sm-4 col-md-3" ng-class="emailAccounts.statsCssClass">
+            <stats
+                used-id="lblUsed"
+                ng-model="accountStats.used"
+                available-id="lblAvailable"
+                max="accountStats.maximum"
+                upgrade-link-id="lblUpgradeLink"
+                upgrade-link="{{:: upgradeLink}}"
+                upgrade-link-text="[% locale.maketext('Buy More') %]"
+                show-upgrade-link="true"
+                upgrade-link-target="emailUpgrade"
+                on-show-warning-details="emailAccounts.showNoAvailableAccountsWarning()">
+            </stats>
+        </div>
+    </div>
+
+    <callout ng-if="showNoAvailableAccounts" callout-type="warning"
+        id="emailaccountsMaxOut"
+        closeable="true"
+        on-close="emailAccounts.closeCallout()"
+        callout-heading="[% locale.maketext('Warning! You can’t create more email accounts.') %]">
+            <p>[% locale.maketext("Your account contains the maximum number of email accounts that you can create. To create more email accounts, delete any unwanted email accounts or contact your hosting provider.") %]</p>
+            <a class="btn btn-outline-primary btn-sm"
+                id="btnCalloutUpgrade"
+                ng-if="upgradeLink"
+                title="[% locale.maketext('Get More') %]"
+                ng-href="upgradeLink"
+                target="_blank">
+                <span class="fas fa-fw fa-external-link-alt" aria-hidden="true"></span>
+                [% locale.maketext("Get More") %]
+            </a>
+    </callout>
+
+    <section class="list-section">
+        <div class="row search-page-container"
+            ng-class="emailAccounts.getSearchClass()">
+            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-5">
+                <search id="email_table_search" ng-model="emailAccounts.meta.filterValue"
+                    autocomplete="off"
+                    debounce="750"
+                    autofocus
+                    ng-change="emailAccounts.searchList()">
+                </search>
+                <quick-filters title="[% locale.maketext('Filter:') %]" active="emailAccounts.quickFilter" on-filter-change="emailAccounts.filterEmails()">
+                    <quick-filter-item id="lnkFilterAll" value="all" title="[% locale.maketext('Show all of my accounts.') %]">[% locale.maketext('All') %]</quick-filter-item>
+                    <quick-filter-item id="lnkFilterRestricted" value="restricted" title="[% locale.maketext('Show my restricted accounts.') %]">[% locale.maketext('Restricted') %]</quick-filter-item>
+                    <quick-filter-item id="lnkFilterDefault" value="default" title="[% locale.maketext('Show my default account.') %]">[% locale.maketext('Default Account') %]</quick-filter-item>
+                    <quick-filter-item id="lnkFilterOverQuota" value="overUsed" title="[% locale.maketext('Show accounts that have used all of their storage space.') %]">[% locale.maketext('Exceeded Storage') %]</quick-filter-item>
+                </quick-filters>
+            </div>
+            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-7">
+                <div class="pagination-container hidden-xs hidden-sm">
+                    <uib-pagination id="email_table_paginate"
+                        total-items="emailAccounts.meta.totalItems"
+                        ng-model="emailAccounts.meta.currentPage"
+                        max-size="50"
+                        boundary-links="true"
+                        rotate="false"
+                        previous-text="<"
+                        next-text=">"
+                        first-text="<<"
+                        last-text=">>"
+                        items-per-page="emailAccounts.meta.pageSize"
+                        ng-change="emailAccounts.selectPage()"
+                        ng-disabled="emailAccounts.loadingEmailAccounts">
+                    </uib-pagination>
+                    <p class="text-small text-right flip">{{ emailAccounts.meta.mobileItemCountText }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row" ng-if="emailAccounts.multiDeleteSelected">
+            <div class="col-xs-12">
+                <div class="callout callout-warning">
+                    <div class="display-table">
+                        <div class="display-table-cell">
+                            <span class="delete-question-mark">?</span>
+                        </div>
+                        <div class="display-table-cell">
+                            <div class="box">
+                                <p class="delete-message wordbreak" ng-bind="emailAccounts.getDeleteMultipleMsg()"></p>
+                                <p>[% locale.maketext("All the data associated with the email account(s) will be [output,strong,permanently] deleted.") %]</p>
+
+                                <div class="box">
+                                    <button type="button" id="confirmDelete"
+                                        class="btn btn-primary btn-sm"
+                                        cp-action="emailAccounts.deleteMultiple()">
+                                        <i class="fas fa-trash" aria-hidden="true"></i>
+                                        {{ emailAccounts.getMultiDeleteButtonTxt() }}
+                                    </button>
+                                    <button type="button" id="cancelDelete"
+                                        class="btn btn-link btn-sm"
+                                        ng-click="emailAccounts.multiDeleteSelected = false"
+                                        ng-disabled="emailAccounts.removingMultiple">
+                                        [% locale.maketext("Cancel") %]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row action-bar">
+            <div class="col-xs-12">
+                <div class="pull-left flip hidden-xs">
+                    <div class="table-action-button-container">
+                        <label class="table-action-button-label table-action-button-sm">
+                            <input type="checkbox"
+                                name="checkAllInList"
+                                id="checkAllInList"
+                                aria-label="[% locale.maketext('Toggle account selection') %]"
+                                ng-model="emailAccounts.selectAllState"
+                                ng-change="emailAccounts.toggleSelectAll()"
+                                indeterminate-state
+                                check-state="emailAccounts.getIndeterminateState()">
+                        </label>
+                    </div>
+                    <button id="btnDeleteSelection"
+                        class="btn btn-default btn-sm"
+                        type="button"
+                        ng-click="emailAccounts.multiDeleteSelected = true"
+                        ng-disabled="!emailAccounts.getSelectedState()"
+                        title="[% locale.maketext('Delete selected') %]">
+                        <span class="fas fa-fw fa-trash-alt" aria-hidden="true"></span>
+                        [% locale.maketext("Delete") %]
+                    </button>
+                </div>
+                <div class="pull-right flip">
+                    <button id="btnCreateEmailAccount"
+                        class="btn btn-primary btn-sm"
+                        type="button"
+                        ng-click="emailAccounts.createEmail()"
+                        title="[% locale.maketext('Create a new email account.') %]"
+                        ng-disabled="accountStats.available==0">
+                        <span class="fas fa-plus" aria-hidden="true"></span>
+                        [% locale.maketext('Create') %]
+                    </button>
+                    <div class="btn-group" uib-dropdown auto-close="outsideClick">
+                        <button id="listOptions" type="button" class="btn btn-default btn-sm" uib-dropdown-toggle ng-disabled="emailAccounts.loadingEmailAccounts">
+                            <i class="fas fa-cog"></i> <span class="caret"></span>
+                        </button>
+                        <ul uib-dropdown-menu class="dropdown-menu-right" role="menu" aria-labelledby="listOptions">
+                            <li role="menuitem">
+                                <div class="text-small text-uppercase">[% locale.maketext("Entries Per Page") %]</div>
+                                <page-size-button id="pageSize"
+                                    allowed-sizes="emailAccounts.meta.pageSizes"
+                                    total-items="emailAccounts.meta.totalItems"
+                                    ng-model="emailAccounts.meta.pageSize"
+                                    show-all="false"
+                                    ng-show="true"
+                                    ng-change="emailAccounts.selectPageSize()">
+                                </page-size-button>
+                            </li>
+                            <li class="divider"></li>
+                            <li role="menuitem">
+                                <a ng-click="emailAccounts.fetch()">
+                                    <i class="fas fa-sync-alt"></i>
+                                    [% locale.maketext("Refresh") %]
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <table id="accounts_table" disable-animations class="table table-striped table-striped-child responsive-table details-table">
+            <thead>
+                <tr>
+                    <th class="hidden-xs"></th>
+                    <th class="name-column">
+                        <a toggle-sort sort-meta="emailAccounts.meta" sort-field="user" onSort="emailAccounts.sortList" title="[% locale.maketext("Sort by “[_1]”.", locale.maketext("Account")) %]">[% locale.maketext("Account") %]</a>
+                        <span>@</span>
+                        <a toggle-sort sort-meta="emailAccounts.meta" sort-field="domain" onSort="emailAccounts.sortList" title="[% locale.maketext("Sort by “[_1]”.", locale.maketext("Domain")) %]">[% locale.maketext("Domain") %]</a>
+                    </th>
+                    <th class="hidden-xs">
+                        <a toggle-sort sort-meta="emailAccounts.meta" sort-field="has_suspended" onSort="emailAccounts.sortList" title="[% locale.maketext("Sort by “[_1]”.", locale.maketext('Restrictions')) %]">[% locale.maketext('Restrictions') %]</a>
+                    </th>
+                    <th class="hidden-xs">
+                        <span>[% locale.maketext("Storage:") %]</span>
+                        <span class="text-nowrap">
+                            <a toggle-sort sort-meta="emailAccounts.meta" sort-field="_diskused" onSort="emailAccounts.sortList" title="[% locale.maketext("Sort by “[_1]”.", locale.maketext('Used')) %]">[% locale.maketext('Used') %]</a>
+                            <span>/</span>
+                            <a toggle-sort sort-meta="emailAccounts.meta" sort-field="_diskquota" onSort="emailAccounts.sortList" title="[% locale.maketext("Sort by “[_1]”.", locale.maketext("Allocated")) %]">[% locale.maketext("Allocated") %]</a>
+                            <span>/</span>
+                            <a toggle-sort sort-meta="emailAccounts.meta" sort-field="diskusedpercent_float" onSort="emailAccounts.sortList" title="[% locale.maketext("Sort by “[_1]”.", locale.maketext("Percent Used")) %]">%</a>
+                        </span>
+                    </th>
+                    <th class=""></th>
+                </tr>
+            </thead>
+            <tbody id="accounts_table_body">
+                <tr
+                ng-repeat-start="emailAccount in emailAccounts.meta.accounts track by emailAccount.id" id="account_row_{{::emailAccount.id}}"
+                ng-class="{ 'warning': emailAccount.delete_requested, 'active': emailAccount.selected }"
+                class="data-row"
+                ng-if="!emailAccount.deleted">
+                    <td class="hidden-xs check-column">
+                        <div class="table-action-checkbox-item">
+                            <label class="table-action-checkbox-label">
+                                <input type="checkbox"
+                                    ng-model="emailAccount.selected"
+                                    ng-change="emailAccounts.toggleSelection(emailAccount)"
+                                    ng-if="!emailAccount.isDefault"
+                                    title="[% locale.maketext('Select “[_1]”', '{{:: emailAccount.email }}') %]">
+                            </label>
+                        </div>
+                    </td>
+                    <td id="accountCell_{{::emailAccount.id}}" class="name-column">
+                        <div class="row-expand-container">
+                            <button id="lnkToggleViewInfo_{{::emailAccount.id}}" class="btn btn-link"
+                                title="[% locale.maketext('View details.') %]"
+                                aria-label="[% locale.maketext('View details.') %]"
+                                ng-click="emailAccounts.getDetails(emailAccount, !emailAccount.isExpanded);"
+                                >
+                                <i class="fas"
+                                    ng-class="{ 'fa-chevron-right': !emailAccounts.isRTL && !emailAccount.isExpanded, 'fa-chevron-left': emailAccounts.isRTL && !emailAccount.isExpanded, 'fa-chevron-down': emailAccount.isExpanded }"
+                                    aria-hidden="true"
+                                    >
+                                </i>
+                            </button>
+                        </div>
+                        <span id="account-name_{{::emailAccount.id}}" class="account-name collapse-text">{{ ::emailAccount.email }}</span>
+                        <span class="table-inline-label-container">
+                            <span id="defaultLabel_{{::emailAccount.id}}" class="label label-primary label-offset" ng-if="::emailAccount.isDefault">[% locale.maketext('Default') %]</span>
+                        </span>
+                    </td>
+                    <td class="hidden-xs">
+                        <div ng-if="::emailAccount.has_suspended">
+                            <a id="email_table_restricted_{{::emailAccount.id}}"
+                                class="text-nowrap"
+                                ng-click="emailAccounts.manageAccount(emailAccount, 'restrictions')"
+                                title="[% locale.maketext("Manage “[_1]”.", '{{ ::emailAccount.email }}') %]">
+                                <i class="fas fa-exclamation-triangle text-warning"></i>
+                                [% locale.maketext("Restricted") %]
+                            </a>
+                        </div>
+                        <div ng-if="::!emailAccount.has_suspended">
+                            <a id="email_table_unrestricted_{{::emailAccount.id}}"
+                                class="text-nowrap"
+                                ng-if="::!emailAccount.isDefault"
+                                ng-click="emailAccounts.manageAccount(emailAccount, 'restrictions')"
+                                title="[% locale.maketext("Manage “[_1]”.", '{{ ::emailAccount.email }}') %]">
+                                <span class="fas fa-fw fa-check text-success"></span>
+                                [% locale.maketext("Unrestricted") %]
+                            </a>
+                            <div ng-if="::emailAccount.isDefault" class="text-nowrap">
+                                <span class="fas fa-fw fa-check text-success"></span>
+                                [% locale.maketext("Unrestricted") %]
+                            </div>
+                        </div>
+                    </td>
+                    <td class="hidden-xs">
+                        <div class="storageDisplay" ng-if="::!emailAccount.isDefault">
+                            <div>
+                                <span id="diskused_{{::emailAccount.id}}" ng-bind-html="::emailAccount.humandiskused"></span>
+                                <input type="hidden" value="{{::emailAccount.diskused}}">
+                                <span>/</span>
+                                <span id="quota_{{::emailAccount.id}}" ng-bind-html="::emailAccount.humandiskquota"></span>
+                                <span>/</span>
+                                <span id="percentage_{{::emailAccount.id}}" ng-bind-html="::emailAccount.humandiskusedpercent"></span>
+                            </div>
+                            <div>
+                                <uib-progressbar ng-if="::emailAccount.displayProgressbar"
+                                    type="{{:: emailAccount.quotaProgressType }}"
+                                    max="emailAccount._diskquota"
+                                    value="::emailAccount._diskused"
+                                    title="{{:: emailAccount.humandiskusedpercent }}">
+                                    <span class="sr-only">{{:: emailAccount.humandiskusedpercent }}</span>
+                                </uib-progressbar>
+                            </div>
+                        </div>
+                        <div ng-if="::emailAccount.isDefault">
+                            <div>
+                                <span ng-bind-html="emailAccount.humandiskused"></span>
+                                <span>/</span>
+                                <span id="quota_{{::emailAccount.id}}" ng-bind-html="emailAccount.humandiskquota"></span>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="action-column"
+                        ng-class="{showDeleteMode: emailAccount.delete_requested}">
+                        <a class="btn btn-outline-primary btn-sm hidden-xs hidden-sm"
+                            id="email_table_menu_webmail_{{ ::emailAccount.id }}"
+                            ng-if="::emailAccounts.webmailEnabled"
+                            title="[% locale.maketext('Check email for “[_1]”.', '{{ ::emailAccount.email }}') %]"
+                            ng-href="{{ ::emailAccount.webmailLink }}"
+                            target="_blank">
+                            <span class="fas fa-fw fa-external-link-alt" aria-hidden="true"></span>
+                            [% locale.maketext("Check Email") %]
+                        </a>
+                        <button class="btn btn-outline-primary btn-sm"
+                            type="button"
+                            id="email_table_disk_and_quota_{{::emailAccount.id}}"
+                            ng-click="emailAccounts.manageAccount(emailAccount)"
+                            title="[% locale.maketext('Manage “[_1]”.', '{{ ::emailAccount.email }}') %]">
+                            <span class="fas fa-wrench" aria-hidden="true"></span>
+                            [% locale.maketext('Manage') %]
+                        </button>
+                        <button class="btn btn-outline-primary btn-sm hidden-xs hidden-sm"
+                            type="button"
+                            id="email_table_connect_devices_{{::emailAccount.id}}"
+                            ng-click="emailAccounts.connectDevices(emailAccount)"
+                            title="[% locale.maketext('Set up account “[_1]” on your device', '{{ ::emailAccount.email }}') %]">
+                            <span class="fas fa-fw fa-mobile-alt" aria-hidden="true"></span>
+                            [% locale.maketext('Connect Devices') %]
+                        </button>
+                    </td>
+                </tr>
+                <tr ng-repeat-end="" class="wordbreak"
+                    ng-class="{ 'warning': emailAccount.delete_requested, 'active': emailAccount.selected }">
+                    <td class="expand-panel-data" colspan="5">
+                        <div class="list-panel expand-panel"
+                            ng-if="emailAccount.isExpanded">
+                            <div class="row" ng-if="!emailAccount.isDefault">
+                                <div class="col-xs-12 col-sm-8">
+                                    <dl class="email">
+                                        <div ng-if="::emailAccount.displayInnerEmail">
+                                        <dt>[% locale.maketext('Email') %]</dt>
+                                        <dd>{{:: emailAccount.email}}</dd>
+                                        </div>
+                                        <dt>[% locale.maketext('Restrictions') %]</dt>
+                                        <dd>
+                                            <ul class="list-inline">
+                                                <li title="[% locale.maketext('“[_1]” can’t read mail because logins are suspended.', '{{ ::emailAccount.email }}') %]"
+                                                    ng-if="emailAccount.suspended_login">
+                                                    <span class="fas fa-exclamation text-danger"></span>
+                                                    <span>[% locale.maketext("Cannot Log In") %]</span>
+                                                </li>
+                                                <li title="[% locale.maketext('“[_1]” can’t receive mail because incoming mail is suspended.', '{{ ::emailAccount.email }}') %]"
+                                                    ng-if="emailAccount.suspended_incoming">
+                                                    <span class="fas fa-exclamation text-danger"></span>
+                                                    <span>[% locale.maketext("Cannot Receive Email") %]</span>
+                                                </li>
+                                                <li title="[% locale.maketext('“[_1]” can’t send mail because outgoing mail is suspended.', '{{ ::emailAccount.email }}') %]"
+                                                    ng-if="emailAccount.suspended_outgoing">
+                                                    <span class="fas fa-exclamation text-danger"></span>
+                                                    <span>[% locale.maketext("Cannot Send Email") %]</span>
+                                                </li>
+                                                <li title="[% locale.maketext('We’re holding outgoing mail for “[_1]” in the mail queue.', '{{ ::emailAccount.email }}') %]"
+                                                    ng-if="emailAccount.hold_outgoing && !emailAccount.suspended_outgoing">
+                                                    <span class="fas fa-fw fa-pause text-warning"></span>
+                                                    <span>[% locale.maketext("Cannot Send Email") %]</span>
+                                                </li>
+                                            </ul>
+                                            <div ng-if="::!emailAccount.has_suspended" class="text-nowrap">
+                                                <span class="fas fa-fw fa-check text-success"></span>
+                                                [% locale.maketext("Unrestricted") %]
+                                            </div>
+                                        </dd>
+                                        <div ng-if="::!emailAccount.isDefault">
+                                            <dt class="visible-xs">[% locale.maketext('Storage Used') %]</dt>
+                                            <dd class="visible-xs">
+                                                <div class="storageDisplay">
+                                                <div>
+                                                    <span ng-bind-html="::emailAccount.humandiskused"></span>
+                                                    <input type="hidden" id="diskused_{{::emailAccount.id}}" value="{{::emailAccount.diskused}}">
+                                                    <span>/</span>
+                                                    <span id="quota_{{::emailAccount.id}}" ng-bind-html="::emailAccount.humandiskquota"></span>
+                                                    <span>/</span>
+                                                    <span id="percentage_{{::emailAccount.id}}" ng-bind-html="::emailAccount.humandiskusedpercent"></span>
+                                                </div>
+                                                <div>
+                                                    <uib-progressbar ng-if="::emailAccount.displayProgressbar"
+                                                        type="{{ ::emailAccount.quotaProgressType }}"
+                                                        max="emailAccount._diskquota"
+                                                        value="::emailAccount._diskused"
+                                                        title="{{ ::emailAccount.humandiskusedpercent }}">
+                                                        <span class="sr-only">{{ ::emailAccount.humandiskusedpercent }}</span>
+                                                    </uib-progressbar>
+                                                </div>
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                            <div class="row" ng-if="emailAccount.isDefault">
+                                <div class="col-xs-12 col-sm-8">
+                                    <p>[% locale.maketext("The default email account catches unrouted mail. The default account’s username and password are the same as your cPanel account’s login. The default account can’t be deleted and has no quota.") %]</p>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <div class="expand-actions">
+                                        <a class="btn btn-outline-primary btn-sm hidden-md hidden-lg"
+                                            id="email_table_expand_webmail_{{ ::emailAccount.id }}"
+                                            ng-if="::emailAccounts.webmailEnabled"
+                                            title="[% locale.maketext('Check email for “[_1]”.', '{{ ::emailAccount.email }}') %]"
+                                            href="{{ ::emailAccount.webmailLink }}"
+                                            target="_blank">
+                                            <span class="fas fa-fw fa-external-link-alt" aria-hidden="true"></span>
+                                            [% locale.maketext("Check Email") %]
+                                        </a>
+                                        <button class="btn btn-outline-primary btn-sm hidden-md hidden-lg"
+                                            type="button"
+                                            id="email_table_expand_connect_devices_{{::emailAccount.id}}"
+                                            ng-click="emailAccounts.connectDevices(emailAccount)"
+                                            title="[% locale.maketext('Set up account “[_1]” on your device', '{{ ::emailAccount.email }}') %]">
+                                            <span class="fas fa-fw fa-mobile-alt" aria-hidden="true"></span>
+                                            [% locale.maketext('Connect Devices') %]
+                                        </button>
+                                        <button class="btn btn-outline-primary btn-sm"
+                                            type="button"
+                                            id="email_table_expand_delete_{{::emailAccount.id}}"
+                                            ng-click="emailAccount.delete_requested = true"
+                                            ng-if=":: !emailAccount.isDefault"
+                                            ng-disabled="emailAccount.delete_requested"
+                                            title="[% locale.maketext('Delete “[_1]”', '{{ ::emailAccount.email }}') %]">
+                                            <span class="fas fa-fw fa-trash-alt" aria-hidden="true"></span>
+                                            [% locale.maketext("Delete") %]
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="list-panel"
+                            ng-if="emailAccount.delete_requested">
+                            <div class="delete-warning">
+                                <div class="display-table">
+                                    <div class="display-table-cell">
+                                        <span class="delete-question-mark">?</span>
+                                    </div>
+                                    <div class="display-table-cell">
+                                        <div class="box">
+                                            <span class="delete-message wordbreak">[% locale.maketext('Are you sure about deleting “[_1]”?', '{{ ::emailAccount.email }}') %]</span>
+                                            <p>[% locale.maketext("When you delete an email account, we permanently delete [output,strong,all] of the account’s data.") %]</p>
+                                        </div>
+                                        <div class="box">
+                                            <button type="button" id="confirmDelete_{{::emailAccount.id}}"
+                                                class="btn btn-primary btn-sm"
+                                                cp-action="emailAccounts.delete(emailAccount)">
+                                                <i class="fas fa-trash" aria-hidden="true"></i>
+                                                [% locale.maketext("Delete") %]
+                                            </button>
+                                            <button type="button" id="cancelDelete_{{::emailAccount.id}}"
+                                                class="btn btn-link btn-sm"
+                                                ng-click="emailAccount.delete_requested = false"
+                                                ng-disabled="emailAccount.removing">
+                                                [% locale.maketext("Cancel") %]
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                    </td>
+                </tr>
+
+                <tr ng-if="emailAccounts.loadingEmailAccounts" class="info empty-row">
+                    <td colspan="5" id="loadingRow">
+                        <span class="fas fa-spinner fa-spin"></span>
+                        <span>[% locale.maketext("Loading your email accounts …") %]</span>
+                    </td>
+                </tr>
+                <tr ng-if="!(emailAccounts.meta.accounts.length > 0 || emailAccounts.loadingEmailAccounts)">
+                    <td colspan="5" id="emptyRow">
+                        <span>[% locale.maketext("We didn’t find any email accounts. Would you like to [output,url,_1,create one]?", '#/create/') %]</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="row search-page-container visible-xs-block visible-sm-block hidden-md hidden-lg">
+            <div class="col-xs-12 col-sm-12">
+                <div class="pagination-container">
+                    <p class="text-small text-right flip">{{ emailAccounts.meta.mobileItemCountText }}</p>
+                    <uib-pagination id="email_table_paginate_mobile"
+                        total-items="emailAccounts.meta.totalItems"
+                        ng-model="emailAccounts.meta.currentPage"
+                        max-size="50"
+                        boundary-links="true"
+                        rotate="false"
+                        previous-text="<"
+                        next-text=">"
+                        first-text="<<"
+                        last-text=">>"
+                        items-per-page="emailAccounts.meta.pageSize"
+                        ng-change="emailAccounts.selectPage()"
+                        ng-disabled="emailAccounts.loadingEmailAccounts"
+                        class="pagination-small">
+                    </uib-pagination>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>

@@ -1,0 +1,219 @@
+<div>
+    <h2 class="break-on-mobile">[% locale.maketext('Manage the “[_1]” Domain', "{{ :: currentDomain.domain }}") %]</h2>
+    <div class="row">
+        <!-- summary -->
+        <div class="col-xs-12 col-md-4 pull-right">
+            <div class="section">
+                <!-- Update Document Root -->
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        [% locale.maketext('Domain Information') %]
+                    </div>
+                    <table class="table table-condensed fixed-width-table">
+                            <tbody>
+                                <tr>
+                                    <th scope="row">[% locale.maketext('Domain:') %]</th>
+                                    <td>
+                                        <div class="cutoff_with_ellipses">
+                                            {{ currentDomain.domain }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr ng-if="currentDomain.subdomain">
+                                    <th scope="row">[% locale.maketext('Subdomain:') %]</th>
+                                    <td>
+                                        <div class="cutoff_with_ellipses">
+                                            {{ currentDomain.subdomain }}
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">[% locale.maketext('Redirects To:') %]</th>
+                                    <td ng-if="currentDomain.redirectsTo">
+                                        <div class="cutoff_with_ellipses">
+                                            {{ currentDomain.redirectsTo }}
+                                        </div>
+                                    </td>
+                                    <td ng-if="!currentDomain.redirectsTo">
+                                        [% locale.maketext("Not Redirected"); %]
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th scope="row">[% locale.maketext('Document Root:') %] </th>
+                                    <td><docroot docroot="{{workingDomain.fullDocumentRoot}}" homedir="{{ :: mainDomain.homedir }}"><docroot></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                </div>
+                <ng-include src="'additionalResourcesPanel.ptt'"></ng-include>
+            </div>
+        </div>
+        <!-- / summary -->
+
+        <!-- manage domain -->
+        <div class="col-xs-12 col-md-8">
+            <form name="updateDomainForm" id="updateDomainForm" class="form layout-medium" >
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        [% locale.maketext('Update the Domain') %]
+                    </div>
+                    <div class="panel-body">
+                        <div class="section" ng-if="currentDomain.canEdit">
+                            <!-- Update Document Root -->
+                            <div class="form-group" ng-if="currentDomain.canEdit.documentRoot">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <toggle-label-info
+                                             for="newDocumentRoot"
+                                             label-text="[% locale.maketext('New Document Root') %]"
+                                             label-id="newDocumentRootLabel"
+                                             info-icon-id="iconnewDocumentRoot"
+                                             info-block-id="infoBlocknewDocumentRoot"
+                                             show-info-block="true">
+                                                [% locale.maketext('Update the directory where you want the files for this domain to exist.') %]
+                                        </toggle-label-info>
+                                    </div>
+                                </div>
+                                <div class="row" >
+                                    <div ng-class="getFormFieldClasses(updateDomainForm.newDocumentRoot)">
+                                        <div class="input-group">
+                                            <span class="input-group-addon" title="{{ mainDomain.homedir }}/public_html/">
+                                                <span class="fas fa-home"></span>/<span ng-if="requirePublicHTMLSubs">public_html/</span>
+                                            </span>
+                                            <input
+                                                id="newDocumentRoot"
+                                                name="newDocumentRoot"
+                                                ng-pattern='documentRootPattern'
+                                                ng-model="workingDomain.documentRoot"
+                                                autocapitalize="off"
+                                                required
+                                                type="text"
+                                                class="form-control" />
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-12 col-md-6">
+                                        <ul validation-container field-name="newDocumentRoot">
+                                            <li validation-item field-name="newDocumentRoot" validation-name="required" >
+                                                [% locale.maketext('The Document Root field is required') %]
+                                            </li>
+                                            <li validation-item field-name="documentRoot" validation-name="pattern" >
+                                                [% locale.maketext('Directory paths cannot be empty, contain spaces, or contain the following characters: [output,chr,92] ? % * : | [output,quot] [output,gt] [output,lt]') %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <callout callout-type="warning" role="alert" ng-if="!updateDomainForm.newDocumentRoot.$pristine">
+                                            <p>
+                                                [% locale.maketext('This action changes where the web server searches for your files.') %]
+                                                [% locale.maketext('It does [output,strong,not] rearrange your files in any way.') %]
+                                            </p>
+                                        </callout>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- / Update Document Root -->
+                        </div>
+
+                        <div class="section" ng-if="!currentDomain.canEdit">
+                            <callout callout-type="info">
+                                <p>[% locale.maketext('No configuration options currently exist for the “[_1]” domain.', "{{currentDomain.domain}}") %]</p>
+                            </callout>
+                        </div>
+
+                        <!-- submit -->
+                        <div>
+                            <div class="row">
+                                <div class="col-xs-6">
+                                    <button
+                                        ng-if="currentDomain.canEdit"
+                                        type="submit"
+                                        class="btn btn-primary"
+                                        ng-disabled="updateDomainForm.$pristine || !updateDomainForm.$valid"
+                                        cp-action="update(updateDomainForm, workingDomain)">
+                                            [% locale.maketext('Update') %]
+                                    </button>
+                                </div>
+                                <div class="col-xs-6">
+                                    <a
+                                        href="#/"
+                                        class="btn btnlink pull-right">
+                                            <i class="fas fa-reply" aria-hidden="true"></i>
+                                            [% locale.maketext('Return to Domains') %]
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- / submit -->
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- / manage domain -->
+        <!-- remove domain -->
+        <div class="col-xs-12 col-md-8 pull-left" ng-if="currentDomain.canRemove">
+            <form name="removeDomainForm" id="removeDomainForm" class="form layout-medium" >
+                <!-- update docroot section -->
+                <div class="section">
+                    <div class="panel panel-danger">
+                        <div class="panel-heading">
+                            [% locale.maketext('Remove the Domain') %]
+                        </div>
+                        <div class="panel-body" ng-if="!associatedDomain">
+                            <div class="animate-show-hide" ng-if="!confirmingRemoval">
+                                <p class="break-on-mobile">
+                                    <strong>[% locale.maketext('Warning:')  %]</strong>
+                                    [% locale.maketext('If you remove the “[output,strong,_1]” domain, it will permanently delete the domain from your account. You cannot undo this action.', "{{currentDomain.domain}}")  %]
+                                    [% locale.maketext('This will not remove “[_1]”’s document root ([_2]).', '{{currentDomain.domain}}', '{{currentDomain.documentRoot}}') %]
+                                </p>
+                                <button class="btn btn-danger" ng-click="startRemovalConfirmation()" id="removeDomainRequestBtn">
+                                    <span class="glyphicon glyphicon-trash"></span>
+                                     [% locale.maketext("Remove Domain") %]
+                                </button>
+                            </div>
+                            <div class="animate-show-hide" ng-if="confirmingRemoval">
+                                <p class="break-on-mobile">[% locale.maketext('Are you sure that you want to remove the “[output,strong,_1]” domain?', "{{currentDomain.domain}}")  %]</p>
+                                <button class="btn btn-danger" cp-action="removeDomain()" id="removeDomainConfirmbtn">
+                                    <i class="fas fa-check" aria-hidden="true"></i>
+                                     [% locale.maketext("Yes, remove this domain", "{{ workingDomain.domain }}") %]
+                                </button>
+                                <button class="btn btn-default" ng-click="cancelRemoval()" ng-disabled="currentDomain.removing" id="removeDomainRequestCancelBtn">
+                                    <i class="fas fa-times" aria-hidden="true"></i>
+                                     [% locale.maketext("Cancel") %]
+                                </button>
+                                <!-- deletion delayed message -->
+                                <callout callout-type="info" role="alert" ng-if="deletionDelayed">
+                                    <p>
+                                        [% locale.maketext('It can take a moment to delete a domain.') %]
+                                        [% locale.maketext('This occurs on accounts with a large number of domains.') %]
+                                    </p>
+                                </callout>
+                                <!-- / deletion delayed message -->
+                            </div>
+                        </div>
+                        <div ng-if="associatedDomain">
+                            <div class="panel-body animate-show-hide">
+                                <p class="break-on-mobile">
+                                    [% locale.maketext('The system automatically created the “[_1]” subdomain with the “[_2]” domain. To delete the subdomain, you must first delete “[_2]”.', "{{currentDomain.domain}}", "{{associatedDomain.domain}}")  %]
+                                </p>
+                                <a href="#/manage?domain={{associatedDomain.domain}}">
+                                    [% locale.maketext("Manage the “[_1]” domain.", "{{associatedDomain.domain}}") %]
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <!-- / remove domain -->
+
+        <!-- summary -->
+        <div class="col-xs-12 hidden-lg hidden-md">
+            <div class="section">
+                <ng-include src="'additionalResourcesPanel.ptt'"></ng-include>
+            </div>
+        </div>
+        <!-- / summary -->
+    </div>
+</div>

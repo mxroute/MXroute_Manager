@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Dimampatkan","Incremental":"Inkremental","Uncompressed":"Tidak Dimampatkan"};
+    var newLex = {"Compressed":"Dimampatkan","Directory":"Direktori","File":"Fail","Incremental":"Inkremental","Symlink":"Symlink","Uncompressed":"Tidak Dimampatkan"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

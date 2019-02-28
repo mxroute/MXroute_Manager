@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Sıkıştırılmış","Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"[quant,_3,öğe,öğe]den [numf,_1] ila [numf,_2] arası görüntüleniyor","File restoration failure: [_1]":"File restoration failure: [_1]","Incremental":"Artımlı","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"Sıkıştırılmamış"};
+    var newLex = {"Compressed":"Sıkıştırılmış","Directory":"Dizin","Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","File":"Dosya","Incremental":"Artımlı","Symlink":"Symlink","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"Sıkıştırılmamış","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

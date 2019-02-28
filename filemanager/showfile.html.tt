@@ -15,20 +15,26 @@
             api2_result_Fileman_viewfile=Api2.exec("Fileman" , "viewfile" , {"no_expvar" =>"1" , "file" =>FORM.item("file" ), "dir" =>FORM.item("dir" )});
             Api2.post_exec("Fileman", "viewfile"); %]
 
-        [% IF api2_result_Fileman_viewfile.size; %]
-            [% FOREACH hashref IN api2_result_Fileman_viewfile; %]
-                <div id="file_info" style="padding: 0; margin: 0; border: 2px solid #ccc; background: #333333; color: #FFFFFF;font-weight:bold;">
-                    <h1>
-                        <img src="../mimeicons/[% hashref.mimename %].png" align="absmiddle" alt="[% hashref.mimetype %]">
-                        <span>[% hashref.file %] </span>
-                        <span style="font-size:14px;">( [% hashref.fileinfo %] )<span>
-                    </h1>
-                </div>
-                [%
-                    hashref.formatting_before;
-                    hashref.contents;
-                    hashref.formatting_after;
-                %]
+        [% IF CPANEL.CPERROR.fileman %]
+            <div id="viewfile_error">
+                [% CPANEL.CPERROR.fileman.html %]
+            </div>
+        [% ELSE %]
+            [% IF api2_result_Fileman_viewfile.size; %]
+                [% FOREACH hashref IN api2_result_Fileman_viewfile; %]
+                    <div id="file_info" style="padding: 0; margin: 0; border: 2px solid #ccc; background: #333333; color: #FFFFFF;font-weight:bold;">
+                        <h1>
+                            <img src="../mimeicons/[% hashref.mimename %].png" align="absmiddle" alt="[% hashref.mimetype %]">
+                            <span>[% hashref.file %] </span>
+                            <span style="font-size:14px;">( [% hashref.fileinfo %] )<span>
+                        </h1>
+                    </div>
+                    [%
+                        hashref.formatting_before;
+                        hashref.contents;
+                        hashref.formatting_after;
+                    %]
+                [% END %]
             [% END %]
         [% END %]
     </body>

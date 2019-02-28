@@ -23,12 +23,15 @@ define(
         return function() {
 
             // First create the application
-            angular.module("cpanel.zoneEditor", ["ngRoute", "ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
+            angular.module("cpanel.zoneEditor", ["ngRoute", "ui.bootstrap", "cjt2.cpanel"]);
 
             // Then load the application dependencies
             var app = require(
                 [
                     "cjt/bootstrap",
+                    "cjt/services/alertService",
+                    "cjt/directives/alert",
+                    "cjt/directives/alertList",
                     "app/services/page_data_service",
                     "app/services/domains",
                     "app/services/zones",

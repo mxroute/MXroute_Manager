@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Đã Nén","Incremental":"Tăng dần","Uncompressed":"Không Nén"};
+    var newLex = {"Compressed":"Đã Nén","Directory":"Thư Mục","File":"Tệp","Incremental":"Tăng dần","Symlink":"Symlink","Uncompressed":"Không Nén"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

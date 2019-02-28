@@ -1,0 +1,51 @@
+<div id="ssh-identity" class="panel ssh-identity-panel" ng-class="{ 'panel-warning': modal.keyIsNew(), 'panel-danger': modal.keyIsChanged() }">
+    <div class="panel-heading">
+        <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+        <label ng-if="modal.keyIsNew()">[% locale.maketext('Unknown SSH Host') %]</label>
+        <label ng-if="modal.keyIsChanged()">[% locale.maketext('SSH Host Key Verification Failed') %]</label>
+    </div>
+    <div class="panel-body">
+        <div ng-if="modal.keyIsNew()">
+            <p>
+                <span ng-bind-html="modal.newKeyIntro()"></span>
+            </p>
+            <p>
+                <span>[% locale.maketext('To ensure a secure connection, you must verify, trust, and save the host’s identity.') %]</span>
+                <span>[% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2,id,_3].', 'https://go.cpanel.net/GitVersionControl', 'gitVersionControl', 'lnkGitVersionDocs-keyModal') %]</span>
+            </p>
+        </div>
+        <div ng-if="modal.keyIsChanged()">
+            <p>
+                <span ng-bind-html="modal.changedKeyIntro()"></span>
+            </p>
+            <p>
+                <span>[% locale.maketext('This change may be legitimate, or you may be the target of a man-in-the-middle attack.') %]</span>
+            </p>
+            <p>
+                <span>[% locale.maketext('To ensure a secure connection, you must verify, trust, and save the host’s identity.') %]</span>
+                <span>[% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2,id,_3].', 'https://go.cpanel.net/GitVersionControl', 'gitVersionControl', 'lnkGitVersionDocs-keyModal') %]</span>
+            </p>
+        </div>
+        <button id="ssh-identity-details-expander" class="btn btn-default btn-xs" ng-click="modal.sshDetailsAreExpanded = !modal.sshDetailsAreExpanded">
+            <i class="fas fa-fw fa-key" aria-hidden=true></i>
+            <span ng-if="!modal.sshDetailsAreExpanded">[% locale.maketext('View Host Identification Information') %]</span>
+            <span ng-if="modal.sshDetailsAreExpanded">[% locale.maketext('Hide Host Identification Information') %]</span>
+            <i class="fas fa-fw fa-caret-down" ng-class="{ 'fa-rotate-180': modal.sshDetailsAreExpanded }" title="[% locale.maketext('Toggle host details.') %]"></i>
+        </button>
+        <div id="ssh-identity-details-body" uib-collapse="!modal.sshDetailsAreExpanded">
+            <pre ng-repeat="hostKey in modal.keys" class="wordbreak">
+                <dl>
+                    <dt>[% locale.maketext('Algorithm') %]:</dt>
+                    <dd>{{ hostKey.meta.algorithm }}</dd>
+                    <dt>[% locale.maketext('Fingerprints') %]:</dt>
+                    <dd>{{ hostKey.meta['sha256-printable'] }}</dd>
+                    <dd>{{ hostKey.meta['md5-printable'] }}</dd>
+                </dl>
+            </pre>
+        </div>
+    </div>
+    <div class="panel-footer clearfix">
+        <button id="ssh-identity-action-accept" button-class="pull-right flip" button-ng-class="{ 'btn-warning': modal.keyIsNew(), 'btn-danger': modal.keyIsChanged() }" cp-action="modal.acceptIdentity()">[% locale.maketext('Save and Continue') %]</button>
+        <button id="ssh-identity-action-cancel" class="btn btn-link pull-right flip" ng-click="modal.rejectIdentity()">[% locale.maketext('Cancel') %]</button>
+    </div>
+</div>

@@ -2,7 +2,7 @@
 USE Api2;
 
 SET CPANEL.CPVAR.dprefix = "../";
-SET return_link = '../mail/pops/index.html#/listEmailAccounts/' _ FORM.account.uri();
+SET return_link = '../email_accounts/index.html#/list/' _ FORM.account.uri();
 SET source_ip_check_account = Api2.exec("SourceIPCheck", "getaccount", {"account" => FORM.account}).0;
 %]
 

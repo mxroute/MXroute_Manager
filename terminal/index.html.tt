@@ -34,6 +34,12 @@
 [% PROCESS '_assets/cjt2_header_include.tt' %]
 
 <div class="body-content">
+    [% IF CPANEL.ENV.SHELL == '/bin/false' %]
+    <p class="description">
+        [% locale.maketext('This interface requires shell access to be enabled for your account.') %]
+        [% locale.maketext('To activate shell access, contact your service provider.') %]
+    </p>
+    [% ELSE %]
     <p class="description">[% locale.maketext('This interface provides command line access to your account on the server.') %]</p>
 
     <div id="viewContent" ng-controller="BaseController as base" class="section" ng-cloak>
@@ -52,6 +58,7 @@
             </div>
         </div>
     </div>
+    [% END %]
 </div>
 
 <script>

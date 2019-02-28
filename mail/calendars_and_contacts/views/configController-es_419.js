@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Calendar":"Calendar","Contacts":"Contacts"};
+    var newLex = {"Calendar":"Calendario","Contacts":"Contactos"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

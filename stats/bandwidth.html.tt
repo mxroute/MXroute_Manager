@@ -34,6 +34,12 @@ FOR i = [ 0 .. 6 ];
     last_tick = CPDate.add_local_interval( last_tick, -1, 'day', timezone );
 END;
 
+SET PROTOCOLS = execute_or_die(
+    'Bandwidth',
+    'get_enabled_protocols'
+).data;
+
+
 SET daily_data = execute(
     'Bandwidth',
     'query',
@@ -155,17 +161,23 @@ var WEEK_TICKS = [% JSON.stringify(WEEK_TICKS) %].map( function(t) {
     return new Date(t);
 } );
 
+var PROTOCOLS = [% JSON.stringify(PROTOCOLS) %];
+
 //XXX: LOCALE’s CLDR isn’t loading correctly on page load.
 wait_for_CLDR_to_load( function() {
     var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
         time_format: function(t) { return LOCALE.local_datetime(t, "time_format_short") },
+        protocols_order: PROTOCOLS,
         container_path: "#daily_container_d3",
         min_date: [% "${ONE_DAY_AGO}000" %],
         resolution: "5min",
         api_protocol_data: [% JSON.stringify(daily_data.data) %]
     } );
     if (did_sth) {
-        Bandwidth_Graph.draw_protocols_time_graph_key("#daily_container_d3");
+        Bandwidth_Graph.draw_protocols_time_graph_key({
+          protocols_order: PROTOCOLS,
+          container_path: "#daily_container_d3"
+        });
     }
 
     var WEEKDAYS = [% CPDate.day_stand_alone_abbreviated().json() %];
@@ -176,24 +188,32 @@ wait_for_CLDR_to_load( function() {
     did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
         time_format: function(t) { return WEEKDAYS[ t.getDay() ] + " (" + LOCALE.numf(t.getDate()) + ")" },
         time_ticks: WEEK_TICKS,
+        protocols_order: PROTOCOLS,
         container_path: "#weekly_container_d3",
         min_date: [% "${ONE_WEEK_AGO}000" %],
         resolution: "hourly",
         api_protocol_data: [% JSON.stringify(weekly_data.data) %]
     } );
     if (did_sth) {
-        Bandwidth_Graph.draw_protocols_time_graph_key("#weekly_container_d3");
+        Bandwidth_Graph.draw_protocols_time_graph_key({
+          protocols_order: PROTOCOLS,
+          container_path: "#weekly_container_d3"
+        });
     }
 
     did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
         time_format: function(t) { return MONTHS[t.getMonth()] },
+        protocols_order: PROTOCOLS,
         container_path: "#yearly_container_d3",
         min_date: [% "${ONE_YEAR_AGO}000" %],
         resolution: "daily",
         api_protocol_data: [% JSON.stringify(yearly_data.data) %]
     } );
     if (did_sth) {
-        Bandwidth_Graph.draw_protocols_time_graph_key("#yearly_container_d3");
+        Bandwidth_Graph.draw_protocols_time_graph_key({
+          protocols_order: PROTOCOLS,
+          container_path: "#yearly_container_d3"
+        });
     }
 } );
 

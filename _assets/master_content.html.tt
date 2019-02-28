@@ -38,18 +38,20 @@
                             <input  type="text"
                                     id="txtQuickFind"
                                     class="form-control hidden-xs input-sm input-quick-find"
+                                    autocomplete="off"
                                     placeholder="[% locale.maketext('Search') %] ( / )"
                                     ng-model="quickFindSelected"
                                     typeahead-template-url="customTemplate.html"
                                     ng-keyup="clearQuickFind($event)"
                                     uib-typeahead="app as app.name for app in applicationList | filter:{searchText:$viewValue}"
                                     typeahead-input-formatter="formatAppName(quickFindSelected)"
-                                    typeahead-on-select="openApplication($item, $model, $label)"
+                                    typeahead-on-select="openApplication($model, $event)"
+                                    role="combobox"
                                     aria-label="[% locale.maketext('Search') %]">
                         </span>
 
                         <div class="btn-group" uib-dropdown>
-                            <button id="btnUserPref" uib-dropdown-toggle class="btn dropdown-toggle user-preferences-btn"
+                            <button id="btnUserPref" type="button" aria-label="[% locale.maketext('User Preferences') %]" uib-dropdown-toggle class="btn dropdown-toggle user-preferences-btn"
                                 uib-tooltip="[% locale.maketext('User Preferences') %]"
                                 tooltip-placement="bottom">
                                 <span id="userImg" class="glyphicon glyphicon-user"></span>
@@ -57,6 +59,11 @@
                                 <span id="caretImg" class="caret"></span>
                             </button>
                             <ul uib-dropdown-menu class="dropdown-menu dropdown-menu-right">
+                                <li>
+                                    <a id="lnkUserPrefAccountSettings" href='[%- varcache.directory_prefix _ "account_preferences/index.html.tt" %]'>
+                                        [%- locale.maketext('Account Preferences') -%]
+                                    </a>
+                                </li>
                                 [% IF varcache.pwd_app_info %]
                                 <li>
                                     <a id="lnkUserPrefChangePwd" href="[%- varcache.directory_prefix _ varcache.pwd_app_info.url -%]">
@@ -174,6 +181,7 @@
             </a>
         [% END %]
     </aside>
+
     <!-- PAGE TEMPLATE'S CONTENT START -->
     <div id="content" class="container-fluid">
     [% IF CPANEL.CPFLAGS.item('trial') %]
@@ -195,11 +203,17 @@
 
     [% IF !hide_page_heading && page_title -%]
         <h1 class="page-header">
-            <span id="icon-[% app_info.file %]" class="page-icon [% IF !app_info.base64_png_image %]icon-[% app_info.file %][% ELSE %]integrations_icon[% END %]" [% IF app_info.base64_png_image %]style="background-image: url(data:image/png;base64,[% app_info.base64_png_image %]);"[% END %]></span>
-            <span id="pageHeading" >[% page_title -%]</span>
-            [% IF page_sub_heading.defined %]
+            <div id="icon-[% app_info.file %]" class="page-icon [% IF !app_info.base64_png_image %]icon-[% app_info.file %][% ELSE %]integrations_icon[% END %]" [% IF app_info.base64_png_image %]style="background-image: url(data:image/png;base64,[% app_info.base64_png_image %]);"[% END %]></div>
+            <div id="pageHeading" class="page-title-section">
+                <span class="page-title">[% page_title -%]</span>
+                [% IF page_sub_heading.defined %]
                 <small id="pageSubHeading">[% page_sub_heading %]</small>
-            [% END %]
+                [% END %]
+                [% IF show_breadcrumb %]
+                <breadcrumbs id="breadcrumbs" class="breadcrumbs">
+                </breadcrumbs>
+                [% END %]
+            </div>
         </h1>
     [% END %]
 
@@ -232,10 +246,12 @@
     [% END -%]
     <!-- UI INCLUDES GLOBAL FOOTER END -->
 
-    [%- IF CPANEL.ENV.DNT.substr(0, 1) != '1' -%]
-    [% IF UI_Includes.can_load_template( 'cp_analytics_cpanel.html.tt' ) -%]
-        <div id="cp-analytics-cpanel">[% UI_Includes.load_template( 'cp_analytics_cpanel.html.tt' ); %]</div>
-    [% END -%]
+    [%- # NOTE: Analytics UI includes are disabled by default and are strictly opt-in only.
+
+        IF CPANEL.analytics_ui_includes_are_enabled()
+        && CPANEL.ENV.DNT.substr(0, 1) != '1'
+        && UI_Includes.can_load_template( 'cp_analytics_cpanel.html.tt' ) -%]
+        <div id="cp-analytics-cpanel">[% UI_Includes.load_template( 'cp_analytics_cpanel.html.tt', {"page_identifier" => analytics_page_identifier} ); %]</div>
     [%- END -%]
 
     <div class="container-fluid">

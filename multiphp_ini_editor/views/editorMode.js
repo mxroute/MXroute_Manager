@@ -28,10 +28,10 @@ define(
 
         var controller = app.controller(
             "editorMode",
-            ["$scope", "$location", "$routeParams", "$timeout", "spinnerAPI", "alertService", "growl", "growlMessages", "configService",
-                function($scope, $location, $routeParams, $timeout, spinnerAPI, alertService, growl, growlMessages, configService) {
+            ["$scope", "$location", "$routeParams", "$timeout", "spinnerAPI", "alertService", "growl", "configService",
+                function($scope, $location, $routeParams, $timeout, spinnerAPI, alertService, growl, configService) {
 
-                // Setup data structures for the view
+                    // Setup data structures for the view
                     var iniUserPaths = []; // This will contain all data about INI paths.
                     var alreadyInformed = false;
                     var infoGrowlHandle;
@@ -46,10 +46,34 @@ define(
                     $scope.processingEditor = false;
                     var editor;
 
+                    var editorInProcess = function(processing) {
+                        if (typeof (editor) !== "undefined") {
+                            editor.setReadOnly(processing);
+                        }
+
+                        $scope.processingEditor = processing;
+                    };
+
+                    var getIniPathInfo = function(shortPathInfo) {
+
+                        // filter the required path info from iniUserPaths
+                        var pathInfo = _.find(iniUserPaths, function(path) {
+
+                            // There can be only one record of type 'home'
+                            if (shortPathInfo.type === "home" && path.type === "home") {
+                                return true;
+                            } else if (shortPathInfo.type === "vhost" && shortPathInfo.name === path.vhost) {
+                                return true;
+                            }
+                        });
+
+                        return pathInfo;
+                    };
+
                     $scope.loadContent = function() {
 
-                    // Destroy all growls before attempting to submit something.
-                        growlMessages.destroyAllMessages();
+                        // Destroy all growls before attempting to submit something.
+                        alertService.clear();
 
                         if ($scope.selectedIniPath.type) {
                             spinnerAPI.start("loadingSpinner");
@@ -70,7 +94,13 @@ define(
                                 .then(function(content) {
                                     if (content !== "undefined") {
                                         if (content === "") {
-                                            growl.info(LOCALE.maketext("The [asis,INI] content does not exist. You may add new content."));
+                                            alertService.add({
+                                                type: "info",
+                                                message: LOCALE.maketext("The [asis,INI] content does not exist. You may add new content."),
+                                                closeable: true,
+                                                replace: false,
+                                                group: "multiphpIniEditor"
+                                            });
                                         }
 
                                         // Using jquery way of decoding the html content.
@@ -107,8 +137,14 @@ define(
                                     }
                                 }, function(error) {
 
-                                // failure
-                                    growl.error(error);
+                                    // failure
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "multiphpIniEditor"
+                                    });
                                 })
                                 .then(function() {
                                     editorInProcess(false);
@@ -135,8 +171,8 @@ define(
 
                     $scope.save = function() {
 
-                    // Destroy all growls before attempting to submit something.
-                        growlMessages.destroyAllMessages();
+                        // Destroy all growls before attempting to submit something.
+                        alertService.clear();
                         alreadyInformed = false;
                         if ( typeof infoGrowlHandle !== "undefined" ) {
                             infoGrowlHandle.destroy();
@@ -148,46 +184,35 @@ define(
                             .then(
                                 function(data) {
                                     if (typeof (data) !== "undefined") {
-                                        growl.success(LOCALE.maketext("Successfully saved the changes."));
+                                        alertService.add({
+                                            type: "success",
+                                            message: LOCALE.maketext("Successfully saved the changes."),
+                                            closeable: true,
+                                            replace: false,
+                                            autoClose: 10000,
+                                            group: "multiphpIniEditor"
+                                        });
                                     }
                                 }, function(error) {
 
-                                // escape the error text to prevent XSS attacks.
-                                    growl.error(_.escape(error));
+                                    // escape the error text to prevent XSS attacks.
+                                    alertService.add({
+                                        type: "danger",
+                                        message: _.escape(error),
+                                        closeable: true,
+                                        replace: false,
+                                        group: "multiphpIniEditor"
+                                    });
                                 })
                             .then(function() {
                                 editorInProcess(false);
                             });
                     };
 
-                    var editorInProcess = function(processing) {
-                        if (typeof (editor) !== "undefined") {
-                            editor.setReadOnly(processing);
-                        }
-
-                        $scope.processingEditor = processing;
-                    };
-
-                    var getIniPathInfo = function(shortPathInfo) {
-
-                    // filter the required path info from iniUserPaths
-                        var pathInfo = _.find(iniUserPaths, function(path) {
-
-                        // There can be only one record of type 'home'
-                            if (shortPathInfo.type === "home" && path.type === "home") {
-                                return true;
-                            } else if (shortPathInfo.type === "vhost" && shortPathInfo.name === path.vhost) {
-                                return true;
-                            }
-                        });
-
-                        return pathInfo;
-                    };
-
                     var setIniPathDropdown = function(iniList) {
 
-                    // iniList is sent to the function when the
-                    // dropdown is bound the first time.
+                        // iniList is sent to the function when the
+                        // dropdown is bound the first time.
                         if (iniList.length > 0) {
                             iniUserPaths = iniList;
                             var mainDomainName;
@@ -199,7 +224,7 @@ define(
                                     $scope.iniPathNames.push({ type: iniPath.type, name: iniPath.vhost });
                                 } else if (iniPath.main_domain) {
 
-                                // Save the Primary Domain name
+                                    // Save the Primary Domain name
                                     mainDomainName = iniPath.vhost;
                                 }
                             });
@@ -220,25 +245,24 @@ define(
 
                     $scope.$on("$viewContentLoaded", function() {
 
-                    // Destroy all growls before attempting to submit something.
-                        growlMessages.destroyAllMessages();
+                        // Destroy all growls before attempting to submit something.
+                        alertService.clear();
 
                         var phpIniData = PAGE.php_ini_data;
 
                         if (!phpIniData.status && phpIniData.errors.length > 0) {
 
-                        // Handle errors
+                            // Handle errors
                             var errors = phpIniData.errors;
                             errors.forEach(function(error) {
                                 alertService.add({
                                     type: "danger",
                                     message: error,
-                                    id: "alertMessages",
                                     replace: false,
-                                    closeable: true
+                                    closeable: true,
+                                    group: "multiphpIniEditor"
                                 });
                             });
-                            growl.error(LOCALE.maketext("Errors occurred while retrieving the [asis,PHP INI] locations."));
                         }
 
                         // Bind PHP INI Files specific to dropdown

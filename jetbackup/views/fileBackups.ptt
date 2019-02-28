@@ -1,0 +1,136 @@
+<div ng-if="PERMS.canViewFileBackups == false">
+	<ng-include src="'views/permissionserror.ptt'"></ng-include>
+</div>
+<div ng-if="PERMS.canViewFileBackups">
+    <div ng-controller="fileBackups">
+        <div id="BackupList" ng-controller="listBackups" class="section">
+          <div class="row search-page-container"
+            ng-class="getSearchClass()">
+              <div class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+                  <search id="backup_table_search" ng-model="meta.filterValue" ng-change="searchList()"></search>
+              </div>
+              <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+                  <div class="pagination-container hidden-xs hidden-sm">
+                      <page-size id="backup_table_items_per_page"
+                          allowed-sizes="meta.pageSizes"
+                          total-items="meta.totalItems"
+                          ng-model="meta.pageSize"
+                          show-all="false"
+                          ng-show="showPager"
+                          ng-change="selectPageSize()">
+                      </page-size>
+                      <uib-pagination id="backup_table_paginate"
+                          total-items="meta.totalItems"
+                          ng-model="meta.currentPage"
+                          max-size="3"
+                          boundary-links="true"
+                          rotate="false"
+                          previous-text="<"
+                          next-text=">"
+                          first-text="<<"
+                          last-text=">>"
+                          items-per-page="meta.pageSize"
+                          ng-show="showPager"
+                          ng-change="selectPage()">
+                      </uib-pagination>
+                  </div>
+              </div>
+          </div>
+          <table id="accounts_table" class="table table-striped-child responsive-table">
+            <thead>
+                <tr>
+                    <th class="col-sm-2 col-md-2 col-lg-2">
+                        <a toggle-sort sort-meta="meta" sort-field="created" onSort="fetch" title="{{ LOCALE.makevar('Sort by [_1].', LOCALE.maketext('Creation Date')) }}">{{ LOCALE.maketext("Creation Date") }}</a>
+                    </th>
+                    <th class="col-sm-1 col-md-1 col-lg-1">
+                        <a toggle-sort sort-meta="meta" sort-field="size" onSort="fetch" title="{{ LOCALE.makevar('Sort by [_1].', LOCALE.maketext('Size')) }}">{{ LOCALE.maketext("Size") }}</a>
+                    </th>
+                    <th class="col-sm-1 col-md-1 col-lg-4" ng-if="PERMS.canAddBackupNotes">
+                        {{ LOCALE.maketext("Notes") }}
+                    </th>
+                    <th class="col-sm-1 col-md-1 col-lg-1">
+                        <a toggle-sort sort-meta="meta" sort-field="location" onSort="fetch" title="{{ LOCALE.makevar('Sort by [_1].', LOCALE.maketext('Location')) }}">{{ LOCALE.maketext("Location") }}</a>
+                    </th>
+                    <th class="col-sm-6 col-md-6 col-lg-6">
+                        <span>{{ LOCALE.maketext("Actions") }}</span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="backup in filteredList track by $index" id="backup_row_{{$index}}">
+                    <td data-title="{{ LOCALE.maketext('Creation Date') }}">
+                        <span title="{{ UTILS.date(backup.created) }}">{{ UTILS.date(backup.created) }}</span>
+                    </td>
+                    <td data-title="{{ LOCALE.maketext('Size') }}">
+                        <span title="{{ backup.size ? UTILS.sizeToHumanReadable(backup.size) : '-' }}">{{ backup.size ? UTILS.sizeToHumanReadable(backup.size) : '-' }}</span>
+                    </td>
+                    <td data-title="{{ LOCALE.maketext('Notes') }}" ng-if="PERMS.canAddBackupNotes">
+                        <div class="editableBox" ng-hide="backup.editing" ng-dblclick="openNotesEdit(backup)" title="{{ backup.notes }}">{{ backup.notes ? backup.notes : "Click to add Note..." }}</div>
+                        <input ng-show="backup.editing" ng-model="backup.notes" ng-blur="saveNotes(backup)" focus-input="backup.editing" placeholder="Enter Notes..." class="form-control" />
+                    </td>
+                    <td data-title="{{ LOCALE.maketext('Location') }}">
+                        <span title="{{ backup.location }}">{{ backup.location }}</span>
+                    </td>
+                    <td>
+                        <a class="btn btn-link" ng-click="changeView('fileManager/' + backup._id)" href="javascript:void(0)" title="{{ LOCALE.maketext('File Manager') }}">
+                            <span class="fas fa-file"></span> {{ LOCALE.maketext("File Manager") }}
+                        </a>
+                    </td>
+                </tr>
+                <tr ng-hide="!loadingBackups">
+                    <td colspan="5">
+                        <cp-loading-panel>
+                            <span>{{ LOCALE.maketext("Loading Backups") }}</span>
+                        </cp-loading-panel>
+                    </td>
+                </tr>
+                <tr ng-hide="filteredList.length > 0 || loadingBackups">
+                    <td colspan="5">
+                        <span>{{ LOCALE.maketext("No Backups Found") }}</span>
+                    </td>
+                </tr>
+            </tbody>
+          </table>
+            <div class="row hidden-md hidden-lg">
+                <div class="col-xs-12">
+                    <p class="text-right" ng-hide="!meta.mobileItemCountText">{{ meta.mobileItemCountText }}</p>
+                </div>
+            </div>
+            <div class="row search-page-container visible-xs-block visible-sm-block hidden-md hidden-lg">
+                <div class="col-xs-12 col-sm-12">
+                    <div class="pagination-container">
+                        <page-size id="backup_table_items_per_page_mobile"
+                            allowed-sizes="meta.pageSizes"
+                            total-items="meta.totalItems"
+                            ng-model="meta.pageSize"
+                            show-all="false"
+                            ng-show="showPager"
+                            ng-change="selectPageSize()">
+                        </page-size>
+                        <uib-pagination id="backup_table_paginate_mobile"
+                            total-items="meta.totalItems"
+                            ng-model="meta.currentPage"
+                            max-size="0"
+                            boundary-links="true"
+                            rotate="false"
+                            previous-text="<"
+                            next-text=">"
+                            first-text="<<"
+                            last-text=">>"
+                            items-per-page="meta.pageSize"
+                            ng-show="showPager"
+                            ng-change="selectPage()"
+                            class="pagination-small">
+                        </uib-pagination>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="return-link">
+        <a id="lnkReturn" href="" ng-click="changeView('/')">
+            <span class="glyphicon glyphicon-circle-arrow-left"></span>
+            {{ LOCALE.maketext("Go Back") }}
+        </a>
+    </div>
+</div>

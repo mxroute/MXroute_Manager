@@ -31,7 +31,8 @@ SET page_data = {
         ng-controller="BaseController"
         ng-cloak
     >
-        <div growl></div>
+    <!-- NOTE: leave the alert-group in single quotes -->
+    <cp-alert-list alert-group="'userrights'"></cp-alert-list>
 
         <h2 id="hdrManageUserPrivs">[% locale.maketext("Manage User Privileges") %]</h2>
 

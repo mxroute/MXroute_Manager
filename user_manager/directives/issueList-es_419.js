@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Error:":"Error:","Mail Quota Reached:":"Mail Quota Reached:","Mail Quota Warning:":"Mail Quota Warning:","Warning:":"Warning:","[asis,FTP] Quota Reached:":"[asis,FTP] Quota Reached:","[asis,FTP] Quota Warning:":"[asis,FTP] Quota Warning:"};
+    var newLex = {"Error:":"Error:","Mail Quota Reached:":"Se alcanzó la cuota de correo:","Mail Quota Warning:":"Advertencia de cuota de correo:","Warning:":"Advertencia:","[asis,FTP] Quota Reached:":"Se ha alcanzado la cuota de [asis,FTP]:","[asis,FTP] Quota Warning:":"[asis,FTP] Advertencia de cuota:"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

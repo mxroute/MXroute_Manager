@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"บีบอัด","Incremental":"ส่วนเพิ่ม","Uncompressed":"ที่คืนค่าจากการบีบอัด"};
+    var newLex = {"Compressed":"บีบอัด","Directory":"ไดเรกทอรี","File":"ไฟล์","Incremental":"ส่วนเพิ่ม","Symlink":"Symlink","Uncompressed":"ที่คืนค่าจากการบีบอัด"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

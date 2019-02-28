@@ -57,7 +57,7 @@ END;
     [% END %]
 
     <div class="section">
-        <h2 id="hdrLocation">[% locale.maketext("Module Include Path") %]</h2>
+        <h2 id="hdrLocation">[% locale.maketext("Module Install Path") %]</h2>
         <p>
             <span>
                 [% locale.maketext("Path: [output,strong,_1]", lang_mods_get_prefix.prefix.html()) %]

@@ -7,31 +7,6 @@
     SET spinner_url = '/images/report-spinner.gif';
     SET spinner_url = MagicRevision(spinner_url);
 
-    SET pending_certificates = execute_or_die('Market', 'get_pending_ssl_certificates', {
-        'api.filter'=>1,
-        'api.filter_type'=>'ne',
-        'api.filter_term'=>'inactive',
-        'api.filter_column'=>'status'
-    }).data;
-
-    SET products_api = execute_or_die('Market', 'get_all_products', {
-        'api.filter'=>1,
-        'api.filter_type_0'=>'eq',
-        'api.filter_term_0'=>'ssl_certificate',
-        'api.filter_column_0'=>'product_group',
-        'api.filter_type_1'=>'eq',
-        'api.filter_term_1'=>'1',
-        'api.filter_column_1'=>'enabled',
-        "api.sort"=>1,
-        'api.sort_column_0' => "recommended",
-        "api.sort_method_0" => "numeric"
-        "api.sort_reverse_0" => "1"
-        'api.sort_column_1' => "x_price_per_domain",
-        "api.sort_method_1" => "numeric"
-    });
-
-    SET products = products_api.data;
-
     SET countries = [];
     SET locales_obj = locale.get_locales_obj();
     FOR ccode = Geo.COUNTRY_CODES;
@@ -51,7 +26,7 @@
     [% locale.maketext("For more information on this interface, read the [output,url,_1,documentation,target,_2,id,_3].", "https://go.cpanel.net/ssltlswizard", "_blank", "lnkssltlswizardDocumentation") %]
 </section>
 
-[% IF !CPANEL.feature('sslinstall') || !ExpVar.expand('$isallowedssl') -%]
+[% IF !( CPANEL.feature('sslinstall') && CPANEL.feature('tls_wizard') && CPANEL.feature('market') ) -%]
     <div id="notAvailableError" class="alert alert-danger">
         <span id="notAvailableErrorImg" class="glyphicon glyphicon-remove-sign"></span>
         <div id="notAvailableErrorMsg" class="alert-message">
@@ -59,6 +34,32 @@
         </div>
     </div>
 [% ELSE -%]
+    [%
+        SET pending_certificates = execute_or_die('Market', 'get_pending_ssl_certificates', {
+            'api.filter'=>1,
+            'api.filter_type'=>'ne',
+            'api.filter_term'=>'inactive',
+            'api.filter_column'=>'status'
+        }).data;
+
+        SET products_api = execute_or_die('Market', 'get_all_products', {
+            'api.filter'=>1,
+            'api.filter_type_0'=>'eq',
+            'api.filter_term_0'=>'ssl_certificate',
+            'api.filter_column_0'=>'product_group',
+            'api.filter_type_1'=>'eq',
+            'api.filter_term_1'=>'1',
+            'api.filter_column_1'=>'enabled',
+            "api.sort"=>1,
+            'api.sort_column_0' => "recommended",
+            "api.sort_method_0" => "numeric"
+            "api.sort_reverse_0" => "1"
+            'api.sort_column_1' => "x_price_per_domain",
+            "api.sort_method_1" => "numeric"
+        });
+
+        SET products = products_api.data;
+    %]
 
     [% IF products_api.messages.size -%]
         <div class="alert alert-warning">
@@ -88,6 +89,7 @@
                 </div>
 
                 <div ng-class="{'view-disabled':loading}" class="animate-view" ng-view></div>
+                <cp-alert-list alert-group="'tlsWizard'"></cp-alert-list>
                 <div growl></div>
             </div>
 

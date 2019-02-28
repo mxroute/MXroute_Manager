@@ -197,7 +197,7 @@
                 <h2 class="panel-title">[% locale.maketext("Congratulations!") %] <i class="fas fa-thumbs-up"></i></h2>
             </div>
             <div class="panel-body">
-                <p>[% locale.maketext('You successfully published your website to [output,url,_1,_1,target,_2,id,_3]', '{{getSiteAddress(selectedDomain)}}', '{{selectedDomain.domain}}', 'lnk_success_{{selectedDomain.domain}}_Url') %]</p>
+                <p>[% locale.maketext('You successfully published your website to [output,url,_1,_2,target,_2,id,_3]', '{{getSiteAddress(selectedDomain)}}', '{{selectedDomain.domain}}', 'lnk_success_{{selectedDomain.domain}}_Url') %]</p>
                 <h3>[% locale.maketext("What would you like to do next?") %]</h3>
             </div>
             <div class="list-group additional-links">

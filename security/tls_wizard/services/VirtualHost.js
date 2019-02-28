@@ -86,6 +86,7 @@ define(
                             if (domain.is_wildcard) {
                                 return true;
                             }
+                            return false;
                         });
                         this.calculated_price = (this.product_price * (selected_domains.length - wildcard_domains.length)) + (wildcard_domains.length * this.product_wildcard_price);
                         return this.calculated_price;
@@ -193,11 +194,14 @@ define(
                         });
                         return match;
                     },
+
+                    // This doesn't actually remove a domain, it deselects it
                     remove_domain: function(domain) {
                         domain.selected = 0;
                         this.get_selected_domains();
                     },
 
+                    // This doesn't actually remove domains, it deselects them
                     remove_all_domains: function() {
                         for (var i = 0; i < this.domains.length; i++) {
                             this.remove_domain(this.domains[i]);

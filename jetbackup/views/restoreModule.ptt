@@ -1,0 +1,30 @@
+<div class="form-group">
+    <p ng-if="!config.restore_conditions">{{ LOCALE.maketext("Are you sure you want to restore from this backup?") }}</p>
+    <div ng-if="config.restore_conditions">
+        <div ng-repeat="condition in config.restore_conditions track by $index" id="condition_row_{{$index}}" ng-if="condition.type == 0 || condition.type == backupType" style="margin-bottom: 5px;">
+            <label><input type="checkbox" ng-model="condition.checked" /> <strong>{{ condition.title }}</strong></label><br />{{ condition.content }}
+        </div>
+    </div>
+</div>
+<div class="row" ng-show="backup.require_encryption_key">
+    <div class="col-md-4">
+        <div class="form-group">
+            <div class="input-group" style="margin-top: 5px;">
+                <span class="input-group-addon">{{LOCALE.maketext("Encryption Key")}}</span>
+                <input type="text" value="" class="form-control" ng-model="backup.encryption_key" />
+            </div>
+        </div>
+    </div>
+</div>
+<div class="form-group">
+    <button
+        id="backup_table_restore_confirm_{{$index}}"
+        type="submit"
+        class="btn btn-primary"
+        spinner-id="spinnerRestoreBackup"
+        ng-model="button"
+        ng-disabled="isConditionsAgreed()"
+        cp-action="onClickRestoreConfirm()">{{ LOCALE.maketext("Add to Restore Queue") }}</button>
+    <button class="btn btn-link" ng-click="cancelAction()" ng-class="{ 'hide': restoringBackup }">{{ LOCALE.maketext("Cancel") }}</button>
+</div>
+<div id="restore_backup_status_{{index}}"></div>

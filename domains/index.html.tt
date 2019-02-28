@@ -1,0 +1,131 @@
+[%
+    USE Master;
+    USE CPBranding;
+    USE ExpVar;
+
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    SET file_manager_obj = CPBranding.get_application_from_available_applications(varcache.available_applications, "file_manager");
+
+    IF file_manager_obj;
+        file_manager_obj.url = CPANEL.CPVAR.dprefix _ file_manager_obj.url;
+    END;
+
+    SET email_accounts_app = CPBranding.get_application_from_available_applications(varcache.available_applications, "email_accounts");
+
+    SET upgradeUrl = CPBranding.get_implementer_from_available_applications(
+        varcache.available_applications,
+        'upgrade',
+    ).url;
+
+    IF upgradeUrl;
+        SET upgradeUrl = CPANEL.CPVAR.dprefix _ upgradeUrl;
+    END;
+
+-%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'domains'
+    feature = ''
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    page_stylesheets = [
+        'domains/index.css',
+        "css/angular-chosen-spinner.css",
+        "libraries/chosen/1.5.1/chosen.min.css"
+    ]
+    page_js = js_code
+-%]
+
+<div>
+    <div class="row" ng-controller="main">
+        <div class="col-md-12">
+            <p class="description">[% locale.maketext("Use this interface to manage your domains. For more information, read the [output,url,_1,documentation,target,_blank].", 'https://go.cpanel.net/cpaneldocs76domainsui') %]
+            </p>
+
+            <ol class="breadcrumb breadcrumb-with-ng-repeat ng-cloak" ng-hide="!breadcrumbs.length">
+                <li ng-repeat="breadcrumb in breadcrumbs" ng-class="{active:breadcrumb.active}">
+                    <a ng-if="breadcrumb.active" href="{{breadcrumb.href}}" id="{{breadcrumb.id}}">{{breadcrumb.label}}</a>
+                    <span ng-if="!breadcrumb.active">{{breadcrumb.label}}</span>
+                </li>
+            </ol>
+
+            <cp-alert-list id="mainAlertList"></cp-alert-list>
+
+            <div id="body-content" class="body-content ng-cloak">
+
+                <cp-loading-panel id="loadingDomains" ng-show="loading">[% locale.maketext('Loading …') %]</cp-loading-panel>
+
+                <div ng-show="currentTab && !loading">
+                    <h2 ng-hide="currentTab.hideTitle" ng-bind="currentTab.title" class="break-on-mobile"></h2>
+                    <p ng-if="currentTab.description" class="current-tab-description" ng-bind-html="currentTab.description"></p>
+                    <div id="viewContent"
+                        class="ng-cloak section animate-view"
+                        ng-view
+                        ng-cloak>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+</div>
+
+
+
+<script id="views/listDomains.ptt" type="text/ng-template">
+[% PROCESS "domains/views/listDomains.ptt" %]
+</script>
+
+<script id="views/createDomain.ptt" type="text/ng-template">
+[% PROCESS "domains/views/createDomain.ptt" %]
+</script>
+
+<script id="directives/tableShowingDirective.ptt" type="text/ng-template">
+[% PROCESS "domains/directives/tableShowingDirective.ptt" %]
+</script>
+
+<script id="directives/docrootDirective.ptt" type="text/ng-template">
+[% PROCESS "domains/directives/docrootDirective.ptt" %]
+</script>
+
+<script id="directives/domainListerViewDirective.ptt" type="text/ng-template">
+[% PROCESS "domains/directives/domainListerViewDirective.ptt" %]
+</script>
+
+<script id="directives/itemLister.ptt" type="text/ng-template">
+[% PROCESS "domains/directives/itemLister.ptt" %]
+</script>
+
+<script type="text/ng-template" id="additionalResourcesPanel.ptt">
+[% PROCESS "domains/additionalResourcesPanel.ptt" %]
+</script>
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+
+[% BLOCK js_block %]
+    <script type="text/javascript">
+        var PAGE = PAGE || {};
+        PAGE.requirePublicHTMLSubs = [% CPANEL.CPCONF.publichtmlsubsonly.json() %];
+        PAGE.upgradeUrl = [% upgradeUrl.json() %];
+        PAGE.mainDomain = [% CPANEL.CPDATA.DNS.html.json() %];
+        PAGE.fileManagerAppObj = [% file_manager_obj.json() %];
+        PAGE.EMAIL_ACCOUNTS_APP_EXISTS = [% email_accounts_app.json() %]
+        // With the $HASROLE EXPVar, TT will interpret it if in double ticks
+        PAGE.hasWebServerRole = [% ExpVar.expand("\$HASROLE{'WebServer'}").json() %];
+        PAGE.hasSSLInstall = [% CPANEL.feature('sslinstall') %]
+        PAGE.features = {
+            addon: [% CPANEL.feature("addondomains") ? "true" : "false" %],
+            alias: [% CPANEL.feature("parkeddomains") ? "true" : "false" %],
+            subdomain: [% CPANEL.feature("subdomains") ? "true" : "false" %]
+        };
+    </script>
+[% END #js_block %]
+
+[% END #wrapper -%]
+

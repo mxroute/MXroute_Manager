@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Tömörített","Incremental":"Növekményes","Uncompressed":"Tömörítetlen"};
+    var newLex = {"Compressed":"Tömörített","Directory":"Könyvtár","File":"Fájl","Incremental":"Növekményes","Symlink":"Symlink","Uncompressed":"Tömörítetlen"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

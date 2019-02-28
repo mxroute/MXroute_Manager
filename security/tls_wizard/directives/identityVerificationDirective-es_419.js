@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Required":"Required","To ensure quick service, fill out the form below as completely as possible.":"To ensure quick service, fill out the form below as completely as possible.","Use the format “[_1]”. For example, today is “[_2]”.":"Use the format “[_1]”. For example, today is “[_2]”."};
+    var newLex = {"Required":"Requerido","To ensure quick service, fill out the form below as completely as possible.":"To ensure quick service, fill out the form below as completely as possible.","Use the format “[_1]”. For example, today is “[_2]”.":"Use the format “[_1]”. For example, today is “[_2]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

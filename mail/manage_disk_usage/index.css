@@ -1,0 +1,49 @@
+/* override defaults */
+table.responsive-table > tbody > tr.suppressed {
+  display: none;
+}
+table.responsive-table > tbody > tr.mailbox-action,
+table.responsive-table > tbody > tr.mailbox-action > td {
+  border-top: 0;
+}
+table.responsive-table > tbody > tr.mailbox-info,
+table.responsive-table > tbody > tr.mailbox-info > td.mailbox-actions {
+  border-bottom: 0;
+}
+.query-examples {
+  margin-top: 8px;
+}
+.query-examples th {
+  padding-right: 8px;
+}
+.view-loading-box {
+  text-align: center;
+  padding-bottom: 20px;
+}
+.no-underline {
+  display: inline-block;
+  width: 0.25em;
+}
+th.mailbox-count,
+td.mailbox-count,
+th.mailbox-size,
+td.mailbox-size {
+  text-align: right;
+}
+th.mailbox-actions,
+td.mailbox-actions {
+  text-align: center;
+}
+/* Can’t use table-striped because
+   it doesn’t accommodate the drop-down rows.
+*/
+tr.stripe-yang {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+/* TODO: This shouldn’t be a one-off here; put it in
+   the style guide once it passes muster.
+*/
+.search-container {
+  padding: 0;
+  margin-bottom: 25px;
+}

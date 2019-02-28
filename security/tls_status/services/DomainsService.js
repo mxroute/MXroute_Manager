@@ -100,6 +100,10 @@ define(
 
             }
 
+            function areMarketProductsAvailable() {
+                return PAGE.has_tls_wizard_feature && get_products().length || false;
+            }
+
             function is_autossl_override_enabled() {
 
                 if (autossl_override_enabled !== null) {
@@ -142,8 +146,8 @@ define(
                             "description": LOCALE.maketext("Only list [asis,www] and [asis,mail] domains.")
                         }, {
                             "value": "proxy_sub_domains",
-                            "label": LOCALE.maketext("Proxy Subdomains"),
-                            "description": LOCALE.maketext("Only list Proxy Subdomains.")
+                            "label": LOCALE.maketext("Service Subdomains"),
+                            "description": LOCALE.maketext("Only list Service Subdomains.")
                         }]
                     },
                     sslType: {
@@ -359,9 +363,9 @@ define(
 
             function _check_certificate_autossl(certificate) {
 
-                //If AutoSSL can’t secure wildcards, and if this
-                //certificate includes a wildcard, then we won’t
-                //replace the certificate.
+                // If AutoSSL can’t secure wildcards, and if this
+                // certificate includes a wildcard, then we won’t
+                // replace the certificate.
                 if (!AUTOSSL_CAN_WILDCARD) {
                     if (certificate.domains.join().indexOf("*") !== -1) {
                         return false;
@@ -821,7 +825,8 @@ define(
                 get_certificate_status: get_certificate_status,
                 getAutoSSLStatuses: getAutoSSLStatuses,
                 startUserAutoSSL: startUserAutoSSL,
-                isAutoSSLCheckInProgress: isAutoSSLCheckInProgress
+                isAutoSSLCheckInProgress: isAutoSSLCheckInProgress,
+                areMarketProductsAvailable: areMarketProductsAvailable,
             };
 
         }]);

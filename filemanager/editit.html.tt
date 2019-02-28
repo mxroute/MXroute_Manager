@@ -607,6 +607,8 @@
                 ace_editor.setOption("wrap", 80);
                 btnEl.classList.add("active");
             }
+            // Remove the focus button state for less UI confusion
+            btnEl.blur();
         }
 
         /*

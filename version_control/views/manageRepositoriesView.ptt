@@ -9,494 +9,532 @@
     </li>
 </ol>
 
-
 <uib-tabset active="activeTabIndex">
     <uib-tab index="0" id="tabBasicInformation" heading="[% locale.maketext('Basic Information') %]" ng-click="changeActiveTab('basic-info')">
-        <div class="tab-content">
-            <div class="description">
-                [% locale.maketext('Use this section of the interface to review repository information and configure settings and the currently checked-out branch.') %]
-            </div>
-            <cp-loading-panel ng-show="repository.isLoading">
-                <span>[% locale.maketext('Loading …') %]</span>
-            </cp-loading-panel>
-            <div class="row" ng-show="!repository.isLoading">
-                <div class="col-xs-12 col-sm-6">
-                    <section class="manage-section">
-                        <form name="repository.manageRepoForm">
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <toggle-label-info
-                                            id="repoPathFieldLabel"
-                                                for="repoPathField"
-                                                label-text="[% locale.maketext('Repository Path') %]"
-                                                show-info-block="false">
-                                                [% locale.maketext('The path for the repository’s directory.') %]
-                                        </toggle-label-info>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div id="repoPathFieldSegment" class="col-xs-12">
-                                        <a  id="btnFileManagerRedirect_{{::repository.qaSafeSuffix}}"
-                                            class="external-link wordbreak"
-                                            title="[% locale.maketext('View this repository in the File Manager interface.') %]"
-                                            ng-click="repository.redirectToFileManager(repository.fileManagerRedirectURL, repository.name)">
-                                            {{repository.fullRepoPath}}
-                                            <i class='fas fa-external-link-alt'></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
+        <div class="description">
+            [% locale.maketext('Use this section of the interface to review repository information and configure settings and the currently checked-out branch.') %]
+        </div>
+        <callout
+            class="no-connection-callout"
+            callout-type="warning"
+            ng-if="repository.unableToRetrieveAvailableBranches">
+            <p>
+                {{ repository._noConnectionText }}
+                [% locale.maketext("Some actions are currently unavailable.") %]
+            </p>
 
-                            <!--Name Section-->
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <toggle-label-info
-                                                for="repoNameInput"
-                                                label-text="[% locale.maketext('Repository Name') %]"
-                                                show-info-block="false">
-                                                [% locale.maketext('This name does [output,em,not] impact functionality, and instead functions [output,em,only] as a display name.') %]
-                                        </toggle-label-info>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <input
-                                            name="repoNameInput"
-                                            id="repoNameInput"
-                                            type="text"
-                                            class="form-control"
-                                            ng-model="repository.name"
-                                            ng-pattern="/^[^<>]+$/"
-                                            required>
-                                            <span class="help-block">[% locale.maketext('The repository name may [output,strong,not] include the “[output,chr,60]” and “[output,chr,62]” characters.') %]</span>
-                                    </div>
-                                    <div class="col-xs-12">
-                                        <ul validation-container field-name="repoNameInput" role="alert">
-                                            <li validation-item field-name="repoNameInput" validation-name="required">
-                                                [% locale.maketext('You [output,strong,must] enter a valid repository name.') %]
-                                            </li>
-                                            <li validation-item field-name="repoNameInput" validation-name="pattern">
-                                                [% locale.maketext('The repository name may [output,strong,not] include the “[output,chr,60]” and “[output,chr,62]” characters.') %]
-                                            </li>
-                                        </ul>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!--Branch Selection Section-->
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <toggle-label-info
-                                                for="repoBranchBranchField"
-                                                label-text="[% locale.maketext('Checked-Out Branch') %]">
-                                                [% locale.maketext('The current locally checked-out branch.') %] [% locale.maketext('The system uses this branch when it pulls changes from a remote repository or deploys them.') %]
-                                        </toggle-label-info>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                    <!-- No branches available -->
-                                        <callout class="branch-callout"
-                                            callout-type="information"
-                                            ng-if="!repository.branchList || repository.branchList.length == 0">
-                                            <p>[% locale.maketext("The system could not find any branches for this repository.") %]</p>
-                                        </callout>
-                                    <!-- more than one branch -->
-                                    [% IF !CPANEL.ua_is_mobile %]
-                                        <select width="'100%'"
-                                            class="form-control"
-                                            name="repoBranchBranchField"
-                                            id="repoBranchBranchField"
-                                            search_contains="true"
-                                            chosen
-                                            no-results-text="'[% locale.maketext('No matches for') %]'"
-                                            ng-class="{ 'chosen-rtl': repository.isRTL }"
-                                            ng-if="repository.branchList.length > 0"
-                                            ng-model="repository.branch"
-                                            ng-options="item as item for item in repository.branchList">
-                                        </select>
-                                    [% ELSE %]
-                                        <select
-                                            class="form-control"
-                                            name="repoBranchBranchField"
-                                            id="repoBranchBranchField"
-                                            ng-if="repository.branchList.length > 0"
-                                            ng-model="repository.branch"
-                                            ng-options="item as item for item in repository.branchList">
-                                        </select>
-                                    [% END %]
-                                    </div>
-                                </div>
-                            </div>
-                            <!--Page Action Section-->
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <button id="btnSaveRepo"
-                                            type="button"
-                                            spinner-id="spinnerCreateRepoSave"
-                                            cp-action="repository.updateRepository()"
-                                            uib-tooltip="[% locale.maketext('Update the repository’s settings.') %]">
-                                            [% locale.maketext('Update') %]
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </form>
-                    </section>
-                </div>
-
-                <div class="col-xs-12 col-sm-6">
-                    <div>
-                        <section class="manage-section">
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <label>[% locale.maketext("Currently Checked-Out Branch") %]</label>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <a id="btnBasicGitWebRedirect_{{::repository.qaSafeSuffix}}"
-                                            title="[% locale.maketext('View the checked-out branch in [asis,Gitweb].') %]"
-                                            ng-click="repository.redirectToGitWeb(repository.gitWebURL, repository.name)"
-                                            ng-if="repository.hasActiveBranch"
-                                            class="external-link wordbreak">
-                                            {{repository.checkedoutBranch}}
-                                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                                        </a>
-                                        <callout class="branch-callout"
-                                            callout-type="information"
-                                            ng-if="!repository.hasActiveBranch"
-                                            <p>[% locale.maketext("No checked-out branch is available.") %]</p>
-                                        </callout>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group" ng-if="repository.hasHeadInformation">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <label>[% locale.maketext("HEAD Commit") %]</label>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <div class="info-spacing">
-                                            <code class="format">[% locale.maketext("Commit") %]:</code>
-                                            <code id="basictab_lastUpdateSHA" class="format" ng-bind="repository.lastUpdateSHA"></code>
-                                        </div>
-                                        <div class="info-spacing">
-                                            <code class="format">[% locale.maketext("Author") %]:</code>
-                                            <code id="basictab_lastUpdateAuthor" class="format" ng-bind="repository.author"></code>
-                                        </div>
-                                        <div class="info-spacing">
-                                            <code class="format">[% locale.maketext("Date") %]:</code>
-                                            <code id="basictab_lastUpdateDate" class="format" ng-bind="repository.lastUpdateDate"></code>
-                                        </div>
-                                        <div class="info-spacing">
-                                            <code id="basictab_lastUpdateCommitMessage" class="wordbreak commands format" ng-bind="repository.commitMessage"></code>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <a id="btnHistory_{{::repository.qaSafeSuffix}}"
-                                class="btn btn-outline-primary btn-sm"
-                                title="[% locale.maketext('View the repository in [asis,Gitweb].') %]"
-                                ng-click="repository.redirectToGitWeb(repository.gitWebURL, repository.name)">
-                                <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                                [% locale.maketext("History") %]
-                            </a>
-                        </section>
-                    </div>
-                    <section class="url-section">
-                        <div class="form-group" ng-if="repository.hasRemote">
+            <button id="basic-info-try-again-button"
+                type="button"
+                spinner-id="basic-info-try-again-spinner"
+                cp-action="repository.tryAgain()"
+                uib-tooltip="{{ repository._tryAgainTooltipText }}">
+                [% locale.maketext('Try Again') %]
+            </button>
+        </callout>
+        <cp-loading-panel ng-show="repository.isLoading">
+            <span>[% locale.maketext('Loading …') %]</span>
+        </cp-loading-panel>
+        <div class="row" ng-show="!repository.isLoading">
+            <div class="col-xs-12 col-sm-6">
+                <section class="manage-section">
+                    <form name="repository.manageRepoForm">
+                        <div class="form-group">
                             <div class="row">
                                 <div class="col-xs-12">
                                     <toggle-label-info
-                                        id="lblRepoRemoteUrl"
-                                        for="repoCloneURL"
-                                        label-text="[% locale.maketext('Remote [asis,URL]') %]"
-                                        show-info-block="false">
-                                        [% locale.maketext('The [asis,URL] for the remote (cloned) repository.') %]
+                                        id="repoPathFieldLabel"
+                                            for="repoPathField"
+                                            label-text="[% locale.maketext('Repository Path') %]"
+                                            show-info-block="false">
+                                            [% locale.maketext('The path for the repository’s directory.') %]
                                     </toggle-label-info>
                                 </div>
                             </div>
                             <div class="row">
-                                <div class="col-xs-12">
-                                   <span id="remoteURLInfo" ng-bind="repository.remoteInformation.url"></span>
+                                <div id="repoPathFieldSegment" class="col-xs-12">
+                                    <a  id="btnFileManagerRedirect_{{::repository.qaSafeSuffix}}"
+                                        class="external-link wordbreak"
+                                        title="[% locale.maketext('View this repository in the File Manager interface.') %]"
+                                        ng-click="repository.redirectToFileManager(repository.fileManagerRedirectURL, repository.name)">
+                                        {{repository.fullRepoPath}}
+                                        <i class='fas fa-external-link-alt'></i>
+                                    </a>
                                 </div>
                             </div>
                         </div>
 
-                        <!--Clone URL-->
-                        <div class="form-group" ng-if="repository.cloneURL">
+                        <!--Name Section-->
+                        <div class="form-group">
                             <div class="row">
                                 <div class="col-xs-12">
                                     <toggle-label-info
-                                        id="lblRepoCloneUrl"
-                                        for="repoCloneURL"
-                                        label-text="[% locale.maketext('Clone [asis,URL]') %]"
-                                        show-info-block="false">
-                                        [% locale.maketext('Use this [asis,URL] to clone the repository to another location.') %]
+                                            for="repoNameInput"
+                                            label-text="[% locale.maketext('Repository Name') %]"
+                                            show-info-block="false">
+                                            [% locale.maketext('This name does [output,em,not] impact functionality, and instead functions [output,em,only] as a display name.') %]
                                     </toggle-label-info>
                                 </div>
                             </div>
                             <div class="row">
                                 <div class="col-xs-12">
-                                    <span id="repoCloneURL"
-                                        class="wordbreak format"
-                                        ng-bind="repository.cloneURL">
-                                    </span>
-                                    <a id="cloneURLBtn_{{::repository.qaSafeSuffix}}"
-                                        class="btn btn-link"
-                                        ng-click="repository.cloneToClipboard(repository.cloneURL)"
-                                        title="[% locale.maketext('Copy the repository’s clone [asis,URL] to the clipboard.') %]">
-                                        <i class="far fa-copy" aria-hidden="true"></i>
-                                        [% locale.maketext("Copy") %]
+                                    <input
+                                        name="repoNameInput"
+                                        id="repoNameInput"
+                                        type="text"
+                                        class="form-control"
+                                        ng-model="repository.name"
+                                        ng-pattern="/^[^<>]+$/"
+                                        required
+                                        ng-readonly="repository.unableToRetrieveAvailableBranches"><!-- Read-only until we fix PH-9258 -->
+                                        <span class="help-block">[% locale.maketext('The repository name may [output,strong,not] include the “[output,chr,60]” and “[output,chr,62]” characters.') %]</span>
+                                </div>
+                                <div class="col-xs-12">
+                                    <ul validation-container field-name="repoNameInput" role="alert">
+                                        <li validation-item field-name="repoNameInput" validation-name="required">
+                                            [% locale.maketext('You [output,strong,must] enter a valid repository name.') %]
+                                        </li>
+                                        <li validation-item field-name="repoNameInput" validation-name="pattern">
+                                            [% locale.maketext('The repository name may [output,strong,not] include the “[output,chr,60]” and “[output,chr,62]” characters.') %]
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!--Branch Selection Section-->
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                            for="repoBranchBranchField"
+                                            label-text="[% locale.maketext('Checked-Out Branch') %]">
+                                            [% locale.maketext('The current locally checked-out branch.') %] [% locale.maketext('The system uses this branch when it pulls changes from a remote repository or deploys them.') %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                <!-- No branches available -->
+                                    <callout class="branch-callout"
+                                        callout-type="information"
+                                        ng-if="(!repository.branchList || repository.branchList.length == 0) && !repository.unableToRetrieveAvailableBranches">
+                                        <p>[% locale.maketext("The system could not find any branches for this repository.") %]</p>
+                                    </callout>
+                                <!-- Cannot read from remote repo -->
+                                    <callout class="branch-callout"
+                                        callout-type="warning"
+                                        ng-if="repository.unableToRetrieveAvailableBranches">
+                                        <p>[% locale.maketext("The system could not retrieve the remote branches for this repository.") %]</p>
+                                    </callout>
+                                <!-- more than one branch -->
+                                [% IF !CPANEL.ua_is_mobile %]
+                                    <select width="'100%'"
+                                        class="form-control"
+                                        name="repoBranchBranchField"
+                                        id="repoBranchBranchField"
+                                        search_contains="true"
+                                        chosen
+                                        no-results-text="'[% locale.maketext('No matches for') %]'"
+                                        ng-class="{ 'chosen-rtl': repository.isRTL }"
+                                        ng-if="repository.branchList.length > 0"
+                                        ng-model="repository.branch"
+                                        ng-options="item as item for item in repository.branchList">
+                                    </select>
+                                [% ELSE %]
+                                    <select
+                                        class="form-control"
+                                        name="repoBranchBranchField"
+                                        id="repoBranchBranchField"
+                                        ng-if="repository.branchList.length > 0"
+                                        ng-model="repository.branch"
+                                        ng-options="item as item for item in repository.branchList">
+                                    </select>
+                                [% END %]
+                                </div>
+                            </div>
+                        </div>
+
+                        <!--Page Action Section-->
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <button id="btnSaveRepo"
+                                        type="button"
+                                        spinner-id="spinnerCreateRepoSave"
+                                        cp-action="repository.updateRepository()"
+                                        uib-tooltip="[% locale.maketext('Update the repository’s settings.') %]"
+                                        ng-disabled="repository.unableToRetrieveAvailableBranches"><!-- Disabled until we fix PH-9258 -->
+                                        [% locale.maketext('Update') %]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <div class="col-xs-12 col-sm-6">
+                <div>
+                    <section class="manage-section">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label>[% locale.maketext("Currently Checked-Out Branch") %]</label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <a id="btnBasicGitWebRedirect_{{::repository.qaSafeSuffix}}"
+                                        title="[% locale.maketext('View the checked-out branch in [asis,Gitweb].') %]"
+                                        ng-click="repository.redirectToGitWeb(repository.gitWebURL, repository.name)"
+                                        ng-if="repository.hasActiveBranch"
+                                        class="external-link wordbreak">
+                                        {{repository.checkedoutBranch}}
+                                        <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                                    </a>
+                                    <callout class="branch-callout"
+                                        callout-type="information"
+                                        ng-if="!repository.hasActiveBranch"
+                                        <p>[% locale.maketext("No checked-out branch is available.") %]</p>
+                                    </callout>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" ng-if="repository.hasHeadInformation">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label>[% locale.maketext("[asis,HEAD] Commit") %]</label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <div class="info-spacing">
+                                        <code class="format">[% locale.maketext("Commit") %]:</code>
+                                        <code id="basictab_lastUpdateSHA" class="format" ng-bind="repository.lastUpdateSHA"></code>
+                                    </div>
+                                    <div class="info-spacing">
+                                        <code class="format">[% locale.maketext("Author") %]:</code>
+                                        <code id="basictab_lastUpdateAuthor" class="format" ng-bind="repository.author"></code>
+                                    </div>
+                                    <div class="info-spacing">
+                                        <code class="format">[% locale.maketext("Date") %]:</code>
+                                        <code id="basictab_lastUpdateDate" class="format" ng-bind="repository.lastUpdateDate"></code>
+                                    </div>
+                                    <div class="info-spacing">
+                                        <code id="basictab_lastUpdateCommitMessage" class="wordbreak commands format" ng-bind="repository.commitMessage"></code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <a id="btnHistory_{{::repository.qaSafeSuffix}}"
+                            class="btn btn-outline-primary btn-sm"
+                            title="[% locale.maketext('View the repository in [asis,Gitweb].') %]"
+                            ng-click="repository.redirectToGitWeb(repository.gitWebURL, repository.name)">
+                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                            [% locale.maketext("History") %]
+                        </a>
+                    </section>
+                </div>
+                <section class="url-section">
+                    <div class="form-group" ng-if="repository.hasRemote">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <toggle-label-info
+                                    id="lblRepoRemoteUrl"
+                                    for="repoCloneURL"
+                                    label-text="[% locale.maketext('Remote [asis,URL]') %]"
+                                    show-info-block="false">
+                                    [% locale.maketext('The [asis,URL] for the remote (cloned) repository.') %]
+                                </toggle-label-info>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12">
+                               <span id="remoteURLInfo" ng-bind="repository.remoteInformation.url"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!--Clone URL-->
+                    <div class="form-group" ng-if="repository.cloneURL">
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <toggle-label-info
+                                    id="lblRepoCloneUrl"
+                                    for="repoCloneURL"
+                                    label-text="[% locale.maketext('Clone [asis,URL]') %]"
+                                    show-info-block="false">
+                                    [% locale.maketext('Use this [asis,URL] to clone the repository to another location.') %]
+                                </toggle-label-info>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-xs-12">
+                                <span id="repoCloneURL"
+                                    class="wordbreak format"
+                                    ng-bind="repository.cloneURL">
+                                </span>
+                                <a id="cloneURLBtn_{{::repository.qaSafeSuffix}}"
+                                    class="btn btn-link"
+                                    ng-click="repository.cloneToClipboard(repository.cloneURL)"
+                                    title="[% locale.maketext('Copy the repository’s clone [asis,URL] to the clipboard.') %]">
+                                    <i class="far fa-copy" aria-hidden="true"></i>
+                                    [% locale.maketext("Copy") %]
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </uib-tab>
+    <uib-tab index="1" id="tabPullorDeploy" heading="[% locale.maketext('Pull or Deploy') %]" ng-click="changeActiveTab('deploy')">
+        <div class="description">
+            [% locale.maketext('Use this section of the interface to deploy changes or pull them from remote repositories.') %] [% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2].','https://go.cpanel.net/GitDeployment','gitdeployment') %]
+        </div>
+        <callout
+            class="no-connection-callout"
+            callout-type="warning"
+            ng-if="repository.unableToRetrieveAvailableBranches">
+            <p>
+                {{ repository._noConnectionText }}
+                [% locale.maketext("Some actions are currently unavailable.") %]
+            </p>
+
+            <button id="pull-deploy-try-again-button"
+                type="button"
+                spinner-id="pull-deploy-try-again-spinner"
+                cp-action="repository.tryAgain()"
+                uib-tooltip="{{ repository._tryAgainTooltipText }}">
+                [% locale.maketext('Try Again') %]
+            </button>
+        </callout>
+        <cp-loading-panel ng-show="repository.isLoading">
+            <span>[% locale.maketext('Loading …') %]</span>
+        </cp-loading-panel>
+        <div class="row" ng-show="!repository.isLoading">
+            <div class="col-xs-12 col-sm-6">
+                <!--Repository Info Panel-->
+                <div id="repoInfoPanel">
+                    <section class="manage-section">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                        id="deployViewRepoPathFieldLabel"
+                                        for="repoPathField"
+                                        label-text="[% locale.maketext('Repository Path') %]"
+                                        show-info-block="false">
+                                        [% locale.maketext('The path for the repository’s directory.') %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div id="deployViewRepoPathFieldSegment" class="col-xs-12">
+                                    <a  id="deployViewBtnFileManagerRedirect_{{::repository.qaSafeSuffix}}"
+                                        title="[% locale.maketext('View the repository in the File Manager interface.') %]"
+                                        ng-click="repository.redirectToFileManager(repository.fileManagerRedirectURL, repository.name)"
+                                        class="external-link wordbreak">
+                                        {{repository.fullRepoPath}}
+                                        <i class='fas fa-external-link-alt'></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" ng-if="repository.hasRemote">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label for="repoRemoteUrl">
+                                        [% locale.maketext("Remote [asis,URL]") %]
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                <span ng-bind="repository.remoteInformation.url"></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" ng-if="repository.hasActiveBranch">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label>[% locale.maketext("Currently Checked-Out Branch") %]</label>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <a id="btnDeployGitWebRedirect_{{::repository.qaSafeSuffix}}"
+                                        title="[% locale.maketext('View the checked-out branch in [asis,Gitweb].') %]"
+                                        ng-click="repository.redirectToGitWeb(repository.gitWebURL, repository.name)"
+                                        ng-if="repository.hasActiveBranch"
+                                        class="external-link wordbreak">
+                                        {{repository.checkedoutBranch}}
+                                        <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                                     </a>
                                 </div>
                             </div>
                         </div>
                     </section>
+                    <section class="manage-section">
+                        <div class="form-group" ng-if="repository.hasHeadInformation">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label>[% locale.maketext("[asis,HEAD] Commit") %]</label>
+                                    <span class="label label-info" ng-if="repository.newCommits">[% locale.maketext("New") %]</span>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col-xs-12" ng-class="{ 'commit-changed' : repository.newCommits }">
+                                    <div class="info-spacing">
+                                        <code class="format">[% locale.maketext("Commit") %]:</code>
+                                        <code id="pulldeploytab_lastUpdateSHA" class="format" ng-bind="repository.lastUpdateSHA"></code>
+                                    </div>
+                                    <div class="info-spacing">
+                                        <code class="format">[% locale.maketext("Author") %]:</code>
+                                        <code id="pulldeploytab_lastUpdateAuthor" class="format" ng-bind="repository.author"></code>
+                                    </div>
+                                    <div class="info-spacing">
+                                        <code class="format">[% locale.maketext("Date") %]:</code>
+                                        <code id="pulldeploytab_lastUpdateDate" class="format" ng-bind="repository.lastUpdateDate"></code>
+                                    </div>
+                                    <div class="info-spacing">
+                                        <code id="pulldeploytab_lastUpdateCommitMessage" class="wordbreak commands format" ng-bind="repository.commitMessage"></code>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group" ng-if="repository.changesAvailableToDeploy && repository.deployable">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <callout class="branch-callout"
+                                        callout-type="information">
+                                        <p>
+                                            <i class="fas fa-lg fa-bell"></i>
+                                            [% locale.maketext("The checked-out branch includes new deployable changes.") %]
+                                        </p>
+                                    </callout>
+                                </div>
+                            </div>
+                        </div>
+                        <!--No Deployment State / no .yml file-->
+                        <div class="form-group" ng-if="!repository.deployable">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <callout class="branch-callout"
+                                        callout-type="information"
+                                        callout-heading="The system cannot deploy">
+                                        <p>
+                                            [% locale.maketext("For deployment, ensure that your repository meets the following requirements:") %]
+                                            <ol>
+                                                <li ng-if="!repository.hasActiveBranch">[% locale.maketext("A checked-out branch or working tree exists.") %]</li>
+                                                <li>[% locale.maketext("A valid [asis,.cpanel.yml] file exists.") %] [% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2].','https://go.cpanel.net/GitDeployment','gitdeployment') %]</li>
+                                                <li>[% locale.maketext("No uncommitted changes exist on the checked-out branch.") %]
+                                            </ol>
+                                        </p>
+                                    </callout>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <button id="btnUpdateFromRemote"
+                                        type="button"
+                                        spinner-id="spinnerUpdateFromRemote"
+                                        cp-action="repository.pullFromRemote()"
+                                        button-class="btn-outline-primary"
+                                        title="[% locale.maketext('Pull changes from the remote repository.') %]"
+                                        ng-disabled="repository.unableToRetrieveAvailableBranches"
+                                        ng-if="repository.hasRemote">
+                                        <i class='fas fa-cloud-download-alt'></i>
+                                        [% locale.maketext("Update from Remote") %]
+                                    </button>
+                                    <button id="btnDeployRepository"
+                                        type="button"
+                                        spinner-id="spinnerDeployRepository"
+                                        cp-action="repository.deployRepository()"
+                                        button-class="btn btn-primary"
+                                        title="[% locale.maketext('Run the configured tasks to deploy your repository.') %]"
+                                        ng-disabled="!repository.deployable || repository.deployInProgress"
+                                        action-active="{{repository.deployInProgress}}">
+                                        <i class="fas fa-angle-double-up"></i>
+                                        [% locale.maketext("Deploy [asis,HEAD] Commit") %]
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
-        </div>
-    </uib-tab>
-    <uib-tab index="1" id="tabPullorDeploy" heading="[% locale.maketext('Pull or Deploy') %]" ng-click="changeActiveTab('deploy')">
-        <div class="tab-content">
-            <div class="description">
-                [% locale.maketext('Use this section of the interface to deploy changes or pull them from remote repositories.') %] [% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2].','https://go.cpanel.net/GitDeployment','gitdeployment') %]
-            </div>
-            <cp-loading-panel ng-show="repository.isLoading">
-                <span>[% locale.maketext('Loading …') %]</span>
-            </cp-loading-panel>
-            <div class="row" ng-show="!repository.isLoading">
-                <div class="col-xs-12 col-sm-6">
-                    <!--Repository Info Panel-->
-                    <div id="repoInfoPanel">
-                        <section class="manage-section">
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <toggle-label-info
-                                            id="deployViewRepoPathFieldLabel"
-                                            for="repoPathField"
-                                            label-text="[% locale.maketext('Repository Path') %]"
-                                            show-info-block="false">
-                                            [% locale.maketext('The path for the repository’s directory.') %]
-                                        </toggle-label-info>
+
+            <div class="col-xs-12 col-sm-6">
+                <!--Deployment Panel-->
+                <div id="deploymentPanel">
+                    <section class="manage-section">
+                        <!--Last Deployment Section-->
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12" ng-class="{ 'commit-changed' : repository.newDeployCommit }">
+                                    <label>
+                                        [% locale.maketext("Last Deployment Information") %]
+                                        <span class="label label-info" ng-if="repository.newDeployCommit">[% locale.maketext("New") %]</span>
+                                    </label>
+                                    <div ng-if="!repository.hasDeploymentInformation">
+                                        <callout class="branch-callout"
+                                            callout-type="information">
+                                            <p>[% locale.maketext("Information about the most recent deployment is unavailable.") %]</p>
+                                        </callout>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div id="deployViewRepoPathFieldSegment" class="col-xs-12">
-                                        <a  id="deployViewBtnFileManagerRedirect_{{::repository.qaSafeSuffix}}"
-                                            title="[% locale.maketext('View the repository in the File Manager interface.') %]"
-                                            ng-click="repository.redirectToFileManager(repository.fileManagerRedirectURL, repository.name)"
-                                            class="external-link wordbreak">
-                                            {{repository.fullRepoPath}}
-                                            <i class='fas fa-external-link-alt'></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group" ng-if="repository.hasRemote">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <label for="repoRemoteUrl">
-                                            [% locale.maketext("Remote [asis,URL]") %]
-                                        </label>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                    <span ng-bind="repository.remoteInformation.url"></span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="form-group" ng-if="repository.hasActiveBranch">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <label>[% locale.maketext("Currently Checked-Out Branch") %]</label>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <a id="btnDeployGitWebRedirect_{{::repository.qaSafeSuffix}}"
-                                            title="[% locale.maketext('View the checked-out branch in [asis,Gitweb].') %]"
-                                            ng-click="repository.redirectToGitWeb(repository.gitWebURL, repository.name)"
-                                            ng-if="repository.hasActiveBranch"
-                                            class="external-link wordbreak">
-                                            {{repository.checkedoutBranch}}
-                                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
-                        <section class="manage-section">
-                            <div class="form-group" ng-if="repository.hasHeadInformation">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <label>[% locale.maketext("HEAD Commit") %]</label>
-                                        <span class="label label-info" ng-if="repository.newCommits">[% locale.maketext("New") %]</span>
-                                    </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-xs-12" ng-class="{ 'commit-changed' : repository.newCommits }">
+                                    <div ng-if="repository.hasDeploymentInformation">
                                         <div class="info-spacing">
-                                            <code class="format">[% locale.maketext("Commit") %]:</code>
-                                            <code id="pulldeploytab_lastUpdateSHA" class="format" ng-bind="repository.lastUpdateSHA"></code>
+                                            <code class="format">[% locale.maketext("Last Deployed on") %]:</code>
+                                            <code id="pulldeploytab_lastDeployedDate" class="format font-weight-bold" ng-bind="repository.lastDeployedDate"></code>
+                                        </div>
+                                        <div class="info-spacing">
+                                            <code class="format">[% locale.maketext("Last Deployed [asis,SHA]") %]:</code>
+                                            <code id="pulldeploytab_lastDeployedSHA" class="format" ng-bind="repository.lastDeployedSHA"></code>
                                         </div>
                                         <div class="info-spacing">
                                             <code class="format">[% locale.maketext("Author") %]:</code>
-                                            <code id="pulldeploytab_lastUpdateAuthor" class="format" ng-bind="repository.author"></code>
+                                            <code id="pulldeploytab_lastDeployedAuthor" class="format" ng-bind="repository.lastDeployedAuthor"></code>
                                         </div>
                                         <div class="info-spacing">
-                                            <code class="format">[% locale.maketext("Date") %]:</code>
-                                            <code id="pulldeploytab_lastUpdateDate" class="format" ng-bind="repository.lastUpdateDate"></code>
+                                            <code class="format">[% locale.maketext("Commit Date") %]:</code>
+                                            <code id="pulldeploytab_lastDeployedCommitDate" class="format" ng-bind="repository.lastDeployedCommitDate"></code>
                                         </div>
                                         <div class="info-spacing">
-                                            <code id="pulldeploytab_lastUpdateCommitMessage" class="wordbreak commands format" ng-bind="repository.commitMessage"></code>
+                                            <code id="pulldeploytab_lastDeployedCommitMessage" class="wordbreak commands format" ng-bind="repository.lastDeployedCommitMessage"></code>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                            <div class="form-group" ng-if="repository.changesAvailableToDeploy && repository.deployable">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <callout class="branch-callout"
-                                            callout-type="information">
-                                            <p>
-                                                <i class="fas fa-lg fa-bell"></i>
-                                                [% locale.maketext("The checked-out branch includes new deployable changes.") %]
-                                            </p>
-                                        </callout>
-                                    </div>
-                                </div>
-                            </div>
-                            <!--No Deployment State / no .yml file-->
-                            <div class="form-group" ng-if="!repository.deployable">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <callout class="branch-callout"
-                                            callout-type="information"
-                                            callout-heading="The system cannot deploy">
-                                            <p>
-                                                [% locale.maketext("For deployment, ensure that your repository meets the following requirements:") %]
-                                                <ol>
-                                                    <li ng-if="!repository.hasActiveBranch">[% locale.maketext("A checked-out branch or working tree exists.") %]</li>
-                                                    <li>[% locale.maketext("A valid [asis,.cpanel.yml] file exists.") %] [% locale.maketext('For more information, read our [output,url,_1,documentation,target,_2].','https://go.cpanel.net/GitDeployment','gitdeployment') %]</li>
-                                                    <li>[% locale.maketext("No uncommitted changes exist on the checked-out branch.") %]
-                                                </ol>
-                                            </p>
-                                        </callout>
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12">
-                                        <button id="btnUpdateFromRemote"
-                                            type="button"
-                                            spinner-id="spinnerUpdateFromRemote"
-                                            cp-action="repository.pullFromRemote()"
-                                            button-class="btn-outline-primary"
-                                            title="[% locale.maketext('Pull changes from the remote repository.') %]"
-                                            ng-disabled="repository.unableToRetrieveAvailableBranches"
-                                            ng-if="repository.hasRemote">
-                                            <i class='fas fa-cloud-download-alt'></i>
-                                            [% locale.maketext("Update from Remote") %]
-                                        </button>
-                                        <button id="btnDeployRepository"
-                                            type="button"
-                                            spinner-id="spinnerDeployRepository"
-                                            cp-action="repository.deployRepository()"
-                                            button-class="btn btn-primary"
-                                            title="[% locale.maketext('Run the configured tasks to deploy your repository.') %]"
-                                            ng-disabled="repository.unableToRetrieveAvailableBranches || !repository.deployable || repository.deployInProgress"
-                                            action-active="{{repository.deployInProgress}}">
-                                            <i class="fas fa-angle-double-up"></i>
-                                            [% locale.maketext("Deploy HEAD Commit") %]
-                                        </button>
-                                    </div>
                                 </div>
                             </div>
-                        </section>
-                    </div>
-                </div>
-
-                <div class="col-xs-12 col-sm-6">
-                    <!--Deployment Panel-->
-                    <div id="deploymentPanel">
-                        <section class="manage-section">
-                            <!--Last Deployment Section-->
-                            <div class="form-group">
-                                <div class="row">
-                                    <div class="col-xs-12" ng-class="{ 'commit-changed' : repository.newDeployCommit }">
-                                        <label>
-                                            [% locale.maketext("Last Deployment Information") %]
-                                            <span class="label label-info" ng-if="repository.newDeployCommit">[% locale.maketext("New") %]</span>
-                                        </label>
-                                        <div ng-if="!repository.hasDeploymentInformation">
-                                            <callout class="branch-callout"
-                                                callout-type="information">
-                                                <p>[% locale.maketext("Information about the most recent deployment is unavailable.") %]</p>
-                                            </callout>
+                            <div class="row" ng-if="repository.deployInProgress">
+                                <div class="col-xs-12">
+                                    <div class="callout callout-{{repository.deployCalloutType}}">
+                                        <div ng-switch="repository.deployState">
+                                            <span ng-switch-when="processing">
+                                                <i id="deployInProgressSpinner" class="fas fa-spinner fa-spin"></i>
+                                                {{repository.deployProgress}}
+                                            </span>
+                                            <span ng-switch-when="complete">
+                                                <i id="deploySuccessCheck" class="far fa-check-circle"></i>
+                                                {{repository.deployComplete}}
+                                            </span>
+                                            <span ng-switch-default>
+                                                <i id="deployQueuedSpinner" class="fas fa-spinner fa-spin"></i>
+                                                {{repository.deployQueued}}
+                                            </span>
                                         </div>
-                                        <div ng-if="repository.hasDeploymentInformation">
-                                            <div class="info-spacing">
-                                                <code class="format">[% locale.maketext("Last Deployed on") %]:</code>
-                                                <code id="pulldeploytab_lastDeployedDate" class="format font-weight-bold" ng-bind="repository.lastDeployedDate"></code>
-                                            </div>
-                                            <div class="info-spacing">
-                                                <code class="format">[% locale.maketext("Last Deployed [asis,SHA]") %]:</code>
-                                                <code id="pulldeploytab_lastDeployedSHA" class="format" ng-bind="repository.lastDeployedSHA"></code>
-                                            </div>
-                                            <div class="info-spacing">
-                                                <code class="format">[% locale.maketext("Author") %]:</code>
-                                                <code id="pulldeploytab_lastDeployedAuthor" class="format" ng-bind="repository.lastDeployedAuthor"></code>
-                                            </div>
-                                            <div class="info-spacing">
-                                                <code class="format">[% locale.maketext("Commit Date") %]:</code>
-                                                <code id="pulldeploytab_lastDeployedCommitDate" class="format" ng-bind="repository.lastDeployedCommitDate"></code>
-                                            </div>
-                                            <div class="info-spacing">
-                                                <code id="pulldeploytab_lastDeployedCommitMessage" class="wordbreak commands format" ng-bind="repository.lastDeployedCommitMessage"></code>
-                                            </div>
-                                        </div>
-
-                                    </div>
-                                </div>
-                                <div class="row" ng-if="repository.deployInProgress">
-                                    <div class="col-xs-12">
-                                        <div class="callout callout-{{repository.deployCalloutType}}">
-                                            <div ng-switch="repository.deployState">
-                                                <span ng-switch-when="processing">
-                                                    <i id="deployInProgressSpinner" class="fas fa-spinner fa-spin"></i>
-                                                    {{repository.deployProgress}}
-                                                </span>
-                                                <span ng-switch-when="complete">
-                                                    <i id="deploySuccessCheck" class="far fa-check-circle"></i>
-                                                    {{repository.deployComplete}}
-                                                </span>
-                                                <span ng-switch-default>
-                                                    <i id="deployQueuedSpinner" class="fas fa-spinner fa-spin"></i>
-                                                    {{repository.deployQueued}}
-                                                </span>
-                                            </div>
-                                            <div class="badge badge-info margin-top-10" ng-if="repository.queuedDeployTasksCount > 0">
-                                                {{repository.queuedTaskString}}
-                                            </div>
+                                        <div class="badge badge-info margin-top-10" ng-if="repository.queuedDeployTasksCount > 0">
+                                            {{repository.queuedTaskString}}
                                         </div>
                                     </div>
                                 </div>
                             </div>
-                        </section>
-                    </div>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -505,16 +543,13 @@
 
 <div class="row">
     <div class="col-xs-12">
-        <hr/>
-        <div>
-            <button id="btnCancelUpdateRepo"
-                type="button"
-                class="btn btn-link"
-                ng-click="repository.backToListView()"
-                uib-tooltip="[% locale.maketext('Return to the repository list.') %]">
-                [% locale.maketext('Return to Repository List') %]
-            </button>
-        </div>
+        <button id="btnCancelUpdateRepo"
+            type="button"
+            class="btn btn-link"
+            ng-click="repository.backToListView()"
+            uib-tooltip="[% locale.maketext('Return to the repository list.') %]">
+            [% locale.maketext('Return to Repository List') %]
+        </button>
     </div>
 </div>
 

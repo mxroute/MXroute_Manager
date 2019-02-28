@@ -14,7 +14,7 @@ SET users = Uapi.exec('UserManager', 'list_users', {
     #'flat'            => 1,
 }) || [];
 
-SET ftp_daemon_info = Uapi.exec('Ftp', 'get_ftp_daemon_info', {}).data;
+SET ftp_daemon_info = execute_or_die('Ftp', 'get_ftp_daemon_info', {}).data;
 
 Api2.pre_exec("DomainLookup", "getdocroots");
 SET domains_and_docroots = Api2.exec("DomainLookup", "getdocroots", {});
@@ -80,9 +80,7 @@ SET service_defaults = {
     include_legacy_scripts = 0
     include_cjt = 0
     use_master_bootstrap = 0
-    embed_stylesheets = CPANEL.is_debug_mode_enabled() ?
-        [ "user_manager/index.css" ] :
-        [ "user_manager/index.min.css" ]
+    embed_stylesheets = [ "user_manager/index.css" ]
 -%]
 
 [% IF has_feature %]

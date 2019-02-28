@@ -1,0 +1,119 @@
+<div ng-if="PERMS.canViewFileBackups == false">
+	<ng-include src="'views/permissionserror.ptt'"></ng-include>
+</div>
+<div ng-if="PERMS.canViewFileBackups">
+    <div ng-controller="fileManager" class="section">
+        <div class="row">
+            <div class="col-md-8">
+                <div style="padding: 0 20px;">
+                    <h3>{{ LOCALE.maketext("Backup Files") }}</h3>
+                    <div style="direction: ltr;">
+                        {{ LOCALE.maketext("Current Path") }}: <a href="" ng-repeat="file in breadcrumbs track by $index" ng-click="fetch(file)">{{ file.name }}/</a>
+                    </div>
+                    <div style="overflow-y: auto; height: 475px; margin-top: 20px;">
+                        <table class="table table-striped-child responsive-table">
+                            <thead>
+                            <tr>
+                                <th class="col-sm-4 col-md-4 col-lg-4">
+                                    {{ LOCALE.maketext("File Name") }}
+                                </th>
+                                <th class="col-sm-1 col-md-1 col-lg-1">
+                                    {{ LOCALE.maketext("Size") }}
+                                </th>
+                                <th class="col-sm-2 col-md-2 col-lg-2">
+                                    {{ LOCALE.maketext("Type") }}
+                                </th>
+                                <th class="col-sm-4 col-md-4 col-lg-4">
+                                    {{ LOCALE.maketext("Created") }}
+                                </th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr ng-repeat="file in files track by $index" id="file_row_{{$index}}" ng-class="{ 'row-checked': isChecked() }">
+                                <td data-title="{{ LOCALE.maketext('File Name') }}" style="direction: ltr;">
+                                    <input ng-disabled="isDisabled()" ng-model="calculateInput" ng-model-options="{getterSetter:true}" type="checkbox" ng-hide="file.type != 'File' && file.type != 'Directory'" />&nbsp;&nbsp;
+                                    <a ng-if="file.type == 'Directory'" title="{{ file.name }}" href="javascript: void(0);" ng-click="fetch(file)">{{ file.name }}</a>
+                                    <span ng-if="file.type != 'Directory'" title="{{ file.name }}">{{ file.name }}</span>
+                                </td>
+                                <td data-title="{{ LOCALE.maketext('Size') }}">
+                                    <span title="{{ UTILS.sizeToHumanReadable(file.size) }}">{{ UTILS.sizeToHumanReadable(file.size) }}</span>
+                                </td>
+                                <td data-title="{{ LOCALE.maketext('Type') }}">
+                                    <span class="fas" ng-class="{'fa-folder-o': file.icon == 'dir','fa-file-o':file.icon == 'file'}"></span>&nbsp;
+                                    <span title="{{ file.type }}">{{ file.type }}</span>
+                                </td>
+                                <td data-title="{{ LOCALE.maketext('Created') }}">
+                                    <span title="{{ UTILS.date(file.created) }}">{{ UTILS.date(file.created) }}</span>
+                                </td>
+                            </tr>
+                            <tr ng-hide="!loadingFiles">
+                                <td colspan="6">
+                                    <cp-loading-panel>
+                                        <span>{{ LOCALE.maketext("Loading Files") }}</span>
+                                    </cp-loading-panel>
+                                </td>
+                            </tr>
+                            <tr ng-hide="files.length > 0 || loadingFiles">
+                                <td colspan="6">
+                                    <span>{{ LOCALE.maketext("No Files Found") }}</span>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <button ng-model="button" ng-disabled="canPerformAction()" ng-click="uncheckAll()" class="btn btn-primary" type="submit">
+                            <i class="fas fa-times"></i>
+                            <span class="button-label"><span>{{ LOCALE.maketext("Clear Selections") }}</span></span>
+                        </button>
+                        <button ng-model="button" ng-disabled="canPerformAction()" ng-if="PERMS.canDownloadFileBackups" ng-click="onClickDownload()" spinner-id="spinnerDownloadBackup" class="btn btn-primary" id="download" type="submit">
+                            <i id="spinnerDownloadBackup" class="fas fa-download button-loading-indicator"></i>
+                            <span class="button-label"><span>{{ LOCALE.maketext("Download Selected") }}</span></span>
+                        </button>
+                        <button ng-model="button" ng-disabled="canPerformAction()" ng-if="PERMS.canRestoreFileBackups" ng-click="onClickRestore()" spinner-id="spinnerRestoreBackup" class="btn btn-primary" id="restore" type="submit">
+                            <i id="spinnerRestoreBackup" class="fas fa-sync button-loading-indicator"></i>
+                            <span class="button-label"><span>{{ LOCALE.maketext("Restore Selected") }}</span></span>
+                        </button>
+                    </div>
+                    <div ng-if="PERMS.canDownloadFileBackups || PERMS.canRestoreFileBackups" style="padding: 20px;">
+                        <div class="action-module" ng-if="actionModule === 'download'"
+                                ng-include="'views/downloadModule.ptt'"></div>
+                        <div class="action-module" ng-if="actionModule === 'restore'"
+                                ng-include="'views/restoreModule.ptt'"></div>
+                        <div ng-if="actionStatus" class="status-bar">
+                            <cp:alert ng-model="actionStatus" on-close="clearStatus()" auto-close="actionStatus.closeable ? actionStatus.ttl : null"></cp:alert>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4" ng-if="PERMS.canDownloadFileBackups || PERMS.canRestoreFileBackups">
+                <div class="row" ng-if="PERMS.canDownloadFileBackups">
+                    <div class="col-md-12">
+                        <h3>{{ LOCALE.maketext("Downloads") }}</h3>
+                        <div ng-repeat="download in downloads track by $index" id="download_row_{{$index}}" style="padding: 5px 0;">
+                            <span ng-if="!download.ready"><i class="fas fa-cog fa-spin"></i> {{ download.filename }}</span>
+                            <a ng-if="download.ready" href="" ng-click="directDownload(download.filename)">{{ download.filename }}</a>
+                        </div>
+                        <div ng-hide="downloads.length > 0 || loadingDownloads"><span>{{ LOCALE.maketext("No Downloads Found") }}</span></div>
+                    </div>
+                </div>
+                <div class="row" ng-if="PERMS.canRestoreFileBackups">
+                    <div class="col-md-12">
+                        <h3>{{ LOCALE.maketext("Restores") }}</h3>
+                        <div ng-repeat="restore in restores track by $index" id="restore_row_{{$index}}" style="padding: 5px 0;">
+                            <i class="fas" ng-class="{'fa-cog fa-spin': !restore.ready, 'fa-check': restore.ready && restore.status == 100, 'fa-times': restore.ready && restore.status > 100 }"></i> {{ restore.text }} - {{ UTILS.date(restore.created) }}
+                        </div>
+                        <div ng-hide="restores.length > 0 || loadingRestores"><span>{{ LOCALE.maketext("No Restores Found") }}</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="return-link">
+        <a id="lnkReturn" href="" ng-click="changeView('/fileBackups')">
+            <span class="glyphicon glyphicon-circle-arrow-left"></span>
+            {{ LOCALE.maketext("Go Back to File Backups") }}
+        </a>
+    </div>
+</div>

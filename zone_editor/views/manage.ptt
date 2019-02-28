@@ -259,7 +259,7 @@
                                             maxlength="10"
                                             id="recordTTL"
                                             name="recordTTL"
-                                            ng-disabled="!manage.Features.advanced"
+                                            ng-disabled="!manage.Features.advanced || (manage.adding_record && manage.new_record.type == 'MX')"
                                             placeholder="[% locale.maketext('Time in seconds') %]">
                                     </div>
                                 </div>

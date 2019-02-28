@@ -8,18 +8,23 @@
     SET server_location = execute("Mysql", "locate_server" {});
 
     # 94937: Errors can contain XSS. We don't want this function to output directly to the page.
-
-    SET privs = [];
-    FOR pair = RAW_FORM;
-        IF pair.key.match('^privileges');
-            privs.push(pair.value);
+    SET privsStr = "";
+    IF RAW_FORM.defined('ALL');
+        privsStr = "ALL";
+    ELSE;
+        SET privs = [];
+        FOR pair = RAW_FORM;
+            IF pair.key.match('^privileges');
+                privs.push(pair.value);
+            END;
         END;
+        privsStr = privs.join(',');
     END;
 
     SET setprivs = execute('Mysql', 'set_privileges_on_database', {
         user       => RAW_FORM.item('user'),
         database   => RAW_FORM.item('db'),
-        privileges => privs.join(','),
+        privileges => privsStr,
     });
 %]
 
@@ -28,7 +33,6 @@
  -%]
 
 <div class="body-content">
-
     <div class="section">
     <h2>[% locale.maketext("Step 4: Complete the Task") %]</h2>
 

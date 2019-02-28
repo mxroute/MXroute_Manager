@@ -21,6 +21,7 @@ END;
     </div>
     [% ELSE %]
         [% IF adddb.status %]
+        <script>YAHOO.util.Connect.asyncRequest( "POST", '[% cp_security_token %]/3rdparty/phpMyAdmin/clearcache.php', null, null);</script>
         <div id="addbSuccessMsg" class="alert alert-success">
             <span id="addbSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
             [% locale.maketext("Added the database “[_1]”.", full_db.html()) %]

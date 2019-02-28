@@ -30,11 +30,12 @@ Api2.post_exec("SubDomain", "addsubdomain");
             </div>
         </div>
     [% ELSE %]
+        [% err = domain_add.reason || Api2.status().event.reason -%]
         <div id="addError" class="alert alert-danger">
             <span class="glyphicon glyphicon-remove-sign"></span>
             <div class="alert-message">
                 [% locale.maketext("There was a problem creating the sub-domain:") %]
-                <p>[% domain_add.reason.html() %]</p>
+                <p>[% err.html() %]</p>
             </div>
         </div>
     [% END %]

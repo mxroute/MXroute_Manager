@@ -1,12 +1,6 @@
 <!-- TABLE SECTION -->
 <div id="vhostContainer" class="list-container">
     <form class="layout-medium" novalidate>
-        <div growl></div>
-        <div class="row">
-            <div class="col-xs-12" ng-cloak>
-                <cp-alert-list></cp-alert-list>
-            </div>
-        </div>
         <section id="systemPhpSection" class="section">
             <div class="row">
                 <div class="col-xs-12">

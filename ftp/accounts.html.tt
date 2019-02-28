@@ -358,9 +358,6 @@
     var FTP_PORT = [% execute("Ftp", "get_port").data.port %];
     var DNS = '[% CPANEL.CPDATA.DNS %]';
     var REQUIRED_PASSWORD_STRENGTH = parseInt('[% execute("PasswdStrength", "get_required_strength", { app='ftp' }).data.strength %]') || 0;
-    var LOG_ICON = '[% theme_magic_url("images/logaccess.gif") %]';
-    var MAIN_ICON = '[% theme_magic_url("images/main.gif") %]';
-    var ANON_ICON = '[% theme_magic_url("images/anonymous.gif") %]';
     var HOME_DIR = '[% ExpVar.expand('$homedir') %]';
 
     var public_html_only = [% CPANEL.CPCONF.publichtmlsubsonly ? "true" : "false" %];

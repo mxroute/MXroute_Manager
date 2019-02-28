@@ -252,6 +252,7 @@ define(
                             if (domain.is_wildcard) {
                                 return true;
                             }
+                            return false;
                         });
                         this.calculated_price = (this.product_price * (selected_domains.length - wildcard_domains.length)) + (wildcard_domains.length * this.product_wildcard_price);
                         return this.calculated_price;
@@ -359,11 +360,14 @@ define(
                         });
                         return match;
                     },
+
+                    // This doesn't actually remove a domain, it deselects it
                     remove_domain: function(domain) {
                         domain.selected = 0;
                         this.get_selected_domains();
                     },
 
+                    // This doesn't actually remove domains, it deselects them
                     remove_all_domains: function() {
                         for (var i = 0; i < this.domains.length; i++) {
                             this.remove_domain(this.domains[i]);
@@ -433,14 +437,56 @@ define(
         "app/views/Certificate",
         "app/services/VirtualHost",
         "cjt/io/uapi", // IMPORTANT: Load the driver so its ready
-        "cjt/decorators/growlDecorator"
+        "cjt/services/alertService"
     ],
-    function(angular, _, LOCALE, cjt2Html, cjt2_parse, API, APIREQUEST) {
+    function(angular, _, LOCALE, cjt2Html, cjt2Parse, API, APIREQUEST) {
         "use strict";
+
+        var ACTION_URL_LABELS = {
+            "evClickThroughStatus": LOCALE.maketext("Sign the Agreement"),
+            "ovCallbackStatus": LOCALE.maketext("Schedule a Call"),
+            DEFAULT: LOCALE.maketext("Complete this Now")
+        };
+
+        var ACTION_URL_ICONS = {
+            "ovCallbackStatus": "fas fa-phone-square",
+            DEFAULT: "fas fa-external-link-alt"
+        };
+
+        var STATUS_DETAIL_STRINGS = {
+            "csrStatus": {
+                label: LOCALE.maketext("[output,abbr,CSR,Certificate Signing Request] Status:"),
+                inProgress: LOCALE.maketext("Validating the [output,abbr,CSR,Certificate Signing Request] status …")
+            },
+            "dcvStatus": {
+                label: LOCALE.maketext("[output,abbr,DCV,Domain Control Validation] Status:"),
+                inProgress: LOCALE.maketext("Validating the [output,abbr,DCV,Domain Control Validation] status …")
+            },
+            "evClickThroughStatus": {
+                label: LOCALE.maketext("[output,abbr,EV,Extended Validation] Click-Through Status:"),
+                inProgress: LOCALE.maketext("Validating the [output,abbr,EV,Extended Validation] click-through status …")
+            },
+            "freeDVUPStatus": {
+                label: LOCALE.maketext("Free [output,abbr,DV,Domain Validated] Up Status:"),
+                inProgress: LOCALE.maketext("Validating the free [output,abbr,DV,Domain Validated] up status …")
+            },
+            "organizationValidationStatus": {
+                label: LOCALE.maketext("[output,abbr,OV,Organization Validation] Status:"),
+                inProgress: LOCALE.maketext("Validating the [output,abbr,OV,Organization Validation] status …")
+            },
+            "ovCallbackStatus": {
+                label: LOCALE.maketext("[output,abbr,OV,Organization Validation] Callback Status:"),
+                inProgress: LOCALE.maketext("Validating the [output,abbr,OV,Organization Validation] callback status …")
+            },
+            "validationStatus": {
+                label: LOCALE.maketext("Validation Status:"),
+                inProgress: LOCALE.maketext("Checking the validation status …")
+            }
+        };
 
         // Curious that JS doesn’t expose sprintf(). Anyway.
         // http://www.codigomanso.com/en/2010/07/simple-javascript-formatting-zero-padding/
-        function _sprintf_02d(n) {
+        function _sprintf02D(n) {
             return ("0" + n).slice(-2);
         }
 
@@ -452,96 +498,102 @@ define(
         try {
             app = angular.module("App"); // For runtime
         } catch (e) {
-            app = angular.module("App", []); // Fall-back for unit testing
+            app = angular.module("App", ["cjt2.services.alert"]); // Fall-back for unit testing
         }
 
-        function CertificatesServiceFactory(VirtualHost, Certificate, $q, growl, growlMsg, $log) {
+        function CertificatesServiceFactory(VirtualHost, Certificate, $q, $log, alertService) {
             var CertificatesService = {};
-            var virtual_hosts = [];
-            var all_domains = [];
-            var selected_domains = [];
+            var virtualHosts = [];
+            var allDomains = [];
+            var selectedDomains = [];
             var products = [];
             var orders = [];
-            var pending_certificates = [];
-            var installed_hosts = null;
-            var purchasing_certs = [];
-            var ssl_domains = {};
-            var installed_hosts_map = {};
-            var products_search_options;
-            var wildcard_map = {};
+            var pendingCertificates = [];
+            var installedHosts = null;
+            var purchasingCerts = [];
+            var sslDomains = {};
+            var installedHostsMap = {};
+            var productsSearchOptions;
+            var wildcardMap = {};
 
             // A lookup of “www.” domains. We don’t display these in the
             // UI, but we want to know about them so we avoid trying to DCV them.
             var wwwDomainsLookup = {};
+            var domainSearchOptions;
+            var currentDate = new Date();
+            var introductionDismissed = false;
 
-            var domain_search_options;
-            var current_date = new Date();
-            var introduction_dismissed = false;
-
-            function api_error(which_api, error_msg_html) {
-                var error = LOCALE.maketext("The “[_1]” [asis,API] failed due to the following error: [_2]", _.escape(which_api), error_msg_html);
-                growl.error(error);
+            function _apiError(whichAPI, errorMsgHTML) {
+                var error = LOCALE.maketext("The “[_1]” [asis,API] failed due to the following error: [_2]", _.escape(whichAPI), errorMsgHTML);
+                alertService.add({
+                    type: "danger",
+                    message: error,
+                    group: "tlsWizard"
+                });
             }
 
             CertificatesService.add_new_certificate = function(cert) {
-                purchasing_certs.push(cert);
+                purchasingCerts.push(cert);
+                return purchasingCerts;
             };
 
             CertificatesService.get_purchasing_certs = function() {
-                return purchasing_certs;
+                return purchasingCerts;
             };
 
-            CertificatesService.get_order_by_id = function(order_id) {
+            CertificatesService.get_order_by_id = function(orderID) {
                 for (var i = 0; i < orders.length; i++) {
-                    if (orders[i].order_id === order_id) {
+                    if (orders[i].order_id === orderID) {
                         return orders[i];
                     }
                 }
             };
             CertificatesService.add_order = function(order) {
-                var existing_order = CertificatesService.get_order_by_id(order.order_id);
-                if (existing_order) {
+                var existingOrder = CertificatesService.get_order_by_id(order.order_id);
+                if (existingOrder) {
 
                     // update existing order
-                    angular.extend(existing_order, order);
+                    angular.extend(existingOrder, order);
                 } else {
 
                     // add orer
                     orders.push(order);
                 }
+                return orders;
             };
 
             CertificatesService.restore = function() {
                 if (CertificatesService.get_virtual_hosts().length) {
                     return false;
                 }
-                var stored_settings = _get_stored_settings_json();
-                if (!stored_settings) {
+                var storedSettings = _getStoredSettingsJSON();
+                if (!storedSettings) {
                     return false;
                 }
-                var storage = JSON.parse(stored_settings);
+                var storage = JSON.parse(storedSettings);
                 angular.forEach(storage.virtual_hosts, function(vhost) {
-                    virtual_hosts.push(new VirtualHost(vhost));
+                    virtualHosts.push(new VirtualHost(vhost));
                 });
                 angular.forEach(storage.purchasing_certs, function(cert) {
                     CertificatesService.add_new_certificate(new Certificate(cert));
                 });
+                storage.orders = storage.orders ? storage.orders : [];
                 orders = storage.orders;
-                return virtual_hosts.length === storage.virtual_hosts.length && orders.length === storage.orders.length;
+                return virtualHosts.length === storage.virtual_hosts.length && orders.length === storage.orders.length;
             };
 
-            CertificatesService.add_virtual_host = function(virtual_host, is_ssl) {
-                var new_vhost = new VirtualHost({
-                    display_name: virtual_host,
-                    is_ssl: is_ssl
+            CertificatesService.add_virtual_host = function(virtualHost, isSSL) {
+                var newVHost = new VirtualHost({
+                    display_name: virtualHost,
+                    is_ssl: isSSL
                 });
-                var vhost_id = virtual_hosts.length;
-                virtual_hosts.push(new_vhost);
-                return vhost_id;
+                var vhostID = virtualHosts.length;
+                virtualHosts.push(newVHost);
+                return vhostID;
             };
 
             CertificatesService.get_virtual_hosts = function() {
-                return virtual_hosts;
+                return virtualHosts;
             };
 
             CertificatesService.doesDomainMatchOneOf = function(domain, domains) {
@@ -549,73 +601,86 @@ define(
                     return false;
                 }
 
-                return domains.some(function(domain_1) {
-                    var domain_2 = domain;
-                    if (domain_1 === domain_2) {
+                return domains.some(function(domainOne) {
+                    var domainTwo = domain;
+                    if (domainOne === domainTwo) {
                         return true;
                     }
 
-                    var possible_wildcard;
-                    var domain_to_match;
+                    var possibleWildcard;
+                    var domainToMatch;
 
-                    if (/^\*/.test(domain_1)) {
-                        possible_wildcard = domain_1;
-                        domain_to_match = domain_2;
-                    } else if (/^\*/.test(domain_2)) {
-                        possible_wildcard = domain_2;
-                        domain_to_match = domain_1;
+                    if (/^\*/.test(domainOne)) {
+                        possibleWildcard = domainOne;
+                        domainToMatch = domainTwo;
+                    } else if (/^\*/.test(domainTwo)) {
+                        possibleWildcard = domainTwo;
+                        domainToMatch = domainOne;
                     } else {
                         return false;
                     }
 
-                    possible_wildcard = possible_wildcard.replace(/^\*\./, "");
-                    domain_to_match = domain_to_match.replace(/^[^\.]+\./, "");
+                    possibleWildcard = possibleWildcard.replace(/^\*\./, "");
+                    domainToMatch = domainToMatch.replace(/^[^.]+\./, "");
 
-                    if (possible_wildcard === domain_to_match) {
+                    if (possibleWildcard === domainToMatch) {
                         return true;
                     }
+
+                    return false;
                 });
             };
 
-            CertificatesService.add_raw_domain = function(raw_domain) {
-                if (/^www\./.test(raw_domain.domain)) {
-                    wwwDomainsLookup[ raw_domain.domain ] = true;
+            // for testing
+            CertificatesService._getWWWDomainsLookup = function() {
+                return wwwDomainsLookup;
+            };
+
+            CertificatesService.add_raw_domain = function(rawDomain) {
+                if (/^www\./.test(rawDomain.domain)) {
+                    wwwDomainsLookup[ rawDomain.domain ] = true;
                     return;
                 }
 
-                raw_domain.virtual_host = raw_domain.vhost_name;
+                rawDomain.virtual_host = rawDomain.vhost_name;
 
-                raw_domain.order_by_name = raw_domain.domain;
+                rawDomain.order_by_name = rawDomain.domain;
+
 
                 /* for consistency and ease of filtering */
-                raw_domain.is_wildcard = raw_domain.domain.indexOf("*.") === 0;
-                raw_domain.is_proxy = raw_domain.is_proxy.toString() === "1";
-                raw_domain.stripped_domain = raw_domain.domain;
-                CertificatesService.add_domain(raw_domain);
+                rawDomain.is_wildcard = rawDomain.domain.indexOf("*.") === 0;
+                rawDomain.is_proxy = rawDomain.is_proxy && rawDomain.is_proxy.toString() === "1";
+                rawDomain.stripped_domain = rawDomain.domain;
+                CertificatesService.add_domain(rawDomain);
 
                 // Adding this check here, but should probably check to make sure these weren't manually created (in a later version)
-                var matches_autogenerated = raw_domain.domain.match(/^(mail|ipv6)\./);
+                var matchesAutoGenerated = rawDomain.domain.match(/^(mail|ipv6)\./);
 
-                if (!raw_domain.is_wildcard && !raw_domain.is_proxy && !matches_autogenerated) {
-                    CertificatesService.add_domain(angular.extend({}, raw_domain, {
-                        domain: "*." + raw_domain.domain,
+                if (!rawDomain.is_wildcard && !rawDomain.is_proxy && !matchesAutoGenerated) {
+                    CertificatesService.add_domain(angular.extend({}, rawDomain, {
+                        domain: "*." + rawDomain.domain,
                         is_wildcard: true
                     }));
                 }
 
             };
 
-            CertificatesService.domain_covered_by_wildcard = function(domain) {
-                return wildcard_map[domain];
+            // for testing
+            CertificatesService._getWildcardMap = function() {
+                return wildcardMap;
             };
 
-            CertificatesService.compare_wildcard_domain = function(wildcard_domain, compare_domain) {
-                return wildcard_map[compare_domain] === wildcard_domain.domain;
+            CertificatesService.domain_covered_by_wildcard = function(domain) {
+                return wildcardMap[domain];
+            };
+
+            CertificatesService.compare_wildcard_domain = function(wildcardDomain, compareDomain) {
+                return wildcardMap[compareDomain] === wildcardDomain.domain;
             };
 
             /* map these for faster lookup */
             CertificatesService.build_wildcard_map = function() {
-                wildcard_map = {};
+                wildcardMap = {};
                 var domains = CertificatesService.get_all_domains();
                 var re;
                 domains.forEach(function(domain) {
@@ -629,9 +694,9 @@ define(
                     // wildcard domains that actually exist in Apache vhosts.
                     re = new RegExp("^[^\\.]+\\." + _.escapeRegExp(domain.stripped_domain.replace(/^\*\./, "")) + "$");
 
-                    domains.forEach(function(match_domain) {
-                        if (domain.domain !== match_domain.domain && re.test(match_domain.domain)) {
-                            wildcard_map[match_domain.domain] = domain;
+                    domains.forEach(function(matchDomain) {
+                        if (domain.domain !== matchDomain.domain && re.test(matchDomain.domain)) {
+                            wildcardMap[matchDomain.domain] = domain;
                         }
                     });
 
@@ -643,11 +708,11 @@ define(
                 var ihost = CertificatesService.get_domain_certificate(domain.domain);
 
                 if (ihost && ihost.certificate) {
-                    var expiration_date = new Date(ihost.certificate.not_after * 1000);
-                    var days_until_expire = (expiration_date - current_date) / 1000 / 60 / 60 / 24;
-                    if (expiration_date < current_date) {
+                    var expirationDate = new Date(ihost.certificate.not_after * 1000);
+                    var daysUntilExpiration = (expirationDate - currentDate) / 1000 / 60 / 60 / 24;
+                    if (expirationDate < currentDate) {
                         return "expired";
-                    } else if (days_until_expire < 30 && days_until_expire > 0) {
+                    } else if (daysUntilExpiration < 30 && daysUntilExpiration > 0) {
                         return "expiring_soon";
                     } else {
                         return "active";
@@ -657,58 +722,72 @@ define(
                 return "unsecured";
             };
 
-            CertificatesService.add_domain = function(domain_obj) {
-                var vhost_id = CertificatesService.get_virtual_host_by_display_name(domain_obj.virtual_host);
-                if (vhost_id !== 0 && !vhost_id) {
-                    vhost_id = CertificatesService.add_virtual_host(domain_obj.virtual_host, 1);
+            CertificatesService._getSSLDomains = function() {
+                return sslDomains;
+            };
+
+            CertificatesService._getInstalledHostsMap = function() {
+                return installedHostsMap;
+            };
+
+            CertificatesService._getInstalledHosts = function() {
+                return installedHosts;
+            };
+
+            CertificatesService.add_domain = function(domainObject) {
+                var vhostID = CertificatesService.get_virtual_host_by_display_name(domainObject.virtual_host);
+                if (vhostID !== 0 && !vhostID) {
+                    vhostID = CertificatesService.add_virtual_host(domainObject.virtual_host, 1);
                 }
-                virtual_hosts[vhost_id].is_ssl = 1;
+                virtualHosts[vhostID].is_ssl = 1;
 
                 /* prevent adding of duplicates */
-                if (CertificatesService.get_domain_by_domain(domain_obj.domain)) {
+                if (CertificatesService.get_domain_by_domain(domainObject.domain)) {
                     return;
                 }
 
                 // assume installed hosts is there, we will ensure this later
 
-                ssl_domains[domain_obj.domain] = null;
+                sslDomains[domainObject.domain] = null;
 
 
                 // domain certificate finding
 
-                var ihost = installed_hosts_map[domain_obj.virtual_host];
+                var ihost = installedHostsMap[domainObject.virtual_host];
 
                 if (ihost && ihost.certificate) {
 
                     // vhost has certificate, but does it cover this domain
 
                     angular.forEach(ihost.certificate.domains, function(domain) {
-                        if (domain_obj.domain === domain) {
-                            ssl_domains[domain_obj.domain] = ihost;
+                        if (domainObject.domain === domain) {
+                            sslDomains[domainObject.domain] = ihost;
                             return;
                         }
 
-                        var wildcard_domain = domain_obj.domain.replace(/^[^.]+\./, "*.");
-                        if (wildcard_domain === domain) {
-                            ssl_domains[domain_obj.domain] = ihost;
+                        var wildcardDomain = domainObject.domain.replace(/^[^.]+\./, "*.");
+                        if (wildcardDomain === domain) {
+                            sslDomains[domainObject.domain] = ihost;
                         }
                     });
 
                 }
 
 
-                domain_obj.type = domain_obj.is_wildcard ? "wildcard_domain" : "main_domain";
-                domain_obj.proxy_type = domain_obj.is_proxy ? "proxy_domain" : "main_domain";
-                domain_obj.certificate_status = CertificatesService.get_domain_certificate_status(domain_obj);
+                domainObject.type = domainObject.is_wildcard ? "wildcard_domain" : "main_domain";
+                domainObject.proxy_type = domainObject.is_proxy ? "proxy_domain" : "main_domain";
+                domainObject.certificate_status = CertificatesService.get_domain_certificate_status(domainObject);
 
-                return virtual_hosts[vhost_id].add_domain(domain_obj);
+                return virtualHosts[vhostID].add_domain(domainObject);
             };
 
 
-            CertificatesService.remove_virtual_host = function(display_name) {
-                var index = CertificatesService.get_virtual_host_by_display_name(display_name);
-                if (index) {
-                    virtual_hosts[index].remove_all_domains();
+            // This function should potentially be renamed
+            // It actually just deselects all the domains in a specific VHost
+            CertificatesService.remove_virtual_host = function(displayName) {
+                var index = CertificatesService.get_virtual_host_by_display_name(displayName);
+                if (!_.isNil(index)) {
+                    virtualHosts[index].remove_all_domains();
                 }
             };
 
@@ -726,21 +805,20 @@ define(
                 return products;
             };
 
-            CertificatesService.get_virtual_host_by_display_name = function(display_name) {
-                for (var i = 0; i < virtual_hosts.length; i++) {
-                    if (virtual_hosts[i].display_name === "*") {
+            CertificatesService.get_virtual_host_by_display_name = function(displayName) {
+                for (var i = 0; i < virtualHosts.length; i++) {
+                    if (virtualHosts[i].display_name === "*") {
 
                         /* There can be only one if we requested an all-vhosts install */
                         return 0;
-                    } else if (virtual_hosts[i].display_name === display_name) {
+                    } else if (virtualHosts[i].display_name === displayName) {
                         return i;
                     }
                 }
             };
 
-            // TODO: This code is duplicated all over and should
-            // probably be de-duplicated.
-            var _run_uapi = function(apiCall) {
+            CertificatesService._runUAPI = function(apiCall) {
+
                 var deferred = $q.defer();
 
                 API.promise(apiCall.getRunArguments())
@@ -767,14 +845,14 @@ define(
                     }
                 );
 
-                return _run_uapi(apiCall).then(
+                return CertificatesService._runUAPI(apiCall).then(
                     function(results) {
                         for (var d = 0; d < dnsDcvDomainObjs.length; d++) {
                             var domain = dnsDcvDomainObjs[d];
 
                             domain.resolving = false;
 
-                            domain.dcvPassed.dns = cjt2_parse.parsePerlBoolean(results.data[d].succeeded);
+                            domain.dcvPassed.dns = cjt2Parse.parsePerlBoolean(results.data[d].succeeded);
 
                             if (domain.dcvPassed.dns) {
                                 domain.resolved = 1;
@@ -796,7 +874,7 @@ define(
                         }
                     },
                     function(error) {
-                        api_error("DCV::check_domains_via_dns", error);
+                        _apiError("DCV::check_domains_via_dns", error);
                     }
                 );
             }
@@ -805,16 +883,16 @@ define(
                 var deferred = $q.defer();
                 var apiCall = new APIREQUEST.Class();
 
-                var order_item_ids = [];
+                var orderItemIDs = [];
 
                 angular.forEach(order.certificates, function(item) {
-                    order_item_ids.push(item.order_item_id);
+                    orderItemIDs.push(item.order_item_id);
                 });
 
                 apiCall.initialize("Market", "set_status_of_pending_queue_items");
                 apiCall.addArgument("provider", provider);
                 apiCall.addArgument("status", "confirmed");
-                apiCall.addArgument("order_item_id", order_item_ids);
+                apiCall.addArgument("order_item_id", orderItemIDs);
 
                 API.promise(apiCall.getRunArguments())
                     .done(function(response) {
@@ -874,19 +952,19 @@ define(
                         CertificatesService.add_raw_domain(domain);
                     });
                 }, function(error) {
-                    api_error("WebVHosts::list_ssl_capable_domains", error);
+                    _apiError("WebVHosts::list_ssl_capable_domains", error);
                 });
 
                 return deferred.promise;
             };
 
-            CertificatesService.get_store_login_url = function(provider, escaped_url) {
+            CertificatesService.get_store_login_url = function(provider, escapedURL) {
                 var deferred = $q.defer();
                 var apiCall = new APIREQUEST.Class();
 
                 apiCall.initialize("Market", "get_login_url");
                 apiCall.addArgument("provider", provider);
-                apiCall.addArgument("url_after_login", escaped_url);
+                apiCall.addArgument("url_after_login", escapedURL);
 
                 API.promise(apiCall.getRunArguments())
                     .done(function(response) {
@@ -901,22 +979,22 @@ define(
                 return deferred.promise;
             };
 
-            function _get_stored_settings_json() {
+            function _getStoredSettingsJSON() {
                 return localStorage.getItem("tls_wizard_data");
             }
 
             CertificatesService.store_settings = function(extras) {
-                var storable_settings = CertificatesService.get_storable_settings(extras);
-                localStorage.setItem("tls_wizard_data", storable_settings);
-                var retrieved_data = _get_stored_settings_json();
-                return retrieved_data === storable_settings;
+                var storableSettings = CertificatesService.get_storable_settings(extras);
+                localStorage.setItem("tls_wizard_data", storableSettings);
+                var retrievedData = _getStoredSettingsJSON();
+                return retrievedData === storableSettings;
             };
 
             CertificatesService.save = CertificatesService.store_settings;
 
             // Returns at least an empty object.
-            CertificatesService.get_stored_extra_settings = function get_stored_extra_settings() {
-                var settings = _get_stored_settings_json();
+            CertificatesService.get_stored_extra_settings = function() {
+                var settings = _getStoredSettingsJSON();
                 if (settings) {
                     settings = JSON.parse(settings).extras;
                 }
@@ -933,7 +1011,7 @@ define(
                 // Preserve the “extras”, which contains things like
                 // identity verification for OV and EV certs.
                 //
-                var storage = _get_stored_settings_json();
+                var storage = _getStoredSettingsJSON();
                 storage = storage ? JSON.parse(storage) : {};
                 if (!storage.extras) {
                     storage.extras = {};
@@ -949,7 +1027,7 @@ define(
 
                     // Used in the “Advanced” screen
                     // NB: Each one has a .toJSON() method defined.
-                    virtual_hosts: virtual_hosts,
+                    virtual_hosts: virtualHosts,
 
                     // Used in the “Simple” screen
                     // NB: Each one has a .toJSON() method defined.
@@ -960,19 +1038,19 @@ define(
             };
 
             CertificatesService.get_all_domains = function() {
-                all_domains = [];
-                angular.forEach(virtual_hosts, function(vhost) {
-                    all_domains = all_domains.concat(vhost.get_domains());
+                allDomains = [];
+                angular.forEach(virtualHosts, function(vhost) {
+                    allDomains = allDomains.concat(vhost.get_domains());
                 });
-                return all_domains;
+                return allDomains;
             };
 
             CertificatesService.get_all_selected_domains = function() {
-                selected_domains = [];
-                angular.forEach(virtual_hosts, function(vhost) {
-                    selected_domains = selected_domains.concat(vhost.get_selected_domains());
+                selectedDomains = [];
+                angular.forEach(virtualHosts, function(vhost) {
+                    selectedDomains = selectedDomains.concat(vhost.get_selected_domains());
                 });
-                return selected_domains;
+                return selectedDomains;
             };
 
             CertificatesService.get_products = function() {
@@ -1022,7 +1100,7 @@ define(
 
                         ["x_warn_after", "x_price_per_domain", "x_max_http_redirects"].forEach(function(attr) {
                             if (product[attr]) {
-                                product[attr] = cjt2_parse.parseNumber(product[attr]);
+                                product[attr] = cjt2Parse.parseNumber(product[attr]);
                             }
                         });
 
@@ -1030,54 +1108,55 @@ define(
                     });
 
                 }, function(error) {
-                    api_error("Market::get_all_products", error);
+                    _apiError("Market::get_all_products", error);
                 });
 
                 return deferred.promise;
             };
 
-            CertificatesService._make_certificate_term_label = function(term_unit, term_value) {
-                var unit_strings = {
-                    "year": LOCALE.maketext("[quant,_1,Year,Years]", term_value),
-                    "month": LOCALE.maketext("[quant,_1,Month,Months]", term_value),
-                    "day": LOCALE.maketext("[quant,_1,Day,Days]", term_value)
+            CertificatesService._make_certificate_term_label = function(termUnit, termValue) {
+                var unitStrings = {
+                    "year": LOCALE.maketext("[quant,_1,Year,Years]", termValue),
+                    "month": LOCALE.maketext("[quant,_1,Month,Months]", termValue),
+                    "day": LOCALE.maketext("[quant,_1,Day,Days]", termValue)
                 };
-                return unit_strings[term_unit] || term_value + " " + term_unit;
+                return unitStrings[termUnit] || termValue + " " + termUnit;
             };
 
-            CertificatesService._make_validation_type_label = function(validation_type) {
-                var validation_type_labels = {
+            CertificatesService._make_validation_type_label = function(validationType) {
+                var validationTypeLabels = {
                     "dv": LOCALE.maketext("[output,abbr,DV,Domain Validated] Certificate"),
                     "ov": LOCALE.maketext("[output,abbr,OV,Organization Validated] Certificate"),
                     "ev": LOCALE.maketext("[output,abbr,EV,Extended Validation] Certificate")
                 };
-                return validation_type_labels[validation_type] || validation_type;
+
+                return validationTypeLabels[validationType] || validationType;
             };
 
-            CertificatesService.add_raw_product = function(raw_product) {
-                raw_product.id = raw_product.product_id;
-                raw_product.provider = raw_product.provider_name;
-                raw_product.provider_display_name = raw_product.provider_display_name || raw_product.provider;
-                raw_product.price = Number(raw_product.x_price_per_domain);
-                raw_product.wildcard_price = Number(raw_product.x_price_per_wildcard_domain);
-                raw_product.wildcard_parent_domain_included = raw_product.x_wildcard_parent_domain_free && raw_product.x_wildcard_parent_domain_free.toString() === "1";
-                raw_product.icon_mime_type = raw_product.icon_mime_type ? raw_product.icon_mime_type : "image/png";
-                raw_product.is_wildcard = !isNaN(raw_product.wildcard_price) ? true : false;
-                raw_product.x_certificate_term = raw_product.x_certificate_term || [1, "year"];
-                raw_product.x_certificate_term_display_name = CertificatesService._make_certificate_term_label(raw_product.x_certificate_term[1], raw_product.x_certificate_term[0]);
-                raw_product.x_certificate_term_key = raw_product.x_certificate_term.join("_");
-                raw_product.x_validation_type_display_name = CertificatesService._make_validation_type_label(raw_product.x_validation_type);
-                raw_product.validity_period = raw_product.x_certificate_term;
-                raw_product.x_supports_dns_dcv = cjt2_parse.parsePerlBoolean(raw_product.x_supports_dns_dcv);
-                products.push(raw_product);
+            CertificatesService.add_raw_product = function(rawProduct) {
+                rawProduct.id = rawProduct.product_id;
+                rawProduct.provider = rawProduct.provider_name;
+                rawProduct.provider_display_name = rawProduct.provider_display_name || rawProduct.provider;
+                rawProduct.price = Number(rawProduct.x_price_per_domain);
+                rawProduct.wildcard_price = Number(rawProduct.x_price_per_wildcard_domain);
+                rawProduct.wildcard_parent_domain_included = rawProduct.x_wildcard_parent_domain_free && rawProduct.x_wildcard_parent_domain_free.toString() === "1";
+                rawProduct.icon_mime_type = rawProduct.icon_mime_type ? rawProduct.icon_mime_type : "image/png";
+                rawProduct.is_wildcard = !isNaN(rawProduct.wildcard_price) ? true : false;
+                rawProduct.x_certificate_term = rawProduct.x_certificate_term || [1, "year"];
+                rawProduct.x_certificate_term_display_name = CertificatesService._make_certificate_term_label(rawProduct.x_certificate_term[1], rawProduct.x_certificate_term[0]);
+                rawProduct.x_certificate_term_key = rawProduct.x_certificate_term.join("_");
+                rawProduct.x_validation_type_display_name = CertificatesService._make_validation_type_label(rawProduct.x_validation_type);
+                rawProduct.x_supports_dns_dcv = cjt2Parse.parsePerlBoolean(rawProduct.x_supports_dns_dcv);
+                rawProduct.validity_period = rawProduct.x_certificate_term;
+                products.push(rawProduct);
             };
 
             CertificatesService.get_domain_search_options = function() {
-                if (domain_search_options) {
-                    return domain_search_options;
+                if (domainSearchOptions) {
+                    return domainSearchOptions;
                 }
 
-                domain_search_options = {
+                domainSearchOptions = {
                     domainType: {
                         label: LOCALE.maketext("Domain Types:"),
                         item_key: "type",
@@ -1092,16 +1171,16 @@ define(
                         }]
                     },
                     proxyDomainType: {
-                        label: LOCALE.maketext("Proxy Subdomain Types:"),
+                        label: LOCALE.maketext("Service Subdomain Types:"),
                         item_key: "proxy_type",
                         options: [{
                             "value": "proxy_domain",
-                            "label": LOCALE.maketext("[asis,cPanel] Proxy Subdomains"),
-                            "description": LOCALE.maketext("Only list proxy subdomains.")
+                            "label": LOCALE.maketext("[asis,cPanel] Service Subdomains"),
+                            "description": LOCALE.maketext("Only list Service Subdomains.")
                         }, {
                             "value": "main_domain",
                             "label": LOCALE.maketext("Other Domains"),
-                            "description": LOCALE.maketext("Only list non-Proxy domains.")
+                            "description": LOCALE.maketext("Only list non-Service Subdomains.")
                         }]
                     },
                     sslType: {
@@ -1152,11 +1231,11 @@ define(
             };
 
             CertificatesService.get_product_search_options = function() {
-                if (products_search_options) {
-                    return products_search_options;
+                if (productsSearchOptions) {
+                    return productsSearchOptions;
                 }
 
-                products_search_options = {
+                productsSearchOptions = {
                     validationType: {
                         label: LOCALE.maketext("[asis,SSL] Validation Types"),
                         item_key: "x_validation_type",
@@ -1199,19 +1278,19 @@ define(
                 });
 
                 angular.forEach(certTerms, function(item) {
-                    products_search_options.certTerms.options.push(item);
+                    productsSearchOptions.certTerms.options.push(item);
                 });
                 angular.forEach(providers, function(item) {
-                    products_search_options.sslProvider.options.push(item);
+                    productsSearchOptions.sslProvider.options.push(item);
                 });
                 angular.forEach(validationTypes, function(item) {
-                    products_search_options.validationType.options.push(item);
+                    productsSearchOptions.validationType.options.push(item);
                 });
 
-                for (var key in products_search_options) {
-                    if (products_search_options.hasOwnProperty(key)) {
-                        if (products_search_options[key].options.length <= 1) {
-                            delete products_search_options[key];
+                for (var key in productsSearchOptions) {
+                    if (productsSearchOptions.hasOwnProperty(key)) {
+                        if (productsSearchOptions[key].options.length <= 1) {
+                            delete productsSearchOptions[key];
                         }
                     }
                 }
@@ -1219,9 +1298,9 @@ define(
                 return CertificatesService.get_product_search_options();
             };
 
-            CertificatesService.get_product_by_id = function(provider_name, product_id) {
+            CertificatesService.get_product_by_id = function(providerName, productID) {
                 for (var i = 0; i < products.length; i++) {
-                    if (products[i].id === product_id && products[i].provider === provider_name) {
+                    if (products[i].id === productID && products[i].provider === providerName) {
                         return products[i];
                     }
                 }
@@ -1229,19 +1308,25 @@ define(
                 return;
             };
 
-            var _ensure_domains_can_pass_dcv = function(domains, dcv_constraints) {
-                var flat_domains = [];
-                var dcv_domain_objs = [];
+            var _ensureDomainCanPassDCV = function(domains, dcvConstraints) {
+
+                // A list of domain objects for domains that will be DCVed
+                // in this function. (The list will exclude, e.g., domains
+                // that are already DCVed.) Do not confuse with
+                // dnsDcvDomainObjs, which is specific to DNS DCV.
+                var allDcvDomainObjs = [];
+
+                var flatDomains = [];
 
                 angular.forEach(domains, function(domain) {
                     if (domain.resolved === -1) {
-                        dcv_domain_objs.push(domain);
-                        flat_domains.push(domain.domain);
+                        allDcvDomainObjs.push(domain);
+                        flatDomains.push(domain.domain);
                         domain.resolving = true;
                     }
                 });
 
-                if (flat_domains.length === 0) {
+                if (flatDomains.length === 0) {
                     return;
                 }
 
@@ -1249,20 +1334,22 @@ define(
 
                     // Compare against 0 to accommodate providers that
                     // don’t define this particular product attribute.
+
                     return 0 === p.x_max_http_redirects;
                 };
 
                 var apiCall = (new APIREQUEST.Class()).initialize(
                     "DCV",
                     "check_domains_via_http", {
-                        domain: flat_domains,
-                        dcv_file_allowed_characters: JSON.stringify(dcv_constraints.dcv_file_allowed_characters),
-                        dcv_file_random_character_count: dcv_constraints.dcv_file_random_character_count,
-                        dcv_file_extension: dcv_constraints.dcv_file_extension,
-                        dcv_file_relative_path: dcv_constraints.dcv_file_relative_path,
-                        dcv_user_agent_string: dcv_constraints.dcv_user_agent_string,
+                        domain: flatDomains,
+                        dcv_file_allowed_characters: JSON.stringify(dcvConstraints.dcv_file_allowed_characters),
+                        dcv_file_random_character_count: dcvConstraints.dcv_file_random_character_count,
+                        dcv_file_extension: dcvConstraints.dcv_file_extension,
+                        dcv_file_relative_path: dcvConstraints.dcv_file_relative_path,
+                        dcv_user_agent_string: dcvConstraints.dcv_user_agent_string,
                     }
                 );
+
 
                 var prodsThatCanDoDnsDcv = products.filter(productSupportsDnsDcv);
 
@@ -1271,29 +1358,37 @@ define(
                 // redirection limit, then we shouldn’t fall back to DNS DCV.
                 var prodsThatForbidRedirects = products.filter(productForbidsRedirects);
 
-                return _run_uapi(apiCall).then(function(results) {
+                return CertificatesService._runUAPI(apiCall).then(function(results) {
+
+                    // A list of domain objects for domains that will be DCVed
+                    // via DNS in this function. Do not confuse with
+                    // allDcvDomainObjs, which includes domains that will not
+                    // undergo DNS DCV (e.g., because they passed HTTP DCV).
                     var dnsDcvDomainObjs = [];
 
-                    for (var d = 0; d < dcv_domain_objs.length; d++) {
-                        var domain = dcv_domain_objs[d];
+                    for (var d = 0; d < allDcvDomainObjs.length; d++) {
+                        var domain = allDcvDomainObjs[d];
 
                         domain.resolution_failure_reason = results.data[d].failure_reason;
-                        domain.redirects_count = cjt2_parse.parseNumber(results.data[d].redirects_count);
+                        domain.redirects_count = cjt2Parse.parseNumber(results.data[d].redirects_count);
 
                         // Success with redirects likely means that even
                         // rebuilding .htaccess didn’t fix the issue,
                         // so the customer will need to investigate manually.
                         if (domain.redirects_count && !domain.resolution_failure_reason) {
-
                             if (prodsThatForbidRedirects.length) {
                                 var message = LOCALE.maketext("“[_1]”’s [output,abbr,DCV,Domain Control Validation] check completed correctly, but the check required an [asis,HTTP] redirection. The system tried to exclude such redirections from this domain by editing the website document root’s “[_2]” file, but the redirection persists. You should investigate further.", _.escape(domain.domain), ".htaccess");
 
-                                growl.warning(message);
+                                alertService.add({
+                                    type: "danger",
+                                    message: message,
+                                    group: "tlsWizard"
+                                });
 
                                 // Only fail at this point if DNS DCV isn’t
                                 // available.
                                 if (!prodsThatCanDoDnsDcv.length && (prodsThatForbidRedirects.length === products.length)) {
-                                    domain.resolution_failure_reason = LOCALE.maketext("This domain’s [output,abbr,DCV,Domain Control Validation] check completed correctly, but the check required [asis,HTTP] redirection. Because none of the available certificate products allow [asis,DNS]-based [asis,DCV] or [asis,HTTP] redirection for [asis,DCV], you cannot use this interface to purchase an [asis,SSL] certificate for this domain.");
+                                    domain.resolution_failure_reason = LOCALE.maketext("This domain’s [output,abbr,DCV,Domain Control Validation] check completed correctly, but the check required [asis,HTTP] redirection. Because none of the available certificate products allows [asis,HTTP] redirection for [asis,DCV], you cannot use this interface to purchase an [asis,SSL] certificate for this domain.");
                                 }
 
                             }
@@ -1318,7 +1413,7 @@ define(
                         }
                     }
                 }, function(error) {
-                    api_error("DCV::check_domains_via_http", error);
+                    _apiError("DCV::check_domains_via_http", error);
                 });
             };
 
@@ -1333,6 +1428,7 @@ define(
                     if (product.provider_name === "cPStore") {
                         return true;
                     }
+                    return false;
                 });
 
                 if (cpStoreProducts.length) {
@@ -1349,38 +1445,38 @@ define(
 
             };
 
-            CertificatesService.get_provider_specific_dcv_constraints = function(provider_name) {
+            CertificatesService.get_provider_specific_dcv_constraints = function(providerName) {
 
                 var apiCall = (new APIREQUEST.Class()).initialize(
                     "Market",
                     "get_provider_specific_dcv_constraints", {
-                        provider: provider_name
+                        provider: providerName
                     }
                 );
 
-                return _run_uapi(apiCall);
+                return CertificatesService._runUAPI(apiCall);
             };
 
 
-            CertificatesService.ensure_domains_can_pass_dcv = function(domains, provider_name) {
+            CertificatesService.ensure_domains_can_pass_dcv = function(domains, providerName) {
 
-                return CertificatesService.get_provider_specific_dcv_constraints(provider_name).then(function(results) {
+                return CertificatesService.get_provider_specific_dcv_constraints(providerName).then(function(results) {
 
-                    return _ensure_domains_can_pass_dcv(domains, results.data);
+                    return _ensureDomainCanPassDCV(domains, results.data);
 
                 }, function(error) {
-                    api_error("Market::get_provider_specific_dcv_constraints", error);
+                    _apiError("Market::get_provider_specific_dcv_constraints", error);
                 });
 
             };
 
-            CertificatesService.verify_login_token = function(provider, login_token, url_after_login) {
+            CertificatesService.verify_login_token = function(provider, loginToken, urlAfterLogin) {
                 var deferred = $q.defer();
                 var apiCall = new APIREQUEST.Class();
 
                 apiCall.initialize("Market", "validate_login_token");
-                apiCall.addArgument("login_token", login_token);
-                apiCall.addArgument("url_after_login", url_after_login);
+                apiCall.addArgument("login_token", loginToken);
+                apiCall.addArgument("url_after_login", urlAfterLogin);
                 apiCall.addArgument("provider", provider);
 
                 API.promise(apiCall.getRunArguments())
@@ -1396,15 +1492,15 @@ define(
                 return deferred.promise;
             };
 
-            CertificatesService.set_url_after_checkout = function(provider, access_token, order_id, url_after_checkout) {
+            CertificatesService.set_url_after_checkout = function(provider, accessToken, orderID, urlAfterCheckout) {
                 var deferred = $q.defer();
                 var apiCall = new APIREQUEST.Class();
 
                 apiCall.initialize("Market", "set_url_after_checkout");
                 apiCall.addArgument("provider", provider);
-                apiCall.addArgument("access_token", access_token);
-                apiCall.addArgument("order_id", order_id);
-                apiCall.addArgument("url_after_checkout", url_after_checkout);
+                apiCall.addArgument("access_token", accessToken);
+                apiCall.addArgument("order_id", orderID);
+                apiCall.addArgument("url_after_checkout", urlAfterCheckout);
 
                 API.promise(apiCall.getRunArguments())
                     .done(function(response) {
@@ -1422,37 +1518,6 @@ define(
                 return deferred.promise;
             };
 
-            CertificatesService.fetch_valid_www_subject_names = function(domains, provider_name) {
-
-                // This now requires that wwwDomainsLookup be populated.
-                // We ensure that by calling fetch_domains().
-                var domains_fetch = CertificatesService.fetch_domains();
-
-                var callback = function() {
-                    var www_domains = domains.filter(function(domain) {
-                        return wwwDomainsLookup[ "www." + domain.domain ];
-                    }).map(function(domain) {
-                        return {
-                            domain: "www." + domain.domain,
-                            resolved: -1
-                        };
-                    });
-
-                    return CertificatesService.ensure_domains_can_pass_dcv(www_domains, provider_name).then(function() {
-                        return www_domains;
-                    });
-                };
-
-                // NB: Promise.resolve() didn’t seem to work here;
-                // the callback never was called. The below does work.
-
-                if (domains_fetch.then) {
-                    return domains_fetch.then(callback);
-                }
-
-                return callback();
-            };
-
             // Returns a YYYY-MM-DD string
             //
             // AngularJS sets all date models as Date objects,
@@ -1460,39 +1525,28 @@ define(
             // It’s a bit hairy because we can’t use
             // .toISOString() since that date will be UTC, while
             // the numbers we want are the ones the user gave.
-            function _date_to_yyyymmdd(the_date) {
+            function _dateToYYYYMMDD(theDate) {
+
                 return [
-                    the_date.getFullYear(),
-                    _sprintf_02d(1 + the_date.getMonth()),
-                    _sprintf_02d(the_date.getDate()),
+                    theDate.getFullYear(),
+                    _sprintf02D(1 + theDate.getMonth()),
+                    _sprintf02D(theDate.getDate()),
                 ].join("-");
             }
 
-            var _request_certificates = function(provider, access_token, certificates, url_after_checkout, www_domains) {
-                var www_domain_map = {};
-                var failed_www_domains = [];
-                www_domains.forEach(function(domain) {
-                    www_domain_map[domain.domain] = domain.resolved === 1;
-                    if (!www_domain_map[domain.domain]) {
-                        failed_www_domains.push(domain.domain);
-                    }
-                });
-
-                if (failed_www_domains.length) {
-                    growl.warning(LOCALE.maketext("The following “www” [numerate,_1,domain,domains] did not resolve, so the following [numerate,_3,certificate,certificates] will not secure [numerate,_1,it,them]: [list_and_quoted,_2]", failed_www_domains.length, failed_www_domains, certificates.length));
-                }
+            var _requestCertificates = function(provider, accessToken, certificates, urlAfterCheckout) {
 
                 var deferred = $q.defer();
                 var apiCall = new APIREQUEST.Class();
 
                 apiCall.initialize("Market", "request_ssl_certificates");
                 apiCall.addArgument("provider", provider);
-                apiCall.addArgument("access_token", access_token);
-                apiCall.addArgument("url_after_checkout", url_after_checkout);
+                apiCall.addArgument("access_token", accessToken);
+                apiCall.addArgument("url_after_checkout", urlAfterCheckout);
 
-                var json_certs = certificates.map(function(cert) {
+                var jsonCertificates = certificates.map(function(cert) {
 
-                    var new_cert = {
+                    var newCertificate = {
                         product_id: cert.get_product().id,
                         subject_names: cert.get_subject_names(),
                         vhost_names: cert.get_virtual_hosts(),
@@ -1501,57 +1555,79 @@ define(
                     };
 
                     if (cert.get_product().x_identity_verification) {
-                        var iden_ver = cert.get_identity_verification();
+                        var identityVerification = cert.get_identity_verification();
 
-                        new_cert.identity_verification = {};
+                        newCertificate.identity_verification = {};
                         cert.get_product().x_identity_verification.forEach(function(idv) {
                             var k = idv.name;
 
                             // If the form didn’t give us any data for it,
                             // then don’t submit it.
-                            if (!iden_ver[k]) {
+                            if (!identityVerification[k]) {
                                 return;
                             }
 
                             // “date” items come from AngularJS as Date objects,
                             // but they come from JSON as ISO 8601 strings.
                             if (idv.type === "date") {
-                                var date_obj;
+                                var dateObject;
 
                                 try {
-                                    date_obj = new Date(iden_ver[k]);
+                                    dateObject = new Date(identityVerification[k]);
                                 } catch (e) {
-                                    $log.warn("new Date() failed; ignoring", iden_ver[k], e);
+                                    $log.warn("new Date() failed; ignoring", identityVerification[k], e);
                                 }
 
-                                if (date_obj) {
-                                    new_cert.identity_verification[k] = _date_to_yyyymmdd(date_obj);
+                                if (dateObject) {
+                                    newCertificate.identity_verification[k] = _dateToYYYYMMDD(dateObject);
                                 }
                             } else {
-                                new_cert.identity_verification[k] = iden_ver[k];
+                                newCertificate.identity_verification[k] = identityVerification[k];
                             }
                         });
                     }
 
-                    var valid_www_domains = [];
-                    new_cert.subject_names.forEach(function(subject_name) {
-                        var domain = subject_name.name;
+                    // A lookup map of the wildcard subject names.
+                    var wildcardDomainMap = {};
 
-                        if (www_domain_map["www." + domain]) {
-                            valid_www_domains.push( {
-                                type: "dNSName",
-                                name: "www." + domain,
-                                dcv_method: subject_name.dcv_method,
-                            } );
+                    newCertificate.subject_names.forEach(function(subject_name) {
+                        var domain = subject_name.name;
+                        if (domain.indexOf("*.") === 0) {
+                            wildcardDomainMap[domain] = true;
                         }
                     });
 
-                    new_cert.subject_names = new_cert.subject_names.concat(valid_www_domains);
+                    // An array of objects that describe subject name
+                    // entries to add for www. subdomains.
+                    var validWWWDomains = [];
 
-                    return JSON.stringify(new_cert);
+                    newCertificate.subject_names.forEach(function(subject_name) {
+                        var domain = subject_name.name;
+
+                        // Don’t add www. if we already have the wildcard
+                        // for the domain. For example, if the cert will
+                        // secure foo.com and *.foo.com, there’s no need
+                        // for www.foo.com, so we leave it off.
+                        var addWwwYn = !wildcardDomainMap["*." + domain];
+
+                        // Only add www. if that domain actually exists.
+                        addWwwYn = addWwwYn && wwwDomainsLookup["www." + domain];
+
+                        if ( addWwwYn ) {
+                            validWWWDomains.push( {
+                                type: "dNSName",
+                                name: "www." + domain,
+                                dcv_method: subject_name.dcv_method,
+                            });
+                        }
+                    });
+
+                    newCertificate.subject_names = newCertificate.subject_names.concat(validWWWDomains);
+
+                    return JSON.stringify(newCertificate);
                 });
 
-                apiCall.addArgument("certificate", json_certs);
+                apiCall.addArgument("certificate", jsonCertificates);
 
                 API.promise(apiCall.getRunArguments())
                     .done(function(response) {
@@ -1568,48 +1644,30 @@ define(
                 return deferred.promise;
             };
 
+            CertificatesService.request_certificates = function(provider, accessToken, certificates, urlAfterCheckout) {
 
-            CertificatesService.request_certificates = function(provider, access_token, certificates, url_after_checkout) {
+                // This now requires that wwwDomainsLookup be populated.
+                // We ensure that by calling fetch_domains().
+                var domains_fetch = CertificatesService.fetch_domains();
 
-                /* build domains for www check */
-                var all_domains = [];
-                var cert_domains = [];
+                var callback = function() {
+                    return _requestCertificates(provider, accessToken, certificates, urlAfterCheckout);
+                };
 
-                certificates.forEach(function(certificate, cert_key) {
-
-                    cert_domains[cert_key] = [];
-
-                    certificate.get_domains().forEach(function(domain) {
-                        if (domain.is_wildcard) {
-                            return false;
-                        }
-                        all_domains.push(domain);
-                        cert_domains[cert_key].push(domain);
-                    });
-
-                });
-
-                /* no wwws, all wildcards or something */
-                if (all_domains.length === 0) {
-                    return _request_certificates(provider, access_token, certificates, url_after_checkout, all_domains);
+                if (domains_fetch.then) {
+                    return domains_fetch.then(callback);
                 }
 
-                /* www check */
-                return CertificatesService.fetch_valid_www_subject_names(all_domains, provider).then(function(www_domains) {
-
-                    return _request_certificates(provider, access_token, certificates, url_after_checkout, www_domains);
-
-                });
-
+                return callback();
             };
 
             CertificatesService.get_pending_certificates = function() {
-                return pending_certificates;
+                return pendingCertificates;
             };
 
-            var _assign_pending_certificates = function(new_pending) {
-                pending_certificates = new_pending;
-                pending_certificates.forEach(function(pcert) {
+            var _assignPendingCertificates = function(newPending) {
+                pendingCertificates = newPending;
+                pendingCertificates.forEach(function(pcert) {
 
                     // Typecasts
                     pcert.order_id += "";
@@ -1621,11 +1679,11 @@ define(
             CertificatesService.fetch_pending_certificates = function() {
 
                 if (CPANEL.PAGE.pending_certificates) {
-                    _assign_pending_certificates(CPANEL.PAGE.pending_certificates);
+                    _assignPendingCertificates(CPANEL.PAGE.pending_certificates);
 
                     /* if exists on page load use it, but if view switching, we want to reload, so clear this variable */
                     CPANEL.PAGE.pending_certificates = null;
-                    if (pending_certificates.length) {
+                    if (pendingCertificates.length) {
                         return true;
                     }
                 }
@@ -1646,22 +1704,25 @@ define(
                     });
 
                 deferred.promise.then(function(result) {
-                    _assign_pending_certificates(result.data);
+                    _assignPendingCertificates(result.data);
                 }, function(error) {
-                    api_error("Market::pending_certificates", error);
+                    _apiError("Market::pending_certificates", error);
                 });
 
                 return deferred.promise;
             };
 
             CertificatesService.add_raw_installed_host = function(ihost) {
+                if (!installedHosts) {
+                    installedHosts = [];
+                }
                 ihost.certificate.is_self_signed = parseInt(ihost.certificate.is_self_signed, 10) === 1;
-                installed_hosts.push(ihost);
-                installed_hosts_map[ihost.servername] = ihost;
+                installedHosts.push(ihost);
+                installedHostsMap[ihost.servername] = ihost;
             };
 
             CertificatesService.get_domain_certificate = function(domain) {
-                return ssl_domains[domain];
+                return sslDomains[domain];
             };
 
             CertificatesService.get_domain_by_domain = function(domain) {
@@ -1674,20 +1735,21 @@ define(
                 return;
             };
 
-            CertificatesService.get_virtual_host_certificate = function(virtual_host) {
-                if ( installed_hosts ) {
-                    for (var i = 0; i < installed_hosts.length; i++) {
-                        if (installed_hosts[i].servername === virtual_host.display_name) {
-                            return installed_hosts[i];
-                        }
+            CertificatesService.get_virtual_host_certificate = function(virtualHost) {
+                if (!installedHosts) {
+                    return;
+                }
+                for (var i = 0; i < installedHosts.length; i++) {
+                    if (installedHosts[i].servername === virtualHost.display_name) {
+                        return installedHosts[i];
                     }
                 }
 
-                return installed_hosts ? installed_hosts[0] : undefined;
+                return installedHosts[0] ? installedHosts[0] : undefined;
             };
 
             CertificatesService.fetch_installed_hosts = function() {
-                if (installed_hosts) {
+                if (installedHosts) {
                     return true;
                 }
 
@@ -1695,13 +1757,13 @@ define(
                     if (!CPANEL.PAGE.installed_hosts.length) {
                         return true; /* Defined, but no installed hosts */
                     }
-                    installed_hosts = [];
-                    installed_hosts_map = {};
-                    ssl_domains = {};
+                    installedHosts = [];
+                    installedHostsMap = {};
+                    sslDomains = {};
                     angular.forEach(CPANEL.PAGE.installed_hosts, function(ihost) {
                         CertificatesService.add_raw_installed_host(ihost);
                     });
-                    if (installed_hosts.length) {
+                    if (installedHosts.length) {
                         return true;
                     }
                 }
@@ -1722,20 +1784,20 @@ define(
                     });
 
                 deferred.promise.then(function(result) {
-                    installed_hosts = [];
-                    installed_hosts_map = {};
-                    ssl_domains = {};
+                    installedHosts = [];
+                    installedHostsMap = {};
+                    sslDomains = {};
                     angular.forEach(result.data, function(ihost) {
                         CertificatesService.add_raw_installed_host(ihost);
                     });
                 }, function(error) {
-                    api_error("SSL::installed_hosts", error);
+                    _apiError("SSL::installed_hosts", error);
                 });
 
                 return deferred.promise;
             };
 
-            var _make_batch = function(calls) {
+            var _makeBatch = function(calls) {
                 var apiCall = new APIREQUEST.Class();
 
                 apiCall.initialize("Batch", "strict");
@@ -1745,8 +1807,8 @@ define(
                 return apiCall;
             };
 
-            CertificatesService.install_certificate = function(cert, vhost_names) {
-                var apiCall = _make_batch(vhost_names.map(function(vh) {
+            CertificatesService.install_certificate = function(cert, vhostNames) {
+                var apiCall = _makeBatch(vhostNames.map(function(vh) {
                     return [
                         "SSL",
                         "install_ssl", {
@@ -1756,16 +1818,16 @@ define(
                     ];
                 }));
 
-                return _run_uapi(apiCall);
+                return CertificatesService._runUAPI(apiCall);
             };
 
-            CertificatesService.get_ssl_certificate_if_available = function(provider, order_item_id) {
+            CertificatesService.get_ssl_certificate_if_available = function(provider, orderItemID) {
                 var apiCall = new APIREQUEST.Class();
                 apiCall.initialize("Market", "get_ssl_certificate_if_available");
                 apiCall.addArgument("provider", provider);
-                apiCall.addArgument("order_item_id", order_item_id);
+                apiCall.addArgument("order_item_id", orderItemID);
 
-                return _run_uapi(apiCall);
+                return CertificatesService._runUAPI(apiCall);
             };
 
             CertificatesService.get_installed_ssl_for_domain = function(domain) {
@@ -1773,32 +1835,32 @@ define(
                 apiCall.initialize("SSL", "installed_host");
                 apiCall.addArgument("domain", domain);
 
-                return _run_uapi(apiCall);
+                return CertificatesService._runUAPI(apiCall);
             };
 
-            CertificatesService.cancel_pending_ssl_certificate_and_poll = function(provider, order_item_id) {
-                var apiCall = _make_batch([
+            CertificatesService.cancel_pending_ssl_certificate_and_poll = function(provider, orderItemID) {
+                var apiCall = _makeBatch([
                     [
                         "Market",
                         "cancel_pending_ssl_certificate", {
                             provider: provider,
-                            order_item_id: order_item_id
+                            order_item_id: orderItemID
                         }
                     ],
                     [
                         "Market",
                         "get_ssl_certificate_if_available", {
                             provider: provider,
-                            order_item_id: order_item_id
+                            order_item_id: orderItemID
                         }
                     ],
                 ]);
 
-                return _run_uapi(apiCall);
+                return CertificatesService._runUAPI(apiCall);
             };
 
-            CertificatesService.cancel_pending_ssl_certificates = function(provider, order_item_ids) {
-                var apiCall = _make_batch(order_item_ids.map(function(oiid) {
+            CertificatesService.cancel_pending_ssl_certificates = function(provider, orderItemIDs) {
+                var apiCall = _makeBatch(orderItemIDs.map(function(oiid) {
                     return [
                         "Market",
                         "cancel_pending_ssl_certificate", {
@@ -1808,12 +1870,12 @@ define(
                     ];
                 }));
 
-                return _run_uapi(apiCall);
+                return CertificatesService._runUAPI(apiCall);
             };
 
-            CertificatesService.cancel_certificate = function(virtual_host, provider, order_item_id) {
-                CertificatesService.cancel_pending_ssl_certificate(provider, order_item_id).then(function() {
-                    angular.forEach(virtual_host.get_selected_domains(), function(domain) {
+            CertificatesService.cancel_certificate = function(virtualHost, provider, orderItemID) {
+                CertificatesService.cancel_pending_ssl_certificate(provider, orderItemID).then(function() {
+                    angular.forEach(virtualHost.get_selected_domains(), function(domain) {
                         domain.selected = false;
                     });
                 });
@@ -1845,32 +1907,118 @@ define(
             };
 
             CertificatesService.reset = function() {
-                virtual_hosts = [];
-                all_domains = [];
+                virtualHosts = [];
+                allDomains = [];
                 products = [];
-                installed_hosts = null;
-                purchasing_certs = [];
-                ssl_domains = {};
+                installedHosts = null;
+                purchasingCerts = [];
+                sslDomains = {};
                 orders = [];
-                wildcard_map = {};
+                wildcardMap = {};
             };
 
             CertificatesService.reset_purchasing_certificates = function() {
-                purchasing_certs = [];
+                purchasingCerts = [];
             };
 
             CertificatesService.dismiss_introduction = function() {
-                introduction_dismissed = true;
+                introductionDismissed = true;
             };
 
             CertificatesService.show_introduction_block = function() {
-                return !introduction_dismissed && !growlMsg.getAllMessages().length;
+                return !introductionDismissed && !alertService.getAlerts().length;
+            };
+
+            CertificatesService.parseCertificateDomainDetails = function(rawDomainDetails) {
+                var domainDetails = {};
+
+                angular.forEach(rawDomainDetails, function(value) {
+                    domainDetails[value.domain] = value.status;
+                });
+
+                return domainDetails;
+            };
+
+            CertificatesService.parseCertificateStatusDetails = function(rawStatusDetails, rawActionUrls) {
+
+                var statusDetails = [];
+
+                if (!rawStatusDetails) {
+                    return statusDetails;
+                }
+
+                rawActionUrls = rawActionUrls ? rawActionUrls : {};
+
+                angular.forEach(rawStatusDetails, function(detail, key) {
+
+                    var detailString = STATUS_DETAIL_STRINGS[key];
+                    if (!detailString) {
+                        detailString = {
+                            label: key,
+                            inProgress: ""
+                        };
+                    }
+
+                    if (detail === "not-applicable" || key === "certificateStatus" || key === "csrStatus") {
+                        return;
+                    }
+
+                    if (detail) {
+
+                        var status;
+
+                        if (detail === "not-completed") {
+                            status = detailString.inProgress;
+                        } else if (detail === "completed") {
+                            status = LOCALE.maketext("Complete.");
+                        } else {
+                            status = detail;
+                        }
+
+                        var detailItem = {
+                            label: detailString.label,
+                            status: status,
+                            rawLabel: key,
+                            rawStatus: detail
+                        };
+
+                        if (rawActionUrls[key]) {
+                            detailItem.actionLabel = ACTION_URL_LABELS[key] || ACTION_URL_LABELS.DEFAULT;
+                            detailItem.actionURL = rawActionUrls[key];
+                            detailItem.actionIcon = ACTION_URL_ICONS[key] || ACTION_URL_ICONS.DEFAULT;
+                        }
+
+                        statusDetails.push(detailItem);
+                    }
+
+                });
+
+                return statusDetails;
+            };
+
+            CertificatesService.getCertificateStatusDetails = function(provider, orderItemID) {
+                var apiCall = new APIREQUEST.Class();
+
+                apiCall.initialize("Market", "get_certificate_status_details", {
+                    "provider": provider,
+                    "order_item_id": orderItemID
+                });
+
+                return CertificatesService._runUAPI(apiCall).then(function(result) {
+
+                    return {
+                        statusDetails: CertificatesService.parseCertificateStatusDetails(result.data.status_details, result.data.action_urls),
+                        domainDetails: CertificatesService.parseCertificateDomainDetails(result.data.domain_details)
+                    };
+
+                });
+
             };
 
             return CertificatesService;
         }
 
-        return app.factory("CertificatesService", ["VirtualHost", "Certificate", "$q", "growl", "growlMessages", "$log", CertificatesServiceFactory]);
+        return app.factory("CertificatesService", ["VirtualHost", "Certificate", "$q", "$log", "alertService", CertificatesServiceFactory]);
     });
 
 /*
@@ -2077,7 +2225,24 @@ define(
 
         var app = angular.module("App");
 
-        function VirtualHostsController($rootScope, $scope, $controller, $location, $filter, $timeout, $sce, $routeParams, $window, CertificatesService, IdVerDefaults, SpinnerAPI, growl, COUNTRIES, LocationService, SearchSettingsModel) {
+        function VirtualHostsController(
+            $rootScope,
+            $scope,
+            $controller,
+            $location,
+            $filter,
+            $timeout,
+            $sce,
+            $routeParams,
+            $window,
+            CertificatesService,
+            IdVerDefaults,
+            SpinnerAPI,
+            growl,
+            COUNTRIES,
+            LocationService,
+            SearchSettingsModel,
+            alertService) {
 
             $scope.show_introduction_block = CertificatesService.show_introduction_block;
 
@@ -2097,29 +2262,29 @@ define(
 
             $scope.COUNTRIES = COUNTRIES;
 
-            var identity_verification = {};
-            $scope.identity_verification = identity_verification;
+            var identityVerification = {};
+            $scope.identity_verification = identityVerification;
 
-            var saved_idver = CertificatesService.get_stored_extra_settings().advanced_identity_verification;
+            var savedIDVer = CertificatesService.get_stored_extra_settings().advanced_identity_verification;
 
             for (var vh = 0; vh < $scope.virtual_hosts.length; vh++) {
-                var vh_name = $scope.virtual_hosts[vh].get_display_name();
+                var vHostName = $scope.virtual_hosts[vh].get_display_name();
 
-                identity_verification[vh_name] = {};
+                identityVerification[vHostName] = {};
 
-                if (saved_idver && saved_idver[vh_name]) {
-                    IdVerDefaults.restore_previous(identity_verification[vh_name], saved_idver[vh_name]);
+                if (savedIDVer && savedIDVer[vHostName]) {
+                    IdVerDefaults.restore_previous(identityVerification[vHostName], savedIDVer[vHostName]);
                 } else {
-                    IdVerDefaults.set_defaults(identity_verification[vh_name]);
+                    IdVerDefaults.set_defaults(identityVerification[vHostName]);
                 }
             }
 
             // reset on visit to purchase certs
-            angular.forEach($scope.virtual_hosts, function(virtual_host) {
-                virtual_host.reset();
+            angular.forEach($scope.virtual_hosts, function(virtualHost) {
+                virtualHost.reset();
 
                 /* don't show wildcards in this interface */
-                virtual_host.show_wildcards = false;
+                virtualHost.show_wildcards = false;
             });
 
             /* to reset after reset */
@@ -2133,7 +2298,7 @@ define(
                 return !vhost.display_name.match(/^\*\./);
             });
 
-            var default_search_values = {
+            var defaultSearchValues = {
                 "certTerms": {
                     "1_year": true,
                     "2_year": false,
@@ -2141,7 +2306,7 @@ define(
                 }
             };
 
-            $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), default_search_values);
+            $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), defaultSearchValues);
 
             $scope.filter_products = function() {
 
@@ -2163,7 +2328,7 @@ define(
                 $scope.slow_scroll_to_top();
             };
 
-            var build_steps = ["domains", "providers", "cert-info"];
+            var buildSteps = ["domains", "providers", "cert-info"];
             var qaFilter = $filter("qaSafeID");
 
             $scope.get_cart_certs_title = function() {
@@ -2175,33 +2340,33 @@ define(
                 return LOCALE.maketext("[output,strong,Showing] [numf,_1] of [quant,_2,website,websites]", vhosts.length, $scope.get_virtual_hosts().length);
             };
 
-            $scope.get_domains_showing_text = function(virtual_host) {
-                var num_start = 1 + virtual_host.display_meta.start;
-                var num_limit = virtual_host.display_meta.limit;
-                var num_of = virtual_host.get_domain_count(true);
-                return LOCALE.maketext("[output,strong,Showing] [numf,_1] - [numf,_2] of [quant,_3,domain,domains].", num_start, num_limit, num_of);
+            $scope.get_domains_showing_text = function(virtualHost) {
+                var numStart = 1 + virtualHost.display_meta.start;
+                var numLimit = virtualHost.display_meta.limit;
+                var numOf = virtualHost.get_domain_count(true);
+                return LOCALE.maketext("[output,strong,Showing] [numf,_1] - [numf,_2] of [quant,_3,domain,domains].", numStart, numLimit, numOf);
             };
 
-            $scope.deselect_unresolved_msg = function(virtual_host) {
-                var unresolved_count = virtual_host.get_selected_domains().filter(function(domain) {
+            $scope.deselect_unresolved_msg = function(virtualHost) {
+                var unresolvedCount = virtualHost.get_selected_domains().filter(function(domain) {
                     return domain.resolved === 0;
                 }).length;
-                return LOCALE.maketext("Deselect all unresolved domains ([numf,_1]).", unresolved_count);
+                return LOCALE.maketext("Deselect all unresolved domains ([numf,_1]).", unresolvedCount);
             };
 
-            $scope.go_to_pending = function(order_item_id) {
-                if (order_item_id) {
-                    $location.path("/pending-certificates/" + order_item_id);
+            $scope.go_to_pending = function(orderItemID) {
+                if (orderItemID) {
+                    $location.path("/pending-certificates/").search("orderItemID", orderItemID);
                 } else {
                     $location.path("/pending-certificates");
                 }
             };
 
-            $scope.pending_certificate = function(virtual_host) {
+            $scope.pending_certificate = function(virtualHost) {
                 var result = false;
                 angular.forEach($scope.pending_certificates, function(pcert) {
-                    angular.forEach(pcert.vhost_names, function(vhost_name) {
-                        if (vhost_name === virtual_host.display_name) {
+                    angular.forEach(pcert.vhost_names, function(vhostName) {
+                        if (vhostName === virtualHost.display_name) {
                             result = pcert.order_item_id;
                         }
                     });
@@ -2209,56 +2374,56 @@ define(
                 return result;
             };
 
-            $scope.get_certpanel_class = function(virtual_host) {
-                if (!$scope.pending_certificate(virtual_host)) {
+            $scope.get_certpanel_class = function(virtualHost) {
+                if (!$scope.pending_certificate(virtualHost)) {
                     return "panel-primary";
                 } else {
                     return "panel-default";
                 }
             };
 
-            $scope.view_pending_certificate = function(virtual_host) {
-                var order_item_id = $scope.pending_certificate(virtual_host);
-                $scope.go_to_pending(order_item_id);
+            $scope.view_pending_certificate = function(virtualHost) {
+                var orderItemID = $scope.pending_certificate(virtualHost);
+                $scope.go_to_pending(orderItemID);
             };
 
-            $scope.get_currency_string = function(num, price_unit) {
+            $scope.get_currency_string = function(num, priceUnit) {
                 num += 0.001;
                 var str = LOCALE.numf(num);
                 str = "$" + str.substring(0, str.length - 1);
-                if (price_unit) {
-                    str += " " + price_unit;
+                if (priceUnit) {
+                    str += " " + priceUnit;
                 }
                 return str;
             };
 
             $scope.get_virtual_hosts = function() {
-                var virtual_hosts = $scope.virtual_hosts;
+                var virtualHosts = $scope.virtual_hosts;
                 if ($scope.filterValue) {
-                    virtual_hosts = $filter("filter")(virtual_hosts, $scope.filterValue);
+                    virtualHosts = $filter("filter")(virtualHosts, $scope.filterValue);
                 }
                 if ($scope.checkout_mode) {
-                    virtual_hosts = $filter("filter")(virtual_hosts, {
+                    virtualHosts = $filter("filter")(virtualHosts, {
                         added_to_cart: true
                     });
                 }
-                return virtual_hosts;
+                return virtualHosts;
             };
 
-            $scope.get_virtual_host_classes = function(virtual_host) {
+            $scope.get_virtual_host_classes = function(virtualHost) {
                 return {
                     "col-lg-4": $scope.virtual_hosts.length > 2,
                     "col-lg-6": $scope.virtual_hosts.length <= 2,
-                    "panel-success": virtual_host.is_ssl
+                    "panel-success": virtualHost.is_ssl
                 };
             };
 
-            $scope.get_step_panel_classes = function(virtual_host, current) {
+            $scope.get_step_panel_classes = function(virtualHost, current) {
                 var classes = ["col-sm-12", "col-xs-12"];
 
                 // add step type specific classes
 
-                if ($scope.working_virtual_host === virtual_host.display_name) {
+                if ($scope.working_virtual_host === virtualHost.display_name) {
                     classes.push("col-md-4");
                     classes.push("col-lg-4");
                 } else {
@@ -2276,8 +2441,8 @@ define(
 
             $scope.get_cart_price = function() {
                 var price = 0;
-                angular.forEach($scope.get_cart_items(), function(virtual_host) {
-                    price += virtual_host.get_price();
+                angular.forEach($scope.get_cart_items(), function(virtualHost) {
+                    price += virtualHost.get_price();
                 });
                 return price;
             };
@@ -2297,13 +2462,13 @@ define(
                 return [];
             };
 
-            $scope.get_step = function(virtual_host) {
-                return virtual_host.get_step();
+            $scope.get_step = function(virtualHost) {
+                return virtualHost.get_step();
             };
 
-            $scope.go_step = function(virtual_host, step) {
-                if ($scope.can_step(virtual_host, step)) {
-                    return virtual_host.go_step(step);
+            $scope.go_step = function(virtualHost, step) {
+                if ($scope.can_step(virtualHost, step)) {
+                    return virtualHost.go_step(step);
                 }
             };
 
@@ -2312,19 +2477,23 @@ define(
                 // $scope.working_virtual_host = virtual_host.display_name;
             };
 
-            $scope.check_selected_domains = function(virtual_host) {
+            $scope.check_selected_domains = function(virtualHost) {
                 if ($scope.resolution_timeout) {
                     $timeout.cancel($scope.resolution_timeout);
                 }
-                if (virtual_host && virtual_host.added_to_cart) {
-                    var domains = $filter("filter")(virtual_host.get_selected_domains(), function(domain) {
+                if (virtualHost && virtualHost.added_to_cart) {
+                    var domains = $filter("filter")(virtualHost.get_selected_domains(), function(domain) {
                         if (domain.resolved !== 1) {
                             return true;
                         }
                     });
                     if (domains.length) {
-                        growl.warning(LOCALE.maketext("You have altered an item in your cart. The system has removed that item. After you make the necessary changes, add that item back to your cart."));
-                        $scope.remove_from_cart(virtual_host);
+                        alertService.add({
+                            type: "danger",
+                            message: LOCALE.maketext("You have altered an item in your cart. The system has removed that item. After you make the necessary changes, add that item back to your cart."),
+                            group: "tlsWizard"
+                        });
+                        $scope.remove_from_cart(virtualHost);
                     }
                 }
                 $scope.resolution_timeout = $timeout(function(domains) {
@@ -2354,15 +2523,15 @@ define(
                     domain.resolving = true;
                     SpinnerAPI.start($scope.get_spinner_id(domain.domain));
                 });
-                var provider_name = $scope.get_current_or_default_provider();
-                return CertificatesService.ensure_domains_can_pass_dcv(domains, provider_name).finally(function() {
-                    var to_focus_element;
+                var providerName = $scope.get_current_or_default_provider();
+                return CertificatesService.ensure_domains_can_pass_dcv(domains, providerName).finally(function() {
+                    var toFocusElement;
                     angular.forEach(domains, function(domain) {
                         if (domain.resolved === 0 && domain.selected) {
 
                             /* checked domain doesn't resolve */
-                            var vhost_index = CertificatesService.get_virtual_host_by_display_name(domain.vhost_name);
-                            var vhost = $scope.virtual_hosts[vhost_index];
+                            var vhostIndex = CertificatesService.get_virtual_host_by_display_name(domain.vhost_name);
+                            var vhost = $scope.virtual_hosts[vhostIndex];
                             if (vhost && vhost.get_step() === "providers") {
 
                                 /* if we are on the providers section, send them back to the domains section to see errors */
@@ -2370,12 +2539,12 @@ define(
 
                                 /* set focus to top domain in domains list */
                                 var element = $window.document.getElementById($scope.get_domain_id(domain));
-                                if (element && !to_focus_element) {
+                                if (element && !toFocusElement) {
 
                                     /* only focus first element */
-                                    to_focus_element = element;
+                                    toFocusElement = element;
                                     $timeout(function() {
-                                        to_focus_element.focus();
+                                        toFocusElement.focus();
                                     });
                                 }
                             }
@@ -2385,31 +2554,31 @@ define(
                 });
             };
 
-            $scope.get_domain_id = function(domain_obj) {
-                return qaFilter(domain_obj.vhost_name + "_" + domain_obj.domain);
+            $scope.get_domain_id = function(domainObject) {
+                return qaFilter(domainObject.vhost_name + "_" + domainObject.domain);
             };
 
-            $scope.check_product_match = function(product_a, product_b) {
-                if (!product_a || !product_b) {
+            $scope.check_product_match = function(productA, productB) {
+                if (!productA || !productB) {
                     return false;
                 }
-                if (product_a.id === product_b.id && product_a.provider === product_b.provider) {
+                if (productA.id === productB.id && productA.provider === productB.provider) {
                     return true;
                 }
             };
 
-            $scope.can_step = function(virtual_host, step) {
-                if (step === build_steps[0]) {
+            $scope.can_step = function(virtualHost, step) {
+                if (step === buildSteps[0]) {
                     return true;
-                } else if (step === build_steps[1]) {
+                } else if (step === buildSteps[1]) {
 
                     // providers
                     /* can progress if domains are selected, after they are resolved they user is kicked back to domains if there is an error */
-                    return virtual_host.get_selected_domains().length ? true : false;
-                } else if (step === build_steps[2]) {
+                    return virtualHost.get_selected_domains().length ? true : false;
+                } else if (step === buildSteps[2]) {
 
                     // cert-info
-                    var product = virtual_host.get_product();
+                    var product = virtualHost.get_product();
                     if (!product) {
                         return false;
                     }
@@ -2424,35 +2593,35 @@ define(
                 return false;
             };
 
-            $scope.get_product_by_id = function(provider_name, product_id) {
-                return CertificatesService.get_product_by_id(provider_name, product_id);
+            $scope.get_product_by_id = function(providerName, productID) {
+                return CertificatesService.get_product_by_id(providerName, productID);
             };
 
-            $scope.can_next_step = function(virtual_host) {
-                var current_step = virtual_host.get_step();
-                var next_step;
-                angular.forEach(build_steps, function(step, index) {
-                    if (step === current_step) {
-                        next_step = build_steps[index + 1];
+            $scope.can_next_step = function(virtualHost) {
+                var currentStep = virtualHost.get_step();
+                var nextStep;
+                angular.forEach(buildSteps, function(step, index) {
+                    if (step === currentStep) {
+                        nextStep = buildSteps[index + 1];
                     }
                 });
 
-                return $scope.can_step(virtual_host, next_step);
+                return $scope.can_step(virtualHost, nextStep);
 
             };
 
-            $scope.next_step = function(virtual_host) {
-                var current_step = virtual_host.get_step();
-                var next_step;
-                angular.forEach(build_steps, function(step, index) {
-                    if (step === current_step) {
-                        next_step = build_steps[index + 1];
+            $scope.next_step = function(virtualHost) {
+                var currentStep = virtualHost.get_step();
+                var nextStep;
+                angular.forEach(buildSteps, function(step, index) {
+                    if (step === currentStep) {
+                        nextStep = buildSteps[index + 1];
                     }
                 });
 
-                if ($scope.can_step(virtual_host, next_step)) {
-                    $scope.focus_virtual_host(virtual_host);
-                    virtual_host.go_step(next_step);
+                if ($scope.can_step(virtualHost, nextStep)) {
+                    $scope.focus_virtual_host(virtualHost);
+                    virtualHost.go_step(nextStep);
                 }
             };
 
@@ -2472,8 +2641,8 @@ define(
                 virtualHost.set_product(product);
             };
 
-            $scope.all_domains_resolved = function(virtual_host) {
-                var domains = virtual_host.get_selected_domains();
+            $scope.all_domains_resolved = function(virtualHost) {
+                var domains = virtualHost.get_selected_domains();
 
                 domains = $filter("filter")(domains, function(domain) {
                     if (domain.resolved !== 1) {
@@ -2491,8 +2660,8 @@ define(
                 return true;
             };
 
-            $scope.can_add_to_cart = function(virtual_host) {
-                var product = virtual_host.get_product();
+            $scope.can_add_to_cart = function(virtualHost) {
+                var product = virtualHost.get_product();
                 if (!product) {
                     return false;
                 }
@@ -2507,16 +2676,19 @@ define(
 
             };
 
-            $scope.add_to_cart = function(virtual_host) {
-                if (!$scope.can_add_to_cart(virtual_host) || !$scope.all_domains_resolved(virtual_host)) {
+            $scope.add_to_cart = function(virtualHost) {
+                if (!$scope.can_add_to_cart(virtualHost) || !$scope.all_domains_resolved(virtualHost)) {
                     return false;
                 }
-                virtual_host.added_to_cart = true;
-                virtual_host.go_step("added-to-cart");
+                virtualHost.added_to_cart = true;
+                virtualHost.go_step("added-to-cart");
 
-                virtual_host.set_identity_verification($scope.identity_verification[virtual_host.display_name]);
+                virtualHost.set_identity_verification($scope.identity_verification[virtualHost.display_name]);
 
                 $scope.working_virtual_host = null;
+
+                // REFACTOR:: Should find a way to do this with CJT2/alertService and remove
+                // growl usage here.
                 if ($rootScope.addToCartGrowl) {
                     $rootScope.addToCartGrowl.ttl = 0;
                     $rootScope.addToCartGrowl = null;
@@ -2542,12 +2714,12 @@ define(
 
             };
 
-            $scope.get_virtual_host_certificate = function(virtual_host) {
-                return CertificatesService.get_virtual_host_certificate(virtual_host);
+            $scope.get_virtual_host_certificate = function(virtualHost) {
+                return CertificatesService.get_virtual_host_certificate(virtualHost);
             };
 
-            $scope.build_csr_url = function(virtual_host) {
-                var ihost = $scope.get_virtual_host_certificate(virtual_host);
+            $scope.build_csr_url = function(virtualHost) {
+                var ihost = $scope.get_virtual_host_certificate(virtualHost);
                 if (ihost && ihost.certificate) {
                     var url = "";
                     url += "../../ssl/install.html?id=";
@@ -2556,8 +2728,8 @@ define(
                 }
             };
 
-            $scope.get_existing_certificate_name = function(virtual_host) {
-                var ihost = $scope.get_virtual_host_certificate(virtual_host);
+            $scope.get_existing_certificate_name = function(virtualHost) {
+                var ihost = $scope.get_virtual_host_certificate(virtualHost);
 
                 var name;
                 if (ihost && ihost.certificate) {
@@ -2579,8 +2751,8 @@ define(
                 return name;
             };
 
-            $scope.get_domain_lock_classes = function(virtual_host) {
-                var ihost = $scope.get_virtual_host_certificate(virtual_host);
+            $scope.get_domain_lock_classes = function(virtualHost) {
+                var ihost = $scope.get_virtual_host_certificate(virtualHost);
                 if (ihost && ihost.certificate) {
                     if (ihost.certificate.is_self_signed) {
                         return "grey-padlock";
@@ -2590,13 +2762,13 @@ define(
                 }
             };
 
-            $scope.remove_from_cart = function(virtual_host) {
+            $scope.remove_from_cart = function(virtualHost) {
                 if ($rootScope.addToCartGrowl) {
                     $rootScope.addToCartGrowl.ttl = 0;
                     $rootScope.addToCartGrowl.destroy();
                     $rootScope.addToCartGrowl = null;
                 }
-                virtual_host.added_to_cart = false;
+                virtualHost.added_to_cart = false;
             };
 
             $scope.go_to_simple = function() {
@@ -2614,11 +2786,15 @@ define(
                 }
 
                 var success = CertificatesService.save({
-                    advanced_identity_verification: identity_verification,
+                    advanced_identity_verification: identityVerification,
                 });
 
                 if (!success) {
-                    growl.error(LOCALE.maketext("Failed to save information to browser cache."));
+                    alertService.add({
+                        type: "danger",
+                        message: LOCALE.maketext("Failed to save information to browser cache."),
+                        group: "tlsWizard"
+                    });
                 } else {
                     $location.path("/purchase");
                 }
@@ -2640,7 +2816,27 @@ define(
 
         }
 
-        app.controller("VirtualHostsController", ["$rootScope", "$scope", "$controller", "$location", "$filter", "$timeout", "$sce", "$routeParams", "$window", "CertificatesService", "IdVerDefaults", "spinnerAPI", "growl", "CountriesService", "LocationService", "SearchSettingsModel", VirtualHostsController]);
+        app.controller("VirtualHostsController",
+            [
+                "$rootScope",
+                "$scope",
+                "$controller",
+                "$location",
+                "$filter",
+                "$timeout",
+                "$sce",
+                "$routeParams",
+                "$window",
+                "CertificatesService",
+                "IdVerDefaults",
+                "spinnerAPI",
+                "growl",
+                "CountriesService",
+                "LocationService",
+                "SearchSettingsModel",
+                "alertService",
+                VirtualHostsController
+            ]);
 
 
     });
@@ -2675,8 +2871,7 @@ define(
         "cjt/directives/triStateCheckbox",
         "cjt/filters/qaSafeIDFilter",
         "cjt/directives/spinnerDirective",
-        "cjt/directives/quickFiltersDirective",
-        "cjt/decorators/growlDecorator"
+        "cjt/directives/quickFiltersDirective"
     ],
     function(angular, _, LOCALE) {
         "use strict";
@@ -2695,12 +2890,27 @@ define(
             "$window",
             "CertificatesService",
             "IdVerDefaults",
-            "growl",
             "CountriesService",
             "Certificate",
             "LocationService",
             "SearchSettingsModel",
-            function($rootScope, $scope, $controller, $location, $filter, $timeout, $sce, $routeParams, $window, CertificatesService, IdVerDefaults, growl, COUNTRIES, Certificate, LocationService, SearchSettingsModel) {
+            "alertService",
+            function($rootScope,
+                $scope,
+                $controller,
+                $location,
+                $filter,
+                $timeout,
+                $sce,
+                $routeParams,
+                $window,
+                CertificatesService,
+                IdVerDefaults,
+                COUNTRIES,
+                Certificate,
+                LocationService,
+                SearchSettingsModel,
+                alertService) {
 
                 $scope.show_introduction_block = CertificatesService.show_introduction_block;
 
@@ -2724,19 +2934,19 @@ define(
 
                 $scope.identity_verification = {};
 
-                var saved_idver = CertificatesService.get_stored_extra_settings().simple_identity_verification;
-                if (saved_idver) {
-                    IdVerDefaults.restore_previous($scope.identity_verification, saved_idver);
+                var savedIDVer = CertificatesService.get_stored_extra_settings().simple_identity_verification;
+                if (savedIDVer) {
+                    IdVerDefaults.restore_previous($scope.identity_verification, savedIDVer);
                 } else {
                     IdVerDefaults.set_defaults($scope.identity_verification);
                 }
 
                 // reset on visit to purchase certs
-                angular.forEach($scope.virtual_hosts, function(virtual_host) {
-                    virtual_host.reset();
+                angular.forEach($scope.virtual_hosts, function(virtualHost) {
+                    virtualHost.reset();
 
                     /*  ensure wildcards are shown in this interface */
-                    virtual_host.show_wildcards = true;
+                    virtualHost.show_wildcards = true;
                 });
 
                 /* build map for lookup later. */
@@ -2764,7 +2974,7 @@ define(
 
                 $scope.cart_price_strings = null;
 
-                var default_search_values = {
+                var defaultSearchValues = {
                     "certTerms": {
                         "1_year": true,
                         "2_year": false,
@@ -2773,48 +2983,48 @@ define(
                 };
 
                 $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_domain_search_options());
-                $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), default_search_values);
+                $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), defaultSearchValues);
 
                 $scope.displayProxySubdomains = true;
 
                 $scope.filter_domains = function(domains) {
 
-                    var filtered_domains = domains;
+                    var filteredDomains = domains;
 
                     if ($scope.meta.filterValue) {
-                        filtered_domains = $filter("filter")(filtered_domains, $scope.meta.filterValue);
+                        filteredDomains = $filter("filter")(filteredDomains, $scope.meta.filterValue);
                     }
 
-                    filtered_domains = $scope.searchFilterOptions.filter(filtered_domains);
+                    filteredDomains = $scope.searchFilterOptions.filter(filteredDomains);
 
-                    return filtered_domains;
+                    return filteredDomains;
                 };
 
                 $scope.filter_products = function(products) {
 
-                    var filtered_products = products;
+                    var filteredProducts = products;
 
-                    var selected_domains = $scope.selected_domains;
-                    var wildcard_domains = $filter("filter")(selected_domains, {
+                    var selectedDomains = $scope.selected_domains;
+                    var wildcardDomains = $filter("filter")(selectedDomains, {
                         is_wildcard: true
                     });
 
-                    filtered_products = $filter("filter")(filtered_products, function(product) {
-                        if (!product.wildcard_price && wildcard_domains.length) {
+                    filteredProducts = $filter("filter")(filteredProducts, function(product) {
+                        if (!product.wildcard_price && wildcardDomains.length) {
                             return;
-                        } else if (!product.price && selected_domains.length - wildcard_domains.length > 0) {
+                        } else if (!product.price && selectedDomains.length - wildcardDomains.length > 0) {
                             return;
                         }
                         return true;
                     });
 
                     if ($scope.meta.productFilterValue) {
-                        filtered_products = $filter("filter")(filtered_products, $scope.meta.productFilterValue);
+                        filteredProducts = $filter("filter")(filteredProducts, $scope.meta.productFilterValue);
                     }
 
-                    filtered_products = $scope.productSearchFilterOptions.filter(filtered_products);
+                    filteredProducts = $scope.productSearchFilterOptions.filter(filteredProducts);
 
-                    return filtered_products;
+                    return filteredProducts;
                 };
 
                 $scope.toggle_values = function(items, att, value) {
@@ -2886,14 +3096,14 @@ define(
 
                 };
 
-                $scope.select_domain = function(selected_domain) {
-                    if (selected_domain.selected && selected_domain.is_wildcard) {
+                $scope.select_domain = function(selectedDomain) {
+                    if (selectedDomain.selected && selectedDomain.is_wildcard) {
 
                         // select domains covered by this wildcard
-                        var covered_domains = $filter("filter")($scope.domains, function(domain) {
-                            return CertificatesService.compare_wildcard_domain(selected_domain, domain.domain);
+                        var coveredDomains = $filter("filter")($scope.domains, function(domain) {
+                            return CertificatesService.compare_wildcard_domain(selectedDomain, domain.domain);
                         });
-                        $scope.toggle_values(covered_domains, "selected", true);
+                        $scope.toggle_values(coveredDomains, "selected", true);
                     }
                     $scope.update_selected_domains();
                     $scope.check_selected_domains();
@@ -2940,7 +3150,7 @@ define(
                     domain.certificate_type = "unsecured";
                     var ihost = $scope.get_domain_certificate(domain.domain);
                     if (ihost && ihost.certificate) {
-                        if (!ihost.certificate.is_self_signed) {
+                        if (!ihost.certificate.is_self_signed && ihost.certificate.validation_type) {
                             domain.certificate_type = ihost.certificate.validation_type;
                         }
                     }
@@ -2991,6 +3201,7 @@ define(
                 $scope.pendingCertificateObject = function(domain) {
                     var result = false;
                     angular.forEach($scope.pending_certificates, function(pcert) {
+
                         angular.forEach(pcert.vhost_names, function(vhostName) {
                             if (vhostName === domain.virtual_host) {
                                 result = pcert;
@@ -3001,13 +3212,13 @@ define(
                 };
 
                 $scope.view_pending_certificate = function(domain) {
-                    var order_item_id = $scope.pending_certificate(domain);
-                    $scope.go_to_pending(order_item_id);
+                    var orderItemID = $scope.pending_certificate(domain);
+                    $scope.go_to_pending(orderItemID);
                 };
 
-                $scope.go_to_pending = function(order_item_id) {
-                    if (order_item_id) {
-                        $location.path("/pending-certificates/" + order_item_id);
+                $scope.go_to_pending = function(orderItemID) {
+                    if (orderItemID) {
+                        $location.path("/pending-certificates/").search("orderItemID", orderItemID);
                     } else {
                         $location.path("/pending-certificates");
                     }
@@ -3056,9 +3267,9 @@ define(
                     }
                 };
 
-                $scope.get_virtual_host_by_display_name = function(vhost_name) {
-                    var vhost_index = CertificatesService.get_virtual_host_by_display_name(vhost_name);
-                    return $scope.virtual_hosts[vhost_index];
+                $scope.get_virtual_host_by_display_name = function(vhostName) {
+                    var vhostIndex = CertificatesService.get_virtual_host_by_display_name(vhostName);
+                    return $scope.virtual_hosts[vhostIndex];
                 };
 
                 $scope.get_virtual_host_certificate = function(domain) {
@@ -3073,17 +3284,17 @@ define(
                     if (!domains.length) {
                         return false;
                     }
-                    var provider_name = $scope.get_current_or_default_provider();
-                    return CertificatesService.ensure_domains_can_pass_dcv(domains, provider_name);
+                    var providerName = $scope.get_current_or_default_provider();
+                    return CertificatesService.ensure_domains_can_pass_dcv(domains, providerName);
                 };
 
                 $scope.get_current_or_default_provider = function() {
 
-                    var product_obj = $scope.get_product();
+                    var productObject = $scope.get_product();
 
                     /* if it's set, use that */
-                    if (product_obj) {
-                        var product = $scope.get_product_by_id(product_obj.provider, product_obj.id);
+                    if (productObject) {
+                        var product = $scope.get_product_by_id(productObject.provider, productObject.id);
                         if (product) {
                             return product.provider_name;
                         }
@@ -3105,7 +3316,7 @@ define(
                 };
 
 
-                $scope.get_other_vhost_domains = function(match_domain) {
+                $scope.get_other_vhost_domains = function(matchDomain) {
                     return $filter("filter")($scope.domains, function(domain) {
                         if (domain.is_wildcard) {
                             return false;
@@ -3116,10 +3327,10 @@ define(
                         if (domain.resolved === 0) {
                             return false;
                         }
-                        if (domain.domain === match_domain.domain) {
+                        if (domain.domain === matchDomain.domain) {
                             return false;
                         }
-                        if (domain.virtual_host !== match_domain.virtual_host) {
+                        if (domain.virtual_host !== matchDomain.virtual_host) {
                             return false;
                         }
                         return true;
@@ -3127,14 +3338,14 @@ define(
                 };
 
                 $scope.get_selected_vhosts = function() {
-                    var covered_domains = $scope.get_covered_domains();
-                    var covered_selected_domains = _.filter( covered_domains, { selected: true } );
-                    return _.uniq(covered_selected_domains.map(function(domain) {
+                    var coveredDomains = $scope.get_covered_domains();
+                    var coveredSelectedDomains = _.filter( coveredDomains, { selected: true } );
+                    return _.uniq(coveredSelectedDomains.map(function(domain) {
                         return domain.virtual_host;
                     }));
                 };
 
-                function _domain_is_on_partial_vhost(domain) {
+                function _domainIsOnPartialVhost(domain) {
                     if (domain.selected) {
                         return false;
                     }
@@ -3156,20 +3367,20 @@ define(
                 }
 
                 $scope.has_partial_vhosts = function() {
-                    return $scope.domains.some(_domain_is_on_partial_vhost);
+                    return $scope.domains.some(_domainIsOnPartialVhost);
                 };
 
                 $scope.get_partial_vhost_domains = function() {
-                    return $scope.domains.filter(_domain_is_on_partial_vhost);
+                    return $scope.domains.filter(_domainIsOnPartialVhost);
                 };
 
-                $scope.get_undercovered_vhost_message = function(other_domains) {
-                    var flat_domains = other_domains.map(function(domain) {
+                $scope.get_undercovered_vhost_message = function(otherDomains) {
+                    var flatDomains = otherDomains.map(function(domain) {
                         return domain.domain;
                     });
                     var msg = "";
                     msg += "<p>" + LOCALE.maketext("The certificate will secure some, but not all, of the domains on websites on which they exist.") + "</p>";
-                    msg += "<p>" + LOCALE.maketext("If you choose to continue, the certificate will not secure the following [numerate,_1,domain,domains], and because a certificate will exist on their website, you may have to purchase a new certificate to secure all of these domains later. [list_and_quoted,_2]", flat_domains.length, flat_domains) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("If you choose to continue, the certificate will not secure the following [numerate,_1,domain,domains], and because a certificate will exist on their website, you may have to purchase a new certificate to secure all of these domains later. [list_and_quoted,_2]", flatDomains.length, flatDomains) + "</p>";
                     return msg;
                 };
 
@@ -3182,14 +3393,14 @@ define(
                     $scope.goto("domains");
                 };
 
-                $scope.get_other_domains_msg = function(domain, other_domains) {
-                    var flat_domains = other_domains.map(function(domain) {
+                $scope.get_other_domains_msg = function(domain, otherDomains) {
+                    var flatDomains = otherDomains.map(function(domain) {
                         return domain.domain;
                     });
                     var msg = "";
-                    msg += "<p>" + LOCALE.maketext("This certificate will not secure [quant,_2,other domain,other domains] on the same website as “[_1]”.", domain.domain, flat_domains.length) + "</p>";
-                    msg += "<p>" + LOCALE.maketext("Because you cannot secure a single website with multiple certificates, in order to secure any unselected [numerate,_1,domain,domains] in the future, you would need to purchase a new certificate to secure all of these domains.", flat_domains.length) + "</p>";
-                    msg += "<p>" + LOCALE.maketext("Would you like to secure the following additional [numerate,_2,domain,domains] with this certificate? [list_and_quoted,_1]", flat_domains, flat_domains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("This certificate will not secure [quant,_2,other domain,other domains] on the same website as “[_1]”.", domain.domain, flatDomains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("Because you cannot secure a single website with multiple certificates, in order to secure any unselected [numerate,_1,domain,domains] in the future, you would need to purchase a new certificate to secure all of these domains.", flatDomains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("Would you like to secure the following additional [numerate,_2,domain,domains] with this certificate? [list_and_quoted,_1]", flatDomains, flatDomains.length) + "</p>";
                     return msg;
                 };
 
@@ -3201,8 +3412,8 @@ define(
                     });
                 };
 
-                $scope.get_other_wildcard_domains = function(match_domain) {
-                    if (!match_domain.is_wildcard) {
+                $scope.get_other_wildcard_domains = function(matchDomain) {
+                    if (!matchDomain.is_wildcard) {
                         return false;
                     }
                     return $filter("filter")($scope.domains, function(domain) {
@@ -3212,34 +3423,34 @@ define(
                         if (domain.is_wildcard) {
                             return false;
                         }
-                        if (domain.domain === match_domain.domain) {
+                        if (domain.domain === matchDomain.domain) {
                             return false;
                         }
-                        if (CertificatesService.compare_wildcard_domain(match_domain, domain.domain) === false) {
+                        if (CertificatesService.compare_wildcard_domain(matchDomain, domain.domain) === false) {
                             return false;
                         }
                         return true;
                     });
                 };
 
-                function _is_failed_dcv_domain(domain) {
+                function _isFailedDCVDomain(domain) {
                     return domain.resolved !== 1;
                 }
 
                 $scope.has_failed_dcv_domains = function() {
-                    return $scope.selected_domains.some(_is_failed_dcv_domain);
+                    return $scope.selected_domains.some(_isFailedDCVDomain);
                 };
 
                 $scope.get_failed_dcv_domains = function() {
-                    return $scope.selected_domains.filter(_is_failed_dcv_domain);
+                    return $scope.selected_domains.filter(_isFailedDCVDomain);
                 };
 
-                $scope.get_failed_dcv_message = function(failed_dcv_domains) {
-                    var flat_domains = failed_dcv_domains.map(function(domain) {
+                $scope.get_failed_dcv_message = function(failedDCVDomains) {
+                    var flatDomains = failedDCVDomains.map(function(domain) {
                         return domain.domain;
                     });
                     var msg = "";
-                    msg += "<p>" + LOCALE.maketext("The following [numerate,_2,domain,domains] failed [numerate,_2,its,their] [output,abbr,DCV,Domain Control Validation] check: [list_and_quoted,_1]", flat_domains, flat_domains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("The following [numerate,_2,domain,domains] failed [numerate,_2,its,their] [output,abbr,DCV,Domain Control Validation] check: [list_and_quoted,_1]", flatDomains, flatDomains.length) + "</p>";
                     return msg;
                 };
 
@@ -3257,9 +3468,9 @@ define(
                     if (domain.is_wildcard) {
                         return false;
                     }
-                    var coverage_domain = CertificatesService.domain_covered_by_wildcard(domain.domain);
-                    if (coverage_domain && coverage_domain.selected) {
-                        return coverage_domain;
+                    var coverageDomain = CertificatesService.domain_covered_by_wildcard(domain.domain);
+                    if (coverageDomain && coverageDomain.selected) {
+                        return coverageDomain;
                     }
                     return false;
                 };
@@ -3281,12 +3492,12 @@ define(
                     }
                 };
 
-                $scope.get_currency_string = function(num, price_unit) {
+                $scope.get_currency_string = function(num, priceUnit) {
                     num += 0.001;
                     var str = LOCALE.numf(num);
                     str = "$" + str.substring(0, str.length - 1);
-                    if (price_unit) {
-                        str += " " + price_unit;
+                    if (priceUnit) {
+                        str += " " + priceUnit;
                     }
                     return str;
                 };
@@ -3303,11 +3514,23 @@ define(
                 };
 
                 $scope.cant_checkout_msg = function() {
-                    growl.warning(LOCALE.maketext("You cannot check out until you resolve all errors (in red)."));
+                    alertService.add({
+                        type: "warn",
+                        message: LOCALE.maketext("You cannot check out until you resolve all errors (in red)."),
+                        closeable: true,
+                        replace: false,
+                        group: "tlsWizard"
+                    });
                 };
 
                 $scope.cant_products_msg = function() {
-                    growl.warning(LOCALE.maketext("You need to select at least one domain before you can select a product."));
+                    alertService.add({
+                        type: "warn",
+                        message: LOCALE.maketext("You need to select at least one domain before you can select a product."),
+                        closeable: true,
+                        replace: false,
+                        group: "tlsWizard"
+                    });
                 };
 
                 $scope.clear_cloud_domain = function(domain) {
@@ -3346,24 +3569,24 @@ define(
                     if (!product) {
                         return "";
                     }
-                    var product_obj = $scope.get_product_by_id(product.provider, product.id);
-                    if (!product_obj) {
+                    var productObject = $scope.get_product_by_id(product.provider, product.id);
+                    if (!productObject) {
                         return "";
                     }
-                    return product_obj.display_name;
+                    return productObject.display_name;
                 };
 
-                $scope.get_product_by_id = function(provider_name, product_id) {
-                    return CertificatesService.get_product_by_id(provider_name, product_id);
+                $scope.get_product_by_id = function(providerName, productID) {
+                    return CertificatesService.get_product_by_id(providerName, productID);
                 };
 
-                $scope.check_product_match = function(product_a) {
-                    var product_b = $scope.get_product();
+                $scope.check_product_match = function(productA) {
+                    var productB = $scope.get_product();
 
-                    if (!product_a || !product_b) {
+                    if (!productA || !productB) {
                         return false;
                     }
-                    if (product_a.id === product_b.id && product_a.provider === product_b.provider) {
+                    if (productA.id === productB.id && productA.provider === productB.provider) {
                         return true;
                     }
                 };
@@ -3380,24 +3603,24 @@ define(
                 };
 
                 $scope.get_product_estimate_string = function(product) {
-                    var price_string = $scope.get_currency_string($scope.calculate_product_price(product));
-                    return "(" + LOCALE.maketext("[_1] total", price_string, product.price_unit) + ")";
+                    var priceString = $scope.get_currency_string($scope.calculate_product_price(product));
+                    return "(" + LOCALE.maketext("[_1] total", priceString, product.price_unit) + ")";
                 };
 
-                var _calculate_product_price = function(product, nonwildcards, wildcards) {
+                var _calculateProductPrice = function(product, nonwildcards, wildcards) {
 
                     // No product, possible during transition to other page.
                     if (!product) {
                         return;
                     }
 
-                    var total_price = 0;
+                    var totalPrice = 0;
 
                     if (wildcards.length && product.wildcard_price) {
-                        total_price += wildcards.length * product.wildcard_price;
+                        totalPrice += wildcards.length * product.wildcard_price;
                     }
                     if (nonwildcards.length && product.price) {
-                        total_price += nonwildcards.length * product.price;
+                        totalPrice += nonwildcards.length * product.price;
                     }
 
                     // product includes main domain free
@@ -3406,9 +3629,9 @@ define(
                         // adjust for main domains that are covered by wildcard domains
                         // subtract the price of the main domain for each wildcard domain
 
-                        var nonwildcard_keys = {};
+                        var nonWildcardKeys = {};
                         nonwildcards.forEach(function(domain) {
-                            nonwildcard_keys[domain.domain] = domain;
+                            nonWildcardKeys[domain.domain] = domain;
                         });
 
                         wildcards.forEach(function(domain) {
@@ -3424,29 +3647,29 @@ define(
                             // “faux”-strip logic in place and, for here,
                             // manually ensure that we’re matching against
                             // the wildcard’s parent domain.
-                            var truly_stripped = domain.domain.replace(/^\*\./, "");
+                            var trulyStripped = domain.domain.replace(/^\*\./, "");
 
-                            if (nonwildcard_keys[truly_stripped]) {
-                                total_price -= product.price;
+                            if (nonWildcardKeys[trulyStripped]) {
+                                totalPrice -= product.price;
                             }
                         });
                     }
 
-                    return total_price;
+                    return totalPrice;
                 };
 
                 $scope.calculate_product_price = function(product) {
-                    var selected_domains = $scope.selected_domains;
+                    var selectedDomains = $scope.selected_domains;
 
-                    var wildcard_domains = $filter("filter")(selected_domains, {
+                    var wildcardDomains = $filter("filter")(selectedDomains, {
                         is_wildcard: true
                     });
 
-                    var non_wildcard_domains = $filter("filter")(selected_domains, {
+                    var nonWildcardDomains = $filter("filter")(selectedDomains, {
                         is_wildcard: false
                     });
 
-                    return _calculate_product_price(product, non_wildcard_domains, wildcard_domains);
+                    return _calculateProductPrice(product, nonWildcardDomains, wildcardDomains);
                 };
 
 
@@ -3460,14 +3683,14 @@ define(
 
                 $scope.get_product_prices = function() {
                     var prices = [];
-                    var selected_domains = $scope.selected_domains;
-                    var wildcard_domains = selected_domains.filter(function(domain) {
+                    var selectedDomains = $scope.selected_domains;
+                    var wildcardDomains = selectedDomains.filter(function(domain) {
                         if (domain.is_wildcard) {
                             return true;
                         }
                         return false;
                     });
-                    var non_wildcard_domains = selected_domains.filter(function(domain) {
+                    var nonWildcardDomains = selectedDomains.filter(function(domain) {
                         if (!domain.is_wildcard) {
                             return true;
                         }
@@ -3475,7 +3698,7 @@ define(
                     });
 
                     $scope.filteredProductList.forEach(function(product) {
-                        var price = _calculate_product_price(product, non_wildcard_domains, wildcard_domains);
+                        var price = _calculateProductPrice(product, nonWildcardDomains, wildcardDomains);
                         prices.push(price);
                     });
                     return _.sortBy(prices);
@@ -3507,24 +3730,30 @@ define(
                             return;
                         }
 
-                        var main_domain = CertificatesService.get_domain_by_domain(domain.stripped_domain);
-                        if (!main_domain.selected) {
-                            $scope.missing_base_domains.push(main_domain);
+                        var mainDomain = CertificatesService.get_domain_by_domain(domain.stripped_domain);
+                        if (!mainDomain.selected) {
+                            $scope.missing_base_domains.push(mainDomain);
                         }
 
                     });
 
                     if ($scope.missing_base_domains.length) {
-                        var flat_domains = $scope.missing_base_domains.map(function(domain) {
+                        var flatDomains = $scope.missing_base_domains.map(function(domain) {
                             return domain.domain;
                         });
-                        growl.info(LOCALE.maketext("Because wildcard certificates require their parent domains, the system added the following [numerate,_1,domain,domains] for you: [list_and_quoted,_2]", flat_domains.length, flat_domains));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("Because wildcard certificates require their parent domains, the system added the following [numerate,_1,domain,domains] for you: [list_and_quoted,_2]", flatDomains.length, flatDomains),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                         $scope.select_baseless_wildcard_domains($scope.missing_base_domains);
                     }
                 };
 
-                $scope.select_baseless_wildcard_domains = function(missing_domains) {
-                    $scope.toggle_values(missing_domains, "selected", true);
+                $scope.select_baseless_wildcard_domains = function(missingDomains) {
+                    $scope.toggle_values(missingDomains, "selected", true);
                     $scope.update_selected_domains();
                 };
 
@@ -3555,10 +3784,10 @@ define(
 
                     var product = $scope.get_product_by_id($scope.get_product().provider, $scope.get_product().id);
 
-                    var total_price = $scope.calculate_product_price(product);
-                    $scope.current_certificate.set_price(total_price);
+                    var totalPrice = $scope.calculate_product_price(product);
+                    $scope.current_certificate.set_price(totalPrice);
 
-                    return total_price;
+                    return totalPrice;
                 };
 
                 $scope.get_cart_strings = function() {
@@ -3567,21 +3796,21 @@ define(
 
                 $scope.update_cart_strings = function() {
                     var product = $scope.get_product();
-                    var product_prices = $scope.get_product_prices();
-                    var selected_domains = $scope.selected_domains;
+                    var productPrices = $scope.get_product_prices();
+                    var selectedDomains = $scope.selected_domains;
 
-                    var cart_price = {
+                    var cartPrice = {
                         min: 0,
                         max: 0
                     };
-                    if (product && selected_domains.length) {
-                        cart_price.min = $scope.get_currency_string($scope.get_cart_price(), "USD");
-                    } else if (selected_domains.length) {
+                    if (product && selectedDomains.length) {
+                        cartPrice.min = $scope.get_currency_string($scope.get_cart_price(), "USD");
+                    } else if (selectedDomains.length) {
 
-                        cart_price.min = $scope.get_currency_string($scope.get_min_price(), "USD");
+                        cartPrice.min = $scope.get_currency_string($scope.get_min_price(), "USD");
 
-                        if (product_prices.length > 1) {
-                            cart_price.max = $scope.get_currency_string($scope.get_max_price(), "USD");
+                        if (productPrices.length > 1) {
+                            cartPrice.max = $scope.get_currency_string($scope.get_max_price(), "USD");
                         }
 
                     } else {
@@ -3589,7 +3818,7 @@ define(
                         // If no other value, ensure that it is not empty so it does not jump when a domain is selected
                         $scope.cart_price_strings = false;
                     }
-                    $scope.cart_price_strings = cart_price;
+                    $scope.cart_price_strings = cartPrice;
                 };
 
                 $scope.get_cart_items = function() {
@@ -3612,7 +3841,11 @@ define(
                         simple_identity_verification: $scope.identity_verification
                     });
                     if (!success) {
-                        growl.error(LOCALE.maketext("Failed to save information to browser cache."));
+                        alertService.add({
+                            type: "danger",
+                            message: LOCALE.maketext("Failed to save information to browser cache."),
+                            group: "tlsWizard"
+                        });
                     } else {
                         $location.path("/purchase");
                     }
@@ -3657,10 +3890,10 @@ define(
                             if (a.domain.length === b.domain.length) {
                                 return 0;
                             }
-                            var a_per = $scope.meta.filterValue.length / a.domain.length;
-                            var b_per = $scope.meta.filterValue.length / b.domain.length;
+                            var aPer = $scope.meta.filterValue.length / a.domain.length;
+                            var bPer = $scope.meta.filterValue.length / b.domain.length;
 
-                            return a_per < b_per ? -1 : 1;
+                            return aPer < bPer ? -1 : 1;
                         });
                     } else {
                         filteredList = filteredList.sort(function(a, b) {
@@ -3749,21 +3982,21 @@ define(
 
                     // if routeParam domains set it
                     if ($routeParams["domain"]) {
-                        var preselect_domains = $routeParams["domain"];
-                        if (_.isString(preselect_domains)) {
-                            preselect_domains = [preselect_domains];
+                        var preselectDomains = $routeParams["domain"];
+                        if (_.isString(preselectDomains)) {
+                            preselectDomains = [preselectDomains];
                         }
-                        angular.forEach(preselect_domains, function(domain) {
-                            var dom_obj = CertificatesService.get_domain_by_domain(domain);
-                            if (dom_obj) {
-                                dom_obj.selected = true;
+                        angular.forEach(preselectDomains, function(domain) {
+                            var domainObject = CertificatesService.get_domain_by_domain(domain);
+                            if (domainObject) {
+                                domainObject.selected = true;
                             }
                         });
                     }
 
-                    var product_search_options = CertificatesService.get_product_search_options();
+                    var productSearchOptions = CertificatesService.get_product_search_options();
 
-                    var default_search_values = {
+                    var defaultSearchValues = {
                         "certTerms": {
                             "1_year": true,
                             "2_year": false,
@@ -3772,27 +4005,27 @@ define(
                     };
 
                     if ($routeParams["certificate_type"]) {
-                        var preselect_certificate_types = $routeParams["certificate_type"];
-                        if (_.isString(preselect_certificate_types)) {
-                            preselect_certificate_types = [preselect_certificate_types];
+                        var preselectCertificateTypes = $routeParams["certificate_type"];
+                        if (_.isString(preselectCertificateTypes)) {
+                            preselectCertificateTypes = [preselectCertificateTypes];
                         }
 
                         var validationType = {};
 
                         // Assume that if these aren't set in any products (since they are optional, after all) that it is 'all' -- CPANEL-12128.
-                        if (typeof product_search_options.validationType === "undefined") {
+                        if (typeof productSearchOptions.validationType === "undefined") {
                             validationType["all"] = true;
                         } else {
-                            angular.forEach(product_search_options.validationType.options, function(option) {
-                                validationType[option.value] = preselect_certificate_types.indexOf(option.value) !== -1;
+                            angular.forEach(productSearchOptions.validationType.options, function(option) {
+                                validationType[option.value] = preselectCertificateTypes.indexOf(option.value) !== -1;
                             });
                         }
-                        default_search_values["validationType"] = validationType;
+                        defaultSearchValues["validationType"] = validationType;
 
                     }
 
                     $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_domain_search_options());
-                    $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), default_search_values);
+                    $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), defaultSearchValues);
 
                     $scope.fetch();
                     $scope.fetch_products();
@@ -3843,7 +4076,6 @@ define(
         "app/services/CertificatesService",
         "app/services/LocationService",
         "cjt/directives/spinnerDirective",
-        "cjt/decorators/growlDecorator",
         "uiBootstrap",
     ],
     function(_, angular, $, LOCALE, QUERY) {
@@ -3851,7 +4083,22 @@ define(
 
         var app = angular.module("App");
 
-        function CheckoutController($scope, $controller, $location, $filter, $routeParams, $window, $timeout, CertificatesService, spinnerAPI, growl, $q, $modal, $log, Certificate, LocationService) {
+        function CheckoutController(
+            $scope,
+            $controller,
+            $location,
+            $filter,
+            $routeParams,
+            $window,
+            $timeout,
+            CertificatesService,
+            spinnerAPI,
+            $q,
+            $modal,
+            $log,
+            Certificate,
+            LocationService,
+            alertService) {
 
             var steps = {
                 "cPStore": ["login", "send_cart_items", "checkout", "payment_callback", "checkout_complete"],
@@ -3870,15 +4117,15 @@ define(
 
             $scope.get_step_classes = function(provider, step) {
                 var steps = $scope.get_steps(provider.name).length;
-                var step_index = $scope.get_step_index(provider.name, step);
+                var stepIndex = $scope.get_step_index(provider.name, step);
                 var cols = Math.floor(12 / steps);
                 var classes = ["col-xs-12", "col-sm-12", "col-md-" + cols, "col-lg-" + cols, "checkout-step"];
-                if ($scope.current_step_index === step_index) {
+                if ($scope.current_step_index === stepIndex) {
                     classes.push("checkout-step-current");
                     if ("checkout_complete" === step) {
                         classes.push("checkout-step-completed");
                     }
-                } else if ($scope.current_step_index > step_index) {
+                } else if ($scope.current_step_index > stepIndex) {
                     classes.push("checkout-step-completed");
                 }
 
@@ -3909,9 +4156,9 @@ define(
                 }
             };
 
-            $scope.get_steps = function(provider_name) {
-                if (steps[provider_name]) {
-                    return steps[provider_name];
+            $scope.get_steps = function(providerName) {
+                if (steps[providerName]) {
+                    return steps[providerName];
                 }
                 return steps["default"];
             };
@@ -3920,9 +4167,9 @@ define(
                 return $scope.steps[$scope.current_step_index];
             };
 
-            $scope.get_step_index = function(provider_name, step) {
+            $scope.get_step_index = function(providerName, step) {
                 for (var i = 0; i < $scope.steps.length; i++) {
-                    if ($scope.steps[i].provider === provider_name && $scope.steps[i].step === step) {
+                    if ($scope.steps[i].provider === providerName && $scope.steps[i].step === step) {
                         return i;
                     }
                 }
@@ -3944,37 +4191,45 @@ define(
             };
 
             $scope.require_params = function(keys) {
-                var bad_keys = [];
-                var too_many_keys = [];
+                var badKeys = [];
+                var tooManyKeys = [];
                 angular.forEach(keys, function(key) {
                     var value = $scope.get_param(key);
                     if (!value) {
-                        bad_keys.push(key);
+                        badKeys.push(key);
                     } else if (value instanceof Array) {
-                        too_many_keys.push(key);
+                        tooManyKeys.push(key);
                     }
                 });
 
-                if (bad_keys.length) {
-                    growl.error(LOCALE.maketext("The following [numerate,_1,parameter is,parameters are] required but [numerate,_1,does,do] not appear in the [asis,URL]: [list_and_quoted,_2]", bad_keys.length, bad_keys));
+                if (badKeys.length) {
+                    alertService.add({
+                        type: "danger",
+                        message: LOCALE.maketext("The following [numerate,_1,parameter is,parameters are] required but [numerate,_1,does,do] not appear in the [asis,URL]: [list_and_quoted,_2]", badKeys.length, badKeys),
+                        group: "tlsWizard"
+                    });
                 }
 
-                if (too_many_keys.length) {
-                    growl.error(LOCALE.maketext("The following [numerate,_1,parameter appears,parameters appear] more than once in the [asis,URL]: [list_and_quoted,_2]", too_many_keys.length, too_many_keys));
+                if (tooManyKeys.length) {
+                    alertService.add({
+                        type: "danger",
+                        message: LOCALE.maketext("The following [numerate,_1,parameter appears,parameters appear] more than once in the [asis,URL]: [list_and_quoted,_2]", tooManyKeys.length, tooManyKeys),
+                        group: "tlsWizard"
+                    });
                 }
 
-                return bad_keys.length || too_many_keys.length ? false : true;
+                return badKeys.length || tooManyKeys.length ? false : true;
             };
 
             $scope.in_debug_mode = false;
 
             $scope.get_route_url = function() {
-                var route_url = "";
-                route_url += $location.absUrl().replace(/tls_wizard\/.+/, "tls_wizard/#/purchase");
-                return route_url;
+                var routeURL = "";
+                routeURL += $location.absUrl().replace(/tls_wizard\/.+/, "tls_wizard/#/purchase");
+                return routeURL;
             };
 
-            function _pem_to_base64(pem) {
+            function _pemToBase64(pem) {
                 return pem
                     .replace(/^\s*-\S+/, "")
                     .replace(/-\S+\s*$/, "")
@@ -3990,22 +4245,17 @@ define(
             // arrays:   [ <promise_index>, <payload> ]
             //
             // So, if you do:
-            //  _q_all_with_err_index( [ prA, prB, prC ] )
+            //  _qAllWithErrIndex( [ prA, prB, prC ] )
             //
             // ...and “prB” fails with the string "hahaha", the
             // failure callback will receive [ 1, "hahaha" ].
             //
-            // TODO: Consider making this a reusable component, along with
-            // altered logic that, in the event of failure, will wait to see
-            // if more of the promises fail and actually indicate what each
-            // promise did.
-            //
-            function _q_all_with_err_index(promises_array) {
-                if (!(promises_array instanceof Array)) {
+            function _qAllWithErrIndex(promisesArray) {
+                if (!(promisesArray instanceof Array)) {
                     throw "Only arrays here!";
                 }
 
-                return $q.all(promises_array.map(function(p, i) {
+                return $q.all(promisesArray.map(function(p, i) {
                     return $q(function(resolve, reject) {
                         p.then(
                             resolve,
@@ -4039,24 +4289,24 @@ define(
                     return;
                 }
 
-                var next_step = $scope.get_next_step();
-                var order_id = $scope.get_param("order_id");
-                var login_code = $scope.get_param("code");
-                var order = CertificatesService.get_order_by_id(order_id);
-                var order_status = $scope.get_param("order_status");
+                var nextStep = $scope.get_next_step();
+                var orderID = $scope.get_param("order_id");
+                var loginCode = $scope.get_param("code");
+                var order = CertificatesService.get_order_by_id(orderID);
+                var orderStatus = $scope.get_param("order_status");
                 var provider = $scope.get_provider_by_name(step.provider);
-                var access_token = $scope.get_param("access_token");
-                var ret_url;
+                var accessToken = $scope.get_param("access_token");
+                var returnURL;
 
                 if (step.step === "login") {
-                    ret_url = $scope.get_route_url() + $scope.get_step_url(step);
+                    returnURL = $scope.get_route_url() + $scope.get_step_url(step);
                     if (order) {
-                        ret_url += "?order_id=" + order.order_id;
+                        returnURL += "?order_id=" + order.order_id;
                     }
-                    if (login_code) {
+                    if (loginCode) {
 
                         /* Back from Login, Verify It */
-                        CertificatesService.verify_login_token(step.provider, login_code, ret_url).then(function(result) {
+                        CertificatesService.verify_login_token(step.provider, loginCode, returnURL).then(function(result) {
                             if (order) {
 
                                 /* there's an order, so don't create another one */
@@ -4071,18 +4321,30 @@ define(
                                     access_token: result.data.access_token
                                 });
                             }
-                        }, function(error_html) {
+                        }, function(errorHTML) {
                             $scope.return_to_wizard();
-                            growl.error(LOCALE.maketext("The system encountered an error as it attempted to verify the login token: [_1]", error_html) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                            alertService.add({
+                                type: "danger",
+                                message: LOCALE.maketext("The system encountered an error as it attempted to verify the login token: [_1]", errorHTML) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                closeable: true,
+                                replace: false,
+                                group: "tlsWizard"
+                            });
                         });
                     } else {
 
                         /* There's no login code */
-                        CertificatesService.get_store_login_url(step.provider, ret_url).then(function(result) {
+                        CertificatesService.get_store_login_url(step.provider, returnURL).then(function(result) {
                             $window.location.href = result.data;
-                        }, function(error_html) {
+                        }, function(errorHTML) {
                             $scope.return_to_wizard();
-                            growl.error(LOCALE.maketext("The system encountered an error as it attempted to get the store login [output,abbr,URL,Uniform Resource Location]: [_1]", error_html) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                            alertService.add({
+                                type: "danger",
+                                message: LOCALE.maketext("The system encountered an error as it attempted to get the store login [output,abbr,URL,Uniform Resource Location]: [_1]", errorHTML) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                closeable: true,
+                                replace: false,
+                                group: "tlsWizard"
+                            });
                         });
                     }
                 } else if (step.step === "send_cart_items") {
@@ -4091,8 +4353,8 @@ define(
                     if (!$scope.require_params(["access_token"])) {
                         return;
                     }
-                    ret_url = $scope.get_route_url() + $scope.get_step_url(next_step);
-                    return CertificatesService.request_certificates(step.provider, access_token, provider.certificates).then(function(result) {
+                    returnURL = $scope.get_route_url() + $scope.get_step_url(nextStep);
+                    return CertificatesService.request_certificates(step.provider, accessToken, provider.certificates).then(function(result) {
                         var order = result.data;
                         order.order_id = order.order_id.toString();
 
@@ -4101,23 +4363,29 @@ define(
 
                         $scope.go_step(step.provider, "checkout", {
                             order_id: order.order_id,
-                            access_token: access_token
+                            access_token: accessToken
                         });
-                    }, function(error_html) {
+                    }, function(errorHTML) {
                         $scope.return_to_wizard();
-                        growl.error(LOCALE.maketext("The system encountered an error as it attempted to request the [asis,SSL] [numerate,_2,certificate,certificates]: [_1]", error_html, $scope.get_provider_by_name(step.provider).certificates.length) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                        alertService.add({
+                            type: "danger",
+                            message: LOCALE.maketext("The system encountered an error as it attempted to request the [asis,SSL] [numerate,_2,certificate,certificates]: [_1]", errorHTML, $scope.get_provider_by_name(step.provider).certificates.length) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     });
                 } else if (step.step === "checkout") {
                     if (!$scope.require_params(["order_id"])) {
                         return;
                     }
-                    ret_url = $scope.get_route_url() + $scope.get_step_url(step);
-                    if (order_status) {
+                    returnURL = $scope.get_route_url() + $scope.get_step_url(step);
+                    if (orderStatus) {
 
                         /* are we back from checking out? */
                         $scope.go_step(step.provider, "payment_callback", {
                             order_id: order.order_id,
-                            order_status: order_status
+                            order_status: orderStatus
                         });
                     } else {
                         if (!$scope.require_params(["access_token"])) {
@@ -4125,12 +4393,12 @@ define(
                         }
 
                         /* no? let's update the checkout url and head to checkout */
-                        CertificatesService.set_url_after_checkout(step.provider, access_token, order.order_id, ret_url).then(function() {
+                        CertificatesService.set_url_after_checkout(step.provider, accessToken, order.order_id, returnURL).then(function() {
                             $window.location.href = order.checkout_url;
                         }, function(response) { // NB: the argument is *not* the error!
-                            var is_other_user = response.data && response.data.error_type === "OrderNotFound";
+                            var isOtherUser = response.data && response.data.error_type === "OrderNotFound";
 
-                            if (is_other_user) {
+                            if (isOtherUser) {
                                 $scope.order_id = order.order_id;
                                 $scope.provider = $scope.get_provider_by_name(step.provider);
 
@@ -4143,7 +4411,13 @@ define(
                                 });
                             } else {
                                 LocationService.go_to_last_create_route();
-                                growl.error(LOCALE.maketext("The system encountered an error as it attempted to set the [asis,URL] after checkout: [_1]", _.escape(response.error)) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system encountered an error as it attempted to set the [asis,URL] after checkout: [_1]", _.escape(response.error)) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                    closeable: true,
+                                    replace: false,
+                                    group: "tlsWizard"
+                                });
                             }
 
                         });
@@ -4153,13 +4427,19 @@ define(
                     /* post checkout processing */
                     CPANEL.PAGE.pending_certificates = null;
                     CPANEL.PAGE.installed_hosts = null;
-                    if (order_status === "success") {
-                        growl.success(LOCALE.maketext("You have successfully completed your certificate order (order ID “[_1]”). If you need help with this order, use the support [numerate,_2,link,links] below.", _.escape(order_id), order.certificates.length));
-
+                    if (orderStatus === "success") {
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("You have successfully completed your certificate order (order ID “[_1]”). If you need help with this order, use the support [numerate,_2,link,links] below.", _.escape(orderID), order.certificates.length),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsWizard"
+                        });
                         CertificatesService.set_confirmed_status_for_ssl_certificates(step.provider, order).then(function() {
 
                             // successful
-                            $scope.go_step(step.provider, next_step.step);
+                            $scope.go_step(step.provider, nextStep.step);
                         }, function(response) {
 
                             // This is here to accommodate cases where the certificate
@@ -4171,56 +4451,81 @@ define(
                             // is/are installed where it/they should be.
                             //
                             if (response.data && response.data.error_type === "EntryDoesNotExist") {
-                                var not_found = response.data.order_item_ids;
+                                var notFound = response.data.order_item_ids;
 
-                                var msg = LOCALE.maketext("There are no pending certificates from “[_1]” with the following order item [numerate,_2,ID,IDs]: [join,~, ,_3]. The system will now verify that the [numerate,_2,certificate has,certificates have] been issued and installed.", _.escape(step.provider), not_found.length, not_found.map(_.escape.bind(_)));
+                                var msg = LOCALE.maketext("There are no pending certificates from “[_1]” with the following order item [numerate,_2,ID,IDs]: [join,~, ,_3]. The system will now verify that the [numerate,_2,certificate has,certificates have] been issued and installed.", _.escape(step.provider), notFound.length, notFound.map(_.escape.bind(_)));
 
-                                growl.info(msg);
+                                alertService.add({
+                                    type: "info",
+                                    message: msg,
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "tlsWizard"
+                                });
 
                                 var certificates = provider.certificates;
 
-                                not_found.forEach(function(oiid) {
+                                notFound.forEach(function(oiid) {
 
                                     // Fetch the new SSL cert.
-                                    var provider_promise = CertificatesService.get_ssl_certificate_if_available(step.provider, oiid);
+                                    var providerPromise = CertificatesService.get_ssl_certificate_if_available(step.provider, oiid);
 
                                     // There will only be one vhost
                                     // per certificate for now, but with
                                     // wildcard support that could change.
                                     certificates.forEach(function(cert) {
 
-                                        cert.get_virtual_hosts().forEach(function(vhost_name) {
+                                        cert.get_virtual_hosts().forEach(function(vhostName) {
                                             var domain = cert.get_domains().filter(function(domain) {
-                                                return domain.virtual_host === vhost_name;
+                                                return domain.virtual_host === vhostName;
                                             }).pop().domain;
 
-                                            var big_p = _q_all_with_err_index([
+                                            var bigP = _qAllWithErrIndex([
                                                 CertificatesService.get_installed_ssl_for_domain(),
-                                                provider_promise
+                                                providerPromise
                                             ]);
 
-                                            big_p.then(function yay(responses) {
-                                                var installed_pem = responses[0].data.certificate.text;
-                                                var installed_b64;
+                                            bigP.then(function yay(responses) {
+                                                var installedPEM = responses[0].data.certificate.text;
+                                                var installedB64;
 
-                                                if (installed_pem) {
-                                                    installed_b64 = _pem_to_base64(installed_pem);
+                                                if (installedPEM) {
+                                                    installedB64 = _pemToBase64(installedPEM);
                                                 }
 
-                                                var provider_pem = responses[1].data.certificate_pem;
-                                                var provider_b64;
-                                                if (provider_pem) {
-                                                    provider_b64 = _pem_to_base64(provider_pem);
+                                                var providerPEM = responses[1].data.certificate_pem;
+                                                var providerB64;
+                                                if (providerPEM) {
+                                                    providerB64 = _pemToBase64(providerPEM);
                                                 } else {
-                                                    var status_code = responses[1].data.status_code;
+                                                    var statusCode = responses[1].data.status_code;
 
                                                     // There is ambiguity over the spelling of “canceled”.
-                                                    if (/OrderCancell?ed/.test(status_code)) {
-                                                        growl.error(LOCALE.maketext("“[_1]” indicated that the order with [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(order_id)));
-                                                    } else if (/OrderItemCancell?ed/.test(status_code)) {
-                                                        growl.error(LOCALE.maketext("“[_1]” indicated that the certificate with order item [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(oiid)));
+                                                    if (/OrderCancell?ed/.test(statusCode)) {
+                                                        alertService.add({
+                                                            type: "danger",
+                                                            message: LOCALE.maketext("“[_1]” indicated that the order with [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(orderID)),
+                                                            closeable: true,
+                                                            replace: false,
+                                                            group: "tlsWizard"
+                                                        });
+                                                    } else if (/OrderItemCancell?ed/.test(statusCode)) {
+                                                        alertService.add({
+                                                            type: "danger",
+                                                            message: LOCALE.maketext("“[_1]” indicated that the certificate with order item [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(oiid)),
+                                                            closeable: true,
+                                                            replace: false,
+                                                            group: "tlsWizard"
+                                                        });
                                                     } else {
-                                                        growl.error(LOCALE.maketext("“[_1]” has not issued a certificate for order item [asis,ID] “[_2]”. Contact them for further assistance.", _.escape(step.provider), _.escape(oiid)));
+                                                        alertService.add({
+                                                            type: "danger",
+                                                            message: LOCALE.maketext("“[_1]” has not issued a certificate for order item [asis,ID] “[_2]”. Contact them for further assistance.", _.escape(step.provider), _.escape(oiid)),
+                                                            closeable: true,
+                                                            replace: false,
+                                                            group: "tlsWizard"
+                                                        });
                                                     }
 
                                                     // Since there’s no new certificate,
@@ -4229,100 +4534,163 @@ define(
                                                     return;
                                                 }
 
-                                                if (provider_b64 === installed_b64) {
+                                                if (providerB64 === installedB64) {
 
                                                     // This is the most optimal outcome:
                                                     // we confirmed that the new cert is
                                                     // installed, as the user wanted.
 
-                                                    growl.success(LOCALE.maketext("The system confirmed that the certificate for the website “[_1]” is installed.", _.escape(vhost_name)));
-
-                                                    // We still want to reset and have them
-                                                    // re-evaluate the rest of the order
-                                                    // since we had something “unexpected” happen.
-                                                    // (...right??...?)
-                                                    LocationService.go_to_last_create_route();
-                                                } else {
-
-                                                    // We’re here because there’s a new
-                                                    // certificate, but it’s not installed.
-                                                    // The user has asked for that installation,
-                                                    // so let’s see if we can finish the job.
-
-                                                    if (installed_b64) {
-                                                        growl.info(LOCALE.maketext("“[_1]” has an [asis,SSL] certificate installed, but it is not the certificate that you just ordered (order item [asis,ID] “[_2]”). The system will now install this certificate.", _.escape(vhost_name), _.escape(oiid)));
+                                                    alertService.add({
+                                                        type: "success",
+                                                        message: LOCALE.maketext("The system confirmed that the certificate for the website “[_1]” is installed.", _.escape(vhostName)),
+                                                        closeable: true,
+                                                        replace: false,
+                                                        autoClose: 10000,
+                                                        group: "tlsWizard"
+                                                    });
+                                                    if (installedB64) {
+                                                        alertService.add({
+                                                            type: "info",
+                                                            message: LOCALE.maketext("“[_1]” has an [asis,SSL] certificate installed, but it is not the certificate that you just ordered (order item [asis,ID] “[_2]”). The system will now install this certificate.", _.escape(vhostName), _.escape(oiid)),
+                                                            closeable: true,
+                                                            replace: false,
+                                                            autoClose: 10000,
+                                                            group: "tlsWizard"
+                                                        });
                                                     } else {
-                                                        var no_cert_msg;
-                                                        no_cert_msg = LOCALE.maketext("You do not have an [asis,SSL] certificate installed for the website “[_1]”.", _.escape(vhost_name));
+                                                        var noCertMessage;
+                                                        noCertMessage = LOCALE.maketext("You do not have an [asis,SSL] certificate installed for the website “[_1]”.", _.escape(vhostName));
 
-                                                        no_cert_msg += LOCALE.maketext("The system will now install the new certificate.");
+                                                        noCertMessage += LOCALE.maketext("The system will now install the new certificate.");
 
-                                                        growl.info(no_cert_msg);
+                                                        alertService.add({
+                                                            type: "info",
+                                                            message: noCertMessage,
+                                                            closeable: true,
+                                                            replace: false,
+                                                            autoClose: 10000,
+                                                            group: "tlsWizard"
+                                                        });
+                                                        CertificatesService.install_certificate(providerPEM, [domain]).then(
+                                                            function yay() {
+                                                                alertService.add({
+                                                                    type: "success",
+                                                                    message: LOCALE.maketext("The system installed the certificate onto the website “[_1]”.", _.escape(vhostName)),
+                                                                    closeable: true,
+                                                                    replace: false,
+                                                                    autoClose: 10000,
+                                                                    group: "tlsWizard"
+                                                                });
+                                                            },
+                                                            function nay(errorHTML) {
+                                                                alertService.add({
+                                                                    type: "danger",
+                                                                    message: LOCALE.maketext("The system failed to install the certificate onto the website “[_1]” because of the following error: [_2]", _.escape(vhostName), errorHTML),
+                                                                    closeable: true,
+                                                                    replace: false,
+                                                                    group: "tlsWizard"
+                                                                });
+                                                            }
+                                                        ).then(LocationService.go_to_last_create_route);
                                                     }
-
-                                                    CertificatesService.install_certificate(provider_pem, [domain]).then(
-                                                        function yay() {
-                                                            growl.success(LOCALE.maketext("The system installed the certificate onto the website “[_1]”.", _.escape(vhost_name)));
-                                                        },
-                                                        function nay(error_html) {
-                                                            growl.error(LOCALE.maketext("The system failed to install the certificate onto the website “[_1]” because of the following error: [_2]", _.escape(vhost_name), error_html));
-                                                        }
-                                                    ).then(LocationService.go_to_last_create_route);
                                                 }
 
                                             },
-                                            function onerror(idx_and_response) {
+                                            function onerror(idxAndResponse) {
 
                                                 // We’re here because we failed either
                                                 // to fetch the new cert or to query
                                                 // the current SSL state.
 
-                                                var promise_i = idx_and_response[0];
-                                                var error_html = idx_and_response[1];
+                                                var promiseI = idxAndResponse[0];
+                                                var errorHTML = idxAndResponse[1];
 
-                                                if (promise_i === 0) {
-                                                    growl.error(LOCALE.maketext("The system failed to locate the installed [asis,SSL] certificate for the website “[_1]” because of the following error: [_2]", _.escape(vhost_name), error_html));
-                                                } else if (promise_i === 1) {
-                                                    growl.error(LOCALE.maketext("The system failed to query “[_1]” for order item [asis,ID] “[_2]” ([_3]) because of the following error: [_4]", _.escape(step.provider), _.escape(oiid), _.escape(vhost_name), error_html));
+                                                if (promiseI === 0) {
+                                                    alertService.add({
+                                                        type: "danger",
+                                                        message: LOCALE.maketext("The system failed to locate the installed [asis,SSL] certificate for the website “[_1]” because of the following error: [_2]", _.escape(vhostName), errorHTML),
+                                                        closeable: true,
+                                                        replace: false,
+                                                        group: "tlsWizard"
+                                                    });
+                                                } else if (promiseI === 1) {
+                                                    alertService.add({
+                                                        type: "danger",
+                                                        message: LOCALE.maketext("The system failed to query “[_1]” for order item [asis,ID] “[_2]” ([_3]) because of the following error: [_4]", _.escape(step.provider), _.escape(oiid), _.escape(vhostName), errorHTML),
+                                                        closeable: true,
+                                                        replace: false,
+                                                        group: "tlsWizard"
+                                                    });
                                                 } else {
 
                                                     // should never happen
-                                                    growl.error("Unknown index: " + promise_i);
+                                                    alertService.add({
+                                                        type: "danger",
+                                                        message: "Unknown index: " + promiseI,
+                                                        closeable: true,
+                                                        replace: false,
+                                                        group: "tlsWizard"
+                                                    });
                                                 }
 
                                                 LocationService.go_to_last_create_route();
-                                            });
+                                            }
+                                            );
                                         });
                                     });
                                 });
                             } else {
-                                var error_html = response.error;
-                                growl.error(LOCALE.maketext("The system failed to begin polling for [quant,_2,new certificate,new certificates] because of an error: [_1]", error_html, $scope.certificates_count) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                                var errorHTML = response.error;
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system failed to begin polling for [quant,_2,new certificate,new certificates] because of an error: [_1]", errorHTML, $scope.certificates_count) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                    closeable: true,
+                                    replace: false,
+                                    group: "tlsWizard"
+                                });
                             }
                         });
 
                         // get info from local storage
                     } else {
-                        if (order_status === "error") {
+                        if (orderStatus === "error") {
                             CertificatesService.reset();
                             CertificatesService.save();
                             $scope.return_to_wizard();
-                            growl.error(LOCALE.maketext("The system encountered an error as it attempted to complete your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
-                        } else if (/^cancel?led$/.test(order_status)) { // cPStore gives two l’s
-                            var order_item_ids = [];
-                            angular.forEach(order.certificates, function(cert) {
-                                order_item_ids.push(cert.order_item_id);
+                            alertService.add({
+                                type: "danger",
+                                message: LOCALE.maketext("The system encountered an error as it attempted to complete your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                closeable: true,
+                                replace: false,
+                                group: "tlsWizard"
                             });
-                            growl.warning(LOCALE.maketext("You seem to have canceled your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                        } else if (/^cancel?led$/.test(orderStatus)) { // cPStore gives two l’s
+                            var orderItemIDs = [];
+                            angular.forEach(order.certificates, function(cert) {
+                                orderItemIDs.push(cert.order_item_id);
+                            });
+                            alertService.add({
+                                type: "warn",
+                                message: LOCALE.maketext("You seem to have canceled your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                closeable: true,
+                                replace: false,
+                                group: "tlsWizard"
+                            });
                             $location.url($location.path()); // clear out the params so we do not get a cancel on subsequent orders
-                            CertificatesService.cancel_pending_ssl_certificates(step.provider, order_item_ids).then(function() {
+                            CertificatesService.cancel_pending_ssl_certificates(step.provider, orderItemIDs).then(function() {
 
                                 /* need to clear old unused in page data to get a fresh load */
                                 CertificatesService.reset();
                                 CertificatesService.save();
                                 $scope.return_to_wizard();
-                            }, function(error_html) {
-                                growl.error(LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", error_html) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                            }, function(errorHTML) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", errorHTML) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                    closeable: true,
+                                    replace: false,
+                                    group: "tlsWizard"
+                                });
                             });
                         }
                         return false;
@@ -4330,33 +4698,40 @@ define(
                 } else if (step.step === "checkout_complete") {
 
                     // go next step or to done page
-                    if (!next_step) {
+                    if (!nextStep) {
                         CertificatesService.reset();
                         CertificatesService.save();
 
                         // done
-                        growl.success(LOCALE.maketext("The system has completed the [numerate,_1,purchase,purchases] and will begin to poll for your [numerate,_2,certificate,certificates].", $scope.providers.length, $scope.certificates_count));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("The system has completed the [numerate,_1,purchase,purchases] and will begin to poll for your [numerate,_2,certificate,certificates].", $scope.providers.length, $scope.certificates_count),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsWizard"
+                        });
                         $timeout($scope.go_to_pending, 1000);
                     }
                 }
             };
 
             $scope.return_to_wizard = function() {
-                var cur_url = $location.absUrl();
+                var curURL = $location.absUrl();
 
                 // force reset for specific cases, use path redirect otherwise;
                 // this allows us to not clear growl notifications if we don't have to.
                 // could be replaced with replaceState if we ever get to IE11
                 if ($scope.get_param("code")) {
-                    var new_url = cur_url.replace(/([^#?]+\/).*/, "$1#" + LocationService.last_create_route());
-                    $window.location.href = new_url;
+                    var newURL = curURL.replace(/([^#?]+\/).*/, "$1#" + LocationService.last_create_route());
+                    $window.location.href = newURL;
                 } else {
                     LocationService.go_to_last_create_route();
                 }
             };
 
-            $scope.check_step_success = function(step_index) {
-                if (step_index < $scope.current_step_index) {
+            $scope.check_step_success = function(stepIndex) {
+                if (stepIndex < $scope.current_step_index) {
                     return true;
                 }
             };
@@ -4398,19 +4773,19 @@ define(
                 return $scope.providers;
             };
 
-            $scope.go_to_pending = function(order_item_id) {
-                if (order_item_id) {
-                    $location.path("/pending-certificates/" + order_item_id);
+            $scope.go_to_pending = function(orderItemID) {
+                if (orderItemID) {
+                    $location.path("/pending-certificates/").search("orderItemID", orderItemID);
                 } else {
                     $location.path("/pending-certificates");
                 }
             };
 
-            $scope.pending_certificate = function(virtual_host) {
+            $scope.pending_certificate = function(virtualHost) {
                 var result = false;
                 angular.forEach($scope.pending_certificates, function(pcert) {
-                    angular.forEach(pcert.vhost_names, function(vhost_name) {
-                        if (vhost_name === virtual_host.display_name) {
+                    angular.forEach(pcert.vhost_names, function(vhostName) {
+                        if (vhostName === virtualHost.display_name) {
                             result = pcert.order_item_id;
                         }
                     });
@@ -4418,9 +4793,9 @@ define(
                 return result;
             };
 
-            $scope.view_pending_certificate = function(virtual_host) {
-                var order_item_id = $scope.pending_certificate(virtual_host);
-                $scope.go_to_pending(order_item_id);
+            $scope.view_pending_certificate = function(virtualHost) {
+                var orderItemID = $scope.pending_certificate(virtualHost);
+                $scope.go_to_pending(orderItemID);
             };
 
             $scope.begin = function() {
@@ -4438,23 +4813,23 @@ define(
                         var product = vhost.get_product();
                         if (!product) {
                             $log.warn("has selected, but no product?");
-                            return;
+                            return false;
                         }
                         if (!CertificatesService.get_product_by_id(product.provider, product.id)) {
                             $log.warn("Unknown product!", product);
-                            return;
+                            return false;
                         }
                         return true;
-                    }).forEach(function(virtual_host) {
-                        var product = virtual_host.get_product();
+                    }).forEach(function(virtualHost) {
+                        var product = virtualHost.get_product();
                         var cert = new Certificate();
                         cert.set_product(product);
-                        cert.set_price(virtual_host.get_price());
-                        cert.set_domains(virtual_host.get_selected_domains());
-                        cert.set_virtual_hosts([virtual_host.display_name]);
+                        cert.set_price(virtualHost.get_price());
+                        cert.set_domains(virtualHost.get_selected_domains());
+                        cert.set_virtual_hosts([virtualHost.display_name]);
 
                         if (product.x_identity_verification) {
-                            var id_ver = virtual_host.get_identity_verification();
+                            var idVer = virtualHost.get_identity_verification();
 
                             // It’s ok if we don’t have the idver because
                             // that means we’re resuming a checkout, which
@@ -4462,8 +4837,8 @@ define(
                             // the only reason we’re assembling cert/vhost/etc.
                             // is so that the controller can quantify the
                             // domains propertly in localization.
-                            if (id_ver) {
-                                cert.set_identity_verification(id_ver);
+                            if (idVer) {
+                                cert.set_identity_verification(idVer);
                             }
                         }
 
@@ -4504,7 +4879,23 @@ define(
             $scope.init();
         }
 
-        app.controller("CheckoutController", ["$scope", "$controller", "$location", "$filter", "$routeParams", "$window", "$timeout", "CertificatesService", "spinnerAPI", "growl", "$q", "$uibModal", "$log", "Certificate", "LocationService", CheckoutController]);
+        app.controller("CheckoutController", [
+            "$scope",
+            "$controller",
+            "$location",
+            "$filter",
+            "$routeParams",
+            "$window",
+            "$timeout",
+            "CertificatesService",
+            "spinnerAPI",
+            "$q",
+            "$uibModal",
+            "$log",
+            "Certificate",
+            "LocationService",
+            "alertService",
+            CheckoutController]);
     }
 );
 
@@ -4532,25 +4923,35 @@ define(
         "cjt/directives/spinnerDirective",
         "app/services/CertificatesService",
         "app/services/LocationService",
-        "cjt/directives/actionButtonDirective",
-        "cjt/decorators/growlDecorator"
+        "cjt/directives/actionButtonDirective"
     ],
     function(_, angular, LOCALE) {
         "use strict";
 
         var app = angular.module("App");
 
-        function PendingCertificatesController($scope, $location, $routeParams, $anchorScroll, $timeout, $window, CertificatesService, growl, LocationService, Certificate) {
+        function PendingCertificatesController(
+            $scope,
+            $location,
+            $routeParams,
+            $anchorScroll,
+            $timeout,
+            $window,
+            CertificatesService,
+            LocationService,
+            Certificate,
+            alertService
+        ) {
 
-            var provider_display_name = {};
+            var providerDisplayName = {};
             CPANEL.PAGE.products.forEach(function(p) {
-                provider_display_name[p.provider] = p.provider_display_name;
+                providerDisplayName[p.provider] = p.provider_display_name;
             });
 
             $scope.show_introduction_block = CertificatesService.show_introduction_block;
 
             $scope.get_provider_display_name = function(provider) {
-                return provider_display_name[provider] || provider;
+                return providerDisplayName[provider] || provider;
             };
 
             $scope.html_escape = _.escape;
@@ -4569,22 +4970,22 @@ define(
             $scope.pending_certificates = CertificatesService.get_pending_certificates();
             $scope.expanded_cert = null;
 
-            $scope.get_product_by_id = function(provider_name, product_id) {
-                return CertificatesService.get_product_by_id(provider_name, product_id);
+            $scope.get_product_by_id = function(providerName, providerID) {
+                return CertificatesService.get_product_by_id(providerName, providerID);
             };
 
             $scope.get_cert_title = function(cert) {
-                var sorted_domains = cert.domains.sort(function(a, b) {
+                var sortedDomains = cert.domains.sort(function(a, b) {
                     if (a.length === b.length) {
                         return 0;
                     }
                     return a.length > b.length ? 1 : -1;
                 });
 
-                if (sorted_domains.length === 1) {
-                    return sorted_domains[0];
+                if (sortedDomains.length === 1) {
+                    return sortedDomains[0];
                 } else {
-                    return LOCALE.maketext("“[_1]” and [quant,_2,other domain,other domains]", sorted_domains[0], sorted_domains.length - 1);
+                    return LOCALE.maketext("“[_1]” and [quant,_2,other domain,other domains]", sortedDomains[0], sortedDomains.length - 1);
                 }
 
             };
@@ -4593,18 +4994,18 @@ define(
                 return CertificatesService.process_ssl_pending_queue().then(function(result) {
 
                     // ----------------------------------------
-                    // The intent here is to show at least one growl, always:
+                    // The intent here is to show at least one notification, always:
                     //
-                    //  - growl (info) for each canceled cert
+                    //  - notify (info) for each canceled cert
                     //
-                    //  - growl (success) for each installed cert
+                    //  - notify (success) for each installed cert
                     //
                     //  - If we canceled nor installed any certificates,
-                    //    growl (info) about no-op.
+                    //    notify (info) about no-op.
                     // ----------------------------------------
 
                     var installed = [];
-                    var canceled_count = 0;
+                    var cancelledCount = 0;
 
                     result.data.forEach(function(oi) {
                         if (oi.installed) {
@@ -4614,15 +5015,27 @@ define(
                             switch (oi.last_status_code) {
                                 case "OrderCanceled":
                                 case "OrderItemCanceled":
-                                    canceled_count++;
+                                    cancelledCount++;
 
-                                    var provider_display_name = $scope.get_provider_display_name(oi.provider);
+                                    var providerDisplayName = $scope.get_provider_display_name(oi.provider);
 
                                     var domains = oi.domains;
                                     if (domains.length === 1) {
-                                        growl.info(LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” has been canceled.", _.escape(provider_display_name), _.escape(domains[0])));
+                                        alertService.add({
+                                            type: "info",
+                                            message: LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” has been canceled.", _.escape(providerDisplayName), _.escape(domains[0])),
+                                            closeable: true,
+                                            replace: false,
+                                            group: "tlsWizard"
+                                        });
                                     } else {
-                                        growl.info(LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” and [quant,_3,other domain,other domains] has been canceled.", _.escape(provider_display_name), _.escape(domains[0]), domains.length - 1));
+                                        alertService.add({
+                                            type: "info",
+                                            message: LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” and [quant,_3,other domain,other domains] has been canceled.", _.escape(providerDisplayName), _.escape(domains[0]), domains.length - 1),
+                                            closeable: true,
+                                            replace: false,
+                                            group: "tlsWizard"
+                                        });
                                     }
 
                                     break;
@@ -4634,18 +5047,39 @@ define(
                     if (installed.length) {
                         var vhosts = [];
 
-                        angular.forEach(installed, function(order_item) {
-                            vhosts = vhosts.concat(order_item.vhost_names);
+                        angular.forEach(installed, function(orderItem) {
+                            vhosts = vhosts.concat(orderItem.vhost_names);
                         });
-                        growl.success(LOCALE.maketext("[numerate,_2,A certificate,Certificates] for the following [numerate,_2,website was,websites were] available, and the system has installed [numerate,_2,it,them]: [list_and_quoted,_1]", vhosts, installed.length));
-                    } else if (!canceled_count) { // We mentioned canceled and installed certificates earlier.
-                        growl.info(LOCALE.maketext("The system processed the pending certificate queue successfully, but [numerate,_1,your pending certificate was not,none of your pending certificates were] available.", result.data.length));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("[numerate,_2,A certificate,Certificates] for the following [numerate,_2,website was,websites were] available, and the system has installed [numerate,_2,it,them]: [list_and_quoted,_1]", vhosts, installed.length),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsWizard"
+                        });
+                    } else if (!cancelledCount) {
+
+                        // We mentioned canceled and installed certificates earlier.
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("The system processed the pending certificate queue successfully, but [numerate,_1,your pending certificate was not,none of your pending certificates were] available.", result.data.length),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     }
 
                     return CertificatesService.fetch_pending_certificates().then(function() {
                         $scope.pending_certificates = CertificatesService.get_pending_certificates();
                         if ($scope.pending_certificates.length === 0) {
-                            growl.info(LOCALE.maketext("You have no more pending [asis,SSL] certificates.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                            alertService.add({
+                                type: "info",
+                                message: LOCALE.maketext("You have no more pending [asis,SSL] certificates.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                closeable: true,
+                                replace: false,
+                                group: "tlsWizard"
+                            });
                             CertificatesService.reset();
 
                             /* clear page-loaded domains and installed hosts to ensure we show the latests when we redirect to the purchase wizard */
@@ -4656,7 +5090,7 @@ define(
                             $scope.prepare_pending_certificates();
                         }
                     });
-                }, growl.error.bind(growl));
+                });
 
             };
 
@@ -4672,34 +5106,74 @@ define(
             $scope.cancel_purchase = function(cert) {
                 CertificatesService.cancel_pending_ssl_certificate_and_poll(cert.provider, cert.order_item_id).then(function(response) {
                     var payload = response.data[1].data;
-                    var cert_pem = payload.certificate_pem;
 
-                    var provider_html = _.escape($scope.get_provider_display_name(cert.provider));
+                    var certificatePEM = payload.certificate_pem;
 
-                    if (cert_pem) {
+                    var providerHTML = _.escape($scope.get_provider_display_name(cert.provider));
 
-                        // XXX Prompt to contact support?
-                        // XXX use info rather than success?
-                        growl.info(LOCALE.maketext("You have canceled this order, but “[_1]” already issued the certificate. The system will now install it. ([output,url,_2,Do you need help with this order?])", provider_html, cert.support_uri));
+                    if (certificatePEM) {
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("You have canceled this order, but “[_1]” already issued the certificate. The system will now install it. ([output,url,_2,Do you need help with this order?])", providerHTML, cert.support_uri),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                         CertificatesService.install_certificate(
-                            cert_pem,
+                            certificatePEM,
                             cert.vhost_names
                         ).then(
                             function() {
-                                growl.success(LOCALE.maketext("The system has installed the new [asis,SSL] certificate on to the [numerate,_1,website,websites] [list_and_quoted,_2].", cert.vhost_names.length, cert.vhost_names));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("The system has installed the new [asis,SSL] certificate on to the [numerate,_1,website,websites] [list_and_quoted,_2].", cert.vhost_names.length, cert.vhost_names),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "tlsWizard"
+                                });
                             },
-                            function(error_html) {
-                                growl.error(LOCALE.maketext("The system failed to install the new [asis,SSL] certificate because of an error: [_1]", error_html));
+                            function(errorHTML) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system failed to install the new [asis,SSL] certificate because of an error: [_1]", errorHTML),
+                                    group: "tlsWizard"
+                                });
                             }
                         );
                     } else if (payload.status_code === "RequiresApproval") {
-                        growl.info(LOCALE.maketext("The system has canceled the request for this certificate; however, “[_1]” was already waiting on approval before processing your order. To ensure that this certificate order is canceled, you must [output,url,_2,contact support directly].", provider_html, cert.support_uri));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("The system has canceled the request for this certificate; however, “[_1]” was already waiting on approval before processing your order. To ensure that this certificate order is canceled, you must [output,url,_2,contact support directly].", providerHTML, cert.support_uri),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     } else if (payload.status_code === "OrderCanceled") {
-                        growl.info(LOCALE.maketext("This certificate’s order (ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_id), provider_html));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("This certificate’s order (ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_id), providerHTML),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     } else if (payload.status_code === "OrderItemCanceled") {
-                        growl.info(LOCALE.maketext("This certificate (order item ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_item_id), provider_html));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("This certificate (order item ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_item_id), providerHTML),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     } else {
-                        growl.success(LOCALE.maketext("The system has canceled this certificate. Your credit card should not be charged for this order."));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("The system has canceled this certificate. Your credit card should not be charged for this order."),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsWizard"
+                        });
                     }
 
                     CPANEL.PAGE.pending_certificates = null;
@@ -4712,48 +5186,96 @@ define(
                         } else {
                             $scope.prepare_pending_certificates();
                         }
-                    }, function(error_html) {
-                        growl.error(LOCALE.maketext("The system encountered an error as it attempted to refresh your pending certificates: [_1]", error_html));
+                    }, function(errorHTML) {
+                        alertService.add({
+                            type: "danger",
+                            message: LOCALE.maketext("The system encountered an error as it attempted to refresh your pending certificates: [_1]", errorHTML),
+                            group: "tlsWizard"
+                        });
                     });
-                }, function(error_html) {
-                    growl.error(LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", error_html));
+                }, function(errorHTML) {
+                    alertService.add({
+                        type: "danger",
+                        message: LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", errorHTML),
+                        group: "tlsWizard"
+                    });
                 });
+            };
+
+            var _addOrderDetailsToDisplayedDomain = function(certificate, displayedDomain) {
+                if (!certificate.domainDetails) {
+                    return;
+                }
+                displayedDomain.orderDetails = certificate.domainDetails[displayedDomain.domain];
             };
 
             $scope.get_displayed_domains = function(pcert) {
                 var domains = pcert.domains;
-                pcert.displayed_domains = [];
-                pcert.display_meta.start = pcert.display_meta.items_per_page * (pcert.display_meta.current_page - 1);
-                pcert.display_meta.limit = Math.min(domains.length, pcert.display_meta.start + pcert.display_meta.items_per_page);
-                for (var i = pcert.display_meta.start; i < pcert.display_meta.limit; i++) {
-                    pcert.displayed_domains.push(domains[i]);
+
+                var start = pcert.display_meta.items_per_page * (pcert.display_meta.current_page - 1);
+                var limit = Math.min(domains.length, start + pcert.display_meta.items_per_page);
+
+                // Domains displayed are the same domains that will be displayed.
+                if (pcert.displayed_domains && pcert.display_meta.start === start && pcert.display_meta.limit === limit && pcert.displayed_domains.length) {
+                    return pcert.displayed_domains;
                 }
+
+                pcert.display_meta.start = start;
+                pcert.display_meta.limit = limit;
+
+                var displayDomains = [];
+                for (var i = pcert.display_meta.start; i < pcert.display_meta.limit; i++) {
+                    var domainObject = {
+                        domain: domains[i]
+                    };
+                    _addOrderDetailsToDisplayedDomain(pcert, domainObject);
+                    displayDomains.push(domainObject);
+                }
+
+                pcert.displayed_domains = displayDomains;
                 return pcert.displayed_domains;
             };
 
-            function _get_string_for_status_code(status_code, provider) {
+            function _getStringForStatusCode(statusCode, provider) {
                 var str;
 
-                if (status_code === "RequiresApproval") {
-                    var provider_disp = $scope.get_provider_display_name(provider);
-                    str = LOCALE.maketext("Waiting for “[_1]” to approve your order …", provider_disp);
+                if (statusCode === "RequiresApproval") {
+                    var providerDisplayName = $scope.get_providerDisplayName(provider);
+                    str = LOCALE.maketext("Waiting for “[_1]” to approve your order …", providerDisplayName);
                 }
 
                 return str;
             }
 
-            $scope.get_cert_status = function(pending_certificate) {
-                var status_code_str = _get_string_for_status_code(pending_certificate.last_status_code, pending_certificate.provider);
+            $scope.get_cert_status = function(pendingCertificate) {
+                var statusCodeStr = _getStringForStatusCode(pendingCertificate.last_status_code, pendingCertificate.provider);
 
-                if (status_code_str) {
-                    return status_code_str;
+                if (statusCodeStr) {
+                    return statusCodeStr;
                 }
 
-                var status = pending_certificate.status;
+                var status = pendingCertificate.status;
                 if (status === "unconfirmed") {
                     return LOCALE.maketext("Pending Completion of Payment");
                 } else if (status === "confirmed") {
-                    return LOCALE.maketext("Payment Completed. Waiting for the provider to issue the certificate …");
+                    if (pendingCertificate.statusDetails && pendingCertificate.statusDetails.loaded) {
+                        var incompleteThings = pendingCertificate.statusDetails.details.filter(function(item) {
+                            if (item.rawStatus === "not-completed") {
+                                return true;
+                            }
+
+                            return false;
+                        });
+                        if (incompleteThings.length === 0) {
+                            return LOCALE.maketext("Payment Completed.") + " " + LOCALE.maketext("Awaiting Validation …");
+                        } else if (incompleteThings.length === 1) {
+                            return LOCALE.maketext("Payment Completed.") + " " + incompleteThings[0].status;
+                        } else {
+                            return LOCALE.maketext("Payment Completed.") + " " + LOCALE.maketext("Multiple validation items pending …");
+                        }
+                    } else {
+                        return LOCALE.maketext("Payment Completed.") + " " + LOCALE.maketext("Waiting for the provider to issue the certificate …");
+                    }
                 } else {
                     return LOCALE.maketext("Status Unknown");
                 }
@@ -4768,13 +5290,82 @@ define(
             };
 
             $scope.expand_cert = function(cert) {
-                $location.path("/pending-certificates/" + cert.order_item_id);
+                $location.search("orderItemID", cert.order_item_id);
                 $scope.expanded_cert = cert.order_item_id;
+                if (!cert.statusDetails) {
+                    $scope.load_certificate_details(cert);
+                }
                 $anchorScroll($scope.expanded_cert);
             };
 
+            $scope.load_certificate_details = function(certificate) {
+
+                certificate.domainDetails = {};
+                certificate.statusDetails = { loaded: false, loading: true, details: [] };
+
+                function _succeed(details) {
+                    certificate.statusDetails.loaded = true;
+                    certificate.statusDetails.details = details.statusDetails;
+                    certificate.domainDetails = {};
+
+                    angular.forEach(certificate.statusDetails.details, function(detail) {
+                        if (detail.rawStatus === "completed") {
+                            detail.rowStatusClass = "success";
+
+                            // Unset the url for completed things so we don't  get a button
+                            delete detail.actionURL;
+                        } else {
+                            detail.rowStatusClass = "warning";
+                        }
+                    });
+
+                    angular.forEach(certificate.domains, function(domain) {
+
+                        var status = details.domainDetails[domain];
+
+                        if (status) {
+                            certificate.hasDomainDetails = true;
+                        }
+
+                        certificate.domainDetails[domain] = {};
+
+                        if (status === "NOTVALIDATED") {
+                            certificate.domainDetails[domain].rowStatusClass = "warning";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Not Validated");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("The [output,abbr,CA,Certificate,Authority] received the request but has not yet performed a [output,abbr,DCV,Domain Control Validation] check.");
+                        } else if (status === "VALIDATED") {
+                            certificate.domainDetails[domain].rowStatusClass = "success";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Validated");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("The [output,abbr,CA,Certificate,Authority] validated the certificate.");
+
+                        } else if (status === "AWAITINGBRANDING") {
+                            certificate.domainDetails[domain].rowStatusClass = "info";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Awaiting Branding …");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("The [output,abbr,CA,Certificate,Authority] received the request and must now process the brand verification approval.");
+                        } else {
+                            certificate.domainDetails[domain].rowStatusClass = "info";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Unknown");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("Unknown.");
+                        }
+
+                    });
+
+
+                    // Manually add details to currently displayed domain (since it's cached)
+                    angular.forEach(certificate.displayed_domains, function(displayedDomain) {
+                        _addOrderDetailsToDisplayedDomain(certificate, displayedDomain);
+                    });
+                }
+
+                function _finally() {
+                    certificate.statusDetails.loading = false;
+                }
+
+                CertificatesService.getCertificateStatusDetails(certificate.provider, certificate.order_item_id).then(_succeed).finally(_finally);
+            };
+
             $scope.collapse_cert = function() {
-                $location.path("/pending-certificates");
+                $location.search();
                 $scope.expanded_cert = null;
             };
 
@@ -4786,24 +5377,24 @@ define(
 
                 // rebuild purchasing certificate
                 var cert = new Certificate();
-                var cert_domains = [];
-                var cert_product = CertificatesService.get_product_by_id(pcert.provider, pcert.product_id);
-                var total_price = 0;
+                var certificateDomains = [];
+                var certificateProduct = CertificatesService.get_product_by_id(pcert.provider, pcert.product_id);
+                var totalPrice = 0;
 
-                cert.set_domains(cert_domains);
+                cert.set_domains(certificateDomains);
                 cert.set_virtual_hosts(pcert.vhost_names);
-                cert.set_product(cert_product);
+                cert.set_product(certificateProduct);
 
-                angular.forEach(pcert.domains, function(cert_domain) {
+                angular.forEach(pcert.domains, function(certificateDomain) {
                     angular.forEach(domains, function(domain) {
-                        if (domain.domain === cert_domain) {
-                            cert_domains.push(domain);
-                            total_price += domain.is_wildcard ? cert_product.wildcard_price : cert_product.price;
+                        if (domain.domain === certificateDomain) {
+                            certificateDomains.push(domain);
+                            totalPrice += domain.is_wildcard ? certificateProduct.wildcard_price : certificateProduct.price;
                         }
                     });
                 });
 
-                cert.set_price(total_price);
+                cert.set_price(totalPrice);
 
                 CertificatesService.add_new_certificate(cert);
 
@@ -4822,35 +5413,35 @@ define(
                 // Repair Orders
                 var orders = {};
                 var domains = CertificatesService.get_all_domains();
-                var virtual_hosts = CertificatesService.get_virtual_hosts();
+                var virtualHosts = CertificatesService.get_virtual_hosts();
 
-                angular.forEach($scope.pending_certificates, function(order_item) {
+                angular.forEach($scope.pending_certificates, function(orderItem) {
 
                     // build new order
-                    orders[order_item.order_id] = orders[order_item.order_id] || {
+                    orders[orderItem.order_id] = orders[orderItem.order_id] || {
                         access_token: "",
                         certificates: [],
-                        order_id: order_item.order_id,
-                        checkout_url: order_item.checkout_url
+                        order_id: orderItem.order_id,
+                        checkout_url: orderItem.checkout_url
                     };
-                    orders[order_item.order_id].certificates.push(order_item);
+                    orders[orderItem.order_id].certificates.push(orderItem);
 
                     // re select the domains
-                    angular.forEach(order_item.domains, function(cert_domain) {
+                    angular.forEach(orderItem.domains, function(certificateDomain) {
                         angular.forEach(domains, function(domain) {
-                            if (domain.domain === cert_domain) {
+                            if (domain.domain === certificateDomain) {
                                 domain.selected = true;
                             }
                         });
                     });
 
                     // re select a product
-                    angular.forEach(order_item.vhost_names, function(vhost_name) {
-                        var vhost_id = CertificatesService.get_virtual_host_by_display_name(vhost_name);
-                        var vhost = virtual_hosts[vhost_id];
+                    angular.forEach(orderItem.vhost_names, function(vHostName) {
+                        var vHostID = CertificatesService.get_virtual_host_by_display_name(vHostName);
+                        var vhost = virtualHosts[vHostID];
                         var product = CertificatesService.get_product_by_id(
-                            order_item.provider,
-                            order_item.product_id
+                            orderItem.provider,
+                            orderItem.product_id
                         );
 
                         /* in case someone deletes the vhost while the certificate is pending */
@@ -4902,8 +5493,13 @@ define(
                 $scope.restore_orders();
                 $scope.prepare_pending_certificates();
 
-                if ($routeParams.orderitemid) {
-                    $scope.expanded_cert = $routeParams.orderitemid;
+                if ($routeParams.orderItemID) {
+                    $scope.expanded_cert = $routeParams.orderItemID;
+                    angular.forEach($scope.pending_certificates, function(cert) {
+                        if (cert.order_item_id === $scope.expanded_cert) {
+                            $scope.load_certificate_details(cert);
+                        }
+                    });
                     $timeout(function() {
                         $anchorScroll($scope.expanded_cert);
                     }, 500);
@@ -4913,7 +5509,22 @@ define(
             $scope.init();
         }
 
-        app.controller("PendingCertificatesController", ["$scope", "$location", "$routeParams", "$anchorScroll", "$timeout", "$window", "CertificatesService", "growl", "LocationService", "Certificate", PendingCertificatesController]);
+        app.controller(
+            "PendingCertificatesController",
+            [
+                "$scope",
+                "$location",
+                "$routeParams",
+                "$anchorScroll",
+                "$timeout",
+                "$window",
+                "CertificatesService",
+                "LocationService",
+                "Certificate",
+                "alertService",
+                PendingCertificatesController
+            ]
+        );
 
     }
 );
@@ -5034,17 +5645,21 @@ define(
         "uiBootstrap",
         "ngRoute",
         "ngSanitize",
+        "ngAnimate",
     ],
     function(angular, CJT, _) {
         "use strict";
 
         return function() {
 
-            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
+            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel", "ngAnimate"]);
 
             var app = require(
                 [
                     "cjt/bootstrap",
+                    "cjt/services/alertService",
+                    "cjt/directives/alert",
+                    "cjt/directives/alertList",
                     "app/services/CertificatesService",
                     "app/services/LocationService",
                     "app/views/VirtualHostsController",
@@ -5128,10 +5743,6 @@ define(
 
                     app.config(["$routeProvider", "growlProvider",
                         function($routeProvider, growlProvider) {
-
-                            // $locationProvider.html5Mode(true);
-                            // $locationProvider.hashPrefix("!");
-
                             growlProvider.globalPosition("top-right");
 
                             // Setup a route - copy this to add additional routes as necessary
@@ -5191,8 +5802,9 @@ define(
                             });
 
                             // Setup a route - copy this to add additional routes as necessary
-                            $routeProvider.when("/pending-certificates/:orderitemid?", {
+                            $routeProvider.when("/pending-certificates/", {
                                 controller: "PendingCertificatesController",
+                                reloadOnSearch: false,
                                 templateUrl: CJT.buildFullPath("security/tls_wizard/views/pending_certificates.html.tt"),
                                 resolve: {
                                     installed_hosts: ["CertificatesService",

@@ -1,0 +1,13 @@
+<div class="form-group">
+    <p>{{ LOCALE.maketext("Are you sure you want to delete this download?") }}</p>
+</div>
+<div class="form-group">
+    <button
+        id="backup_table_delete_download_confirm_{{$index}}"
+        type="submit"
+        class="btn btn-primary"
+        spinner-id="spinnerDeleteDownloadBackup"
+        cp-action="onClickDeleteDownloadConfirm()">{{ LOCALE.maketext("Delete Download") }}</button>
+    <button class="btn btn-link" ng-click="cancelAction()" ng-class="{ 'hide': deletingDownload }">{{ LOCALE.maketext("Cancel") }}</button>
+</div>
+<div id="delete_download_backup_status_{{index}}"></div>

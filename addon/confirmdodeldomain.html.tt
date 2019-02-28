@@ -14,7 +14,7 @@
 <div class="body-content">
     <div class="section">
         <p>
-            [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the domain “[_1]”?", FORM.domain) %]
+            [% locale.maketext("Are you sure you wish to [output,strong,permanently] remove the addon domain “[_1]”?", FORM.domain) %]
         </p>
         <form action="dodeldomain.html" method="POST">
             <input id="hidDomain" type="hidden" name="domain" value="[% RAW_FORM.domain.html() %]">
@@ -43,3 +43,4 @@
 
 </div><!-- end body-content -->
 [% END #wrapper %]
+

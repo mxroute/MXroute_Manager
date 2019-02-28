@@ -14,9 +14,10 @@ define(
         "angular",
         "cjt/util/locale",
         "cjt/util/parse",
-        "cjt/decorators/growlDecorator",
         "cjt/directives/toggleSwitchDirective",
         "cjt/directives/actionButtonDirective",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "cjt/services/viewNavigationApi",
         "uiBootstrap"
     ],
@@ -26,8 +27,8 @@ define(
 
         var controller = app.controller(
             "DnsSecController",
-            ["$scope", "$q", "$routeParams", "growl", "viewNavigationApi", "DNSSEC", "Features",
-                function($scope, $q, $routeParams, growl, viewNavigationApi, DNSSEC, Features) {
+            ["$scope", "$q", "$routeParams", "viewNavigationApi", "DNSSEC", "Features", "alertService",
+                function($scope, $q, $routeParams, viewNavigationApi, DNSSEC, Features, alertService) {
                     var dnssec = this;
                     dnssec.domain = $routeParams.domain;
 
@@ -86,11 +87,23 @@ define(
                                         }
                                     })
                                     .catch(function(error) {
-                                        growl.error(error);
+                                        alertService.add({
+                                            type: "danger",
+                                            message: error,
+                                            closeable: true,
+                                            replace: false,
+                                            group: "zoneEditor"
+                                        });
                                     });
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "zoneEditor"
+                                });
                             });
                     };
 
@@ -100,7 +113,13 @@ define(
                                 dnssec.enabled = false;
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "zoneEditor"
+                                });
                             })
                             .finally(function() {
                                 dnssec.show_disable_warning = false;
@@ -124,7 +143,13 @@ define(
                                 }
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "zoneEditor"
+                                });
                             })
                             .finally(function() {
                                 dnssec.is_loading = false;

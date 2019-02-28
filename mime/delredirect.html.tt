@@ -4,7 +4,7 @@
     app_key = 'redirects'
  -%]
 <div class="body-content">
-    [% delete_redirect = execute('Mime', 'delete_redirect', { domain=RAW_FORM('domain'), src=RAW_FORM('path'), docroot=RAW_FORM('docroot') }) %]
+    [% delete_redirect = execute('Mime', 'delete_redirect', { domain=RAW_FORM('domain'), src=RAW_FORM('path'), docroot=RAW_FORM('docroot'), args=RAW_FORM('args') }) %]
 
     [% IF delete_redirect.errors.size %]
     <div id="deleteError" class="alert alert-danger">

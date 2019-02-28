@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"압축","Incremental":"증분","Uncompressed":"비압축"};
+    var newLex = {"Compressed":"압축","Directory":"디렉토리","File":"파일","Incremental":"증분","Symlink":"Symlink","Uncompressed":"비압축"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

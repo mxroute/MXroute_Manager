@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Add":"Adăugare","Add an Application":"Add an Application","Edit":"Editare","Edit Application “[_1]”":"Edit Application “[_1]”","You successfully added the application configuration for “[_1]”.":"You successfully added the application configuration for “[_1]”.","You successfully updated the application configuration for “[_1]”.":"You successfully updated the application configuration for “[_1]”."};
+    var newLex = {"Edit":"Editare","Edit Application “[_1]”":"Edit Application “[_1]”","Register":"Register","Register an Application":"Register an Application","You successfully registered the application “[_1]”.":"You successfully registered the application “[_1]”.","You successfully updated the application “[_1]”.":"You successfully updated the application “[_1]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

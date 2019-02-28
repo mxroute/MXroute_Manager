@@ -412,7 +412,7 @@ div.yuimenu li.yuimenuitem a.yuimenuitemlabel-selected:hover,
 div.yuimenu li.yuimenuitem a.yuimenuitemlabel-selected:active,
 div.yuimenu li.yuimenuitem a.yuimenuitemlabel-selected:focus,
 div.yuimenu li.yuimenuitem a.yuimenuitemlabel-selected:visited {
-    color: #fff;
+    color: #333333;
     outline: none;
 }
 div.yuimenu li.yuimenuitem a.yuimenuitemlabel,

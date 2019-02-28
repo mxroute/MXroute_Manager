@@ -14,6 +14,9 @@ define(
         "lodash",
         "cjt/core",
         "cjt/modules",
+        "cjt/services/alertService",
+        "cjt/directives/alert",
+        "cjt/directives/alertList",
         "ngRoute",
         "uiBootstrap",
         "ngAnimate"
@@ -22,7 +25,7 @@ define(
         return function() {
 
             // First create the application
-            angular.module("App", ["ngRoute", "ui.bootstrap", "ngAnimate", "angular-growl", "cjt2.cpanel"]);
+            angular.module("App", ["ngRoute", "ui.bootstrap", "ngAnimate", "cjt2.cpanel"]);
 
             // Then load the application dependencies
             var app = require(

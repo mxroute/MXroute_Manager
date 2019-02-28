@@ -14,6 +14,7 @@ define(
         "uiBootstrap"
     ],
     function(angular, CJT) {
+        "use strict";
 
         // Retrieve the current application
         var app = angular.module("Master");
@@ -83,13 +84,18 @@ define(
                         });
                     };
 
-                    $scope.openApplication = function($item, $model) {
-                        var url = $model.url;
+                    $scope.openApplication = function($model, $event) {
 
-                        // Not present in all browsers.
-                        if (window.event) {
-                            window.event.stopPropagation();
+                        // ignore click events since the items are already links
+                        // that open a browser tab or window
+                        if ($event.type === "click") {
+                            return;
                         }
+
+                        $event.stopPropagation();
+
+                        var url = $model.url;
+                        var target = ($model.target) ? $model.target : "_self";
 
                         // check for the type of path needed and build it
                         if (url.search(/^http/i) === -1) {
@@ -100,12 +106,7 @@ define(
                             }
                         }
 
-                        if ($model.target) {
-                            window.open(url, $model.target);
-                        } else {
-                            window.open(url, "_self");
-                        }
-
+                        window.open(url, target);
                     };
 
                     /**

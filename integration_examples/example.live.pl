@@ -13,10 +13,9 @@ my $cpanel = Cpanel::LiveAPI->new();
 
 print "Content-type: text/html\r\n\r\n";
 
-print $cpanel->header('Example perl Page!');
+print $cpanel->header('Example perl Page');
 
-print "to be completely honest with you, I wouldn't implemnet this this way.<br />\n";
-print "I'd just make a new template toolkit file and put it in paper lantern's theme root.";
+print "We recommend that you create a new template toolkit file and place it in the paper lantern theme's root directory.";
 
 print $cpanel->footer();
 

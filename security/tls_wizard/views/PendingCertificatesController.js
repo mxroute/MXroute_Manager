@@ -22,25 +22,35 @@ define(
         "cjt/directives/spinnerDirective",
         "app/services/CertificatesService",
         "app/services/LocationService",
-        "cjt/directives/actionButtonDirective",
-        "cjt/decorators/growlDecorator"
+        "cjt/directives/actionButtonDirective"
     ],
     function(_, angular, LOCALE) {
         "use strict";
 
         var app = angular.module("App");
 
-        function PendingCertificatesController($scope, $location, $routeParams, $anchorScroll, $timeout, $window, CertificatesService, growl, LocationService, Certificate) {
+        function PendingCertificatesController(
+            $scope,
+            $location,
+            $routeParams,
+            $anchorScroll,
+            $timeout,
+            $window,
+            CertificatesService,
+            LocationService,
+            Certificate,
+            alertService
+        ) {
 
-            var provider_display_name = {};
+            var providerDisplayName = {};
             CPANEL.PAGE.products.forEach(function(p) {
-                provider_display_name[p.provider] = p.provider_display_name;
+                providerDisplayName[p.provider] = p.provider_display_name;
             });
 
             $scope.show_introduction_block = CertificatesService.show_introduction_block;
 
             $scope.get_provider_display_name = function(provider) {
-                return provider_display_name[provider] || provider;
+                return providerDisplayName[provider] || provider;
             };
 
             $scope.html_escape = _.escape;
@@ -59,22 +69,22 @@ define(
             $scope.pending_certificates = CertificatesService.get_pending_certificates();
             $scope.expanded_cert = null;
 
-            $scope.get_product_by_id = function(provider_name, product_id) {
-                return CertificatesService.get_product_by_id(provider_name, product_id);
+            $scope.get_product_by_id = function(providerName, providerID) {
+                return CertificatesService.get_product_by_id(providerName, providerID);
             };
 
             $scope.get_cert_title = function(cert) {
-                var sorted_domains = cert.domains.sort(function(a, b) {
+                var sortedDomains = cert.domains.sort(function(a, b) {
                     if (a.length === b.length) {
                         return 0;
                     }
                     return a.length > b.length ? 1 : -1;
                 });
 
-                if (sorted_domains.length === 1) {
-                    return sorted_domains[0];
+                if (sortedDomains.length === 1) {
+                    return sortedDomains[0];
                 } else {
-                    return LOCALE.maketext("“[_1]” and [quant,_2,other domain,other domains]", sorted_domains[0], sorted_domains.length - 1);
+                    return LOCALE.maketext("“[_1]” and [quant,_2,other domain,other domains]", sortedDomains[0], sortedDomains.length - 1);
                 }
 
             };
@@ -83,18 +93,18 @@ define(
                 return CertificatesService.process_ssl_pending_queue().then(function(result) {
 
                     // ----------------------------------------
-                    // The intent here is to show at least one growl, always:
+                    // The intent here is to show at least one notification, always:
                     //
-                    //  - growl (info) for each canceled cert
+                    //  - notify (info) for each canceled cert
                     //
-                    //  - growl (success) for each installed cert
+                    //  - notify (success) for each installed cert
                     //
                     //  - If we canceled nor installed any certificates,
-                    //    growl (info) about no-op.
+                    //    notify (info) about no-op.
                     // ----------------------------------------
 
                     var installed = [];
-                    var canceled_count = 0;
+                    var cancelledCount = 0;
 
                     result.data.forEach(function(oi) {
                         if (oi.installed) {
@@ -104,15 +114,27 @@ define(
                             switch (oi.last_status_code) {
                                 case "OrderCanceled":
                                 case "OrderItemCanceled":
-                                    canceled_count++;
+                                    cancelledCount++;
 
-                                    var provider_display_name = $scope.get_provider_display_name(oi.provider);
+                                    var providerDisplayName = $scope.get_provider_display_name(oi.provider);
 
                                     var domains = oi.domains;
                                     if (domains.length === 1) {
-                                        growl.info(LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” has been canceled.", _.escape(provider_display_name), _.escape(domains[0])));
+                                        alertService.add({
+                                            type: "info",
+                                            message: LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” has been canceled.", _.escape(providerDisplayName), _.escape(domains[0])),
+                                            closeable: true,
+                                            replace: false,
+                                            group: "tlsWizard"
+                                        });
                                     } else {
-                                        growl.info(LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” and [quant,_3,other domain,other domains] has been canceled.", _.escape(provider_display_name), _.escape(domains[0]), domains.length - 1));
+                                        alertService.add({
+                                            type: "info",
+                                            message: LOCALE.maketext("“[_1]” reports that the certificate for “[_2]” and [quant,_3,other domain,other domains] has been canceled.", _.escape(providerDisplayName), _.escape(domains[0]), domains.length - 1),
+                                            closeable: true,
+                                            replace: false,
+                                            group: "tlsWizard"
+                                        });
                                     }
 
                                     break;
@@ -124,18 +146,39 @@ define(
                     if (installed.length) {
                         var vhosts = [];
 
-                        angular.forEach(installed, function(order_item) {
-                            vhosts = vhosts.concat(order_item.vhost_names);
+                        angular.forEach(installed, function(orderItem) {
+                            vhosts = vhosts.concat(orderItem.vhost_names);
                         });
-                        growl.success(LOCALE.maketext("[numerate,_2,A certificate,Certificates] for the following [numerate,_2,website was,websites were] available, and the system has installed [numerate,_2,it,them]: [list_and_quoted,_1]", vhosts, installed.length));
-                    } else if (!canceled_count) { // We mentioned canceled and installed certificates earlier.
-                        growl.info(LOCALE.maketext("The system processed the pending certificate queue successfully, but [numerate,_1,your pending certificate was not,none of your pending certificates were] available.", result.data.length));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("[numerate,_2,A certificate,Certificates] for the following [numerate,_2,website was,websites were] available, and the system has installed [numerate,_2,it,them]: [list_and_quoted,_1]", vhosts, installed.length),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsWizard"
+                        });
+                    } else if (!cancelledCount) {
+
+                        // We mentioned canceled and installed certificates earlier.
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("The system processed the pending certificate queue successfully, but [numerate,_1,your pending certificate was not,none of your pending certificates were] available.", result.data.length),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     }
 
                     return CertificatesService.fetch_pending_certificates().then(function() {
                         $scope.pending_certificates = CertificatesService.get_pending_certificates();
                         if ($scope.pending_certificates.length === 0) {
-                            growl.info(LOCALE.maketext("You have no more pending [asis,SSL] certificates.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                            alertService.add({
+                                type: "info",
+                                message: LOCALE.maketext("You have no more pending [asis,SSL] certificates.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
+                                closeable: true,
+                                replace: false,
+                                group: "tlsWizard"
+                            });
                             CertificatesService.reset();
 
                             /* clear page-loaded domains and installed hosts to ensure we show the latests when we redirect to the purchase wizard */
@@ -146,7 +189,7 @@ define(
                             $scope.prepare_pending_certificates();
                         }
                     });
-                }, growl.error.bind(growl));
+                });
 
             };
 
@@ -162,34 +205,74 @@ define(
             $scope.cancel_purchase = function(cert) {
                 CertificatesService.cancel_pending_ssl_certificate_and_poll(cert.provider, cert.order_item_id).then(function(response) {
                     var payload = response.data[1].data;
-                    var cert_pem = payload.certificate_pem;
 
-                    var provider_html = _.escape($scope.get_provider_display_name(cert.provider));
+                    var certificatePEM = payload.certificate_pem;
 
-                    if (cert_pem) {
+                    var providerHTML = _.escape($scope.get_provider_display_name(cert.provider));
 
-                        // XXX Prompt to contact support?
-                        // XXX use info rather than success?
-                        growl.info(LOCALE.maketext("You have canceled this order, but “[_1]” already issued the certificate. The system will now install it. ([output,url,_2,Do you need help with this order?])", provider_html, cert.support_uri));
+                    if (certificatePEM) {
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("You have canceled this order, but “[_1]” already issued the certificate. The system will now install it. ([output,url,_2,Do you need help with this order?])", providerHTML, cert.support_uri),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                         CertificatesService.install_certificate(
-                            cert_pem,
+                            certificatePEM,
                             cert.vhost_names
                         ).then(
                             function() {
-                                growl.success(LOCALE.maketext("The system has installed the new [asis,SSL] certificate on to the [numerate,_1,website,websites] [list_and_quoted,_2].", cert.vhost_names.length, cert.vhost_names));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("The system has installed the new [asis,SSL] certificate on to the [numerate,_1,website,websites] [list_and_quoted,_2].", cert.vhost_names.length, cert.vhost_names),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "tlsWizard"
+                                });
                             },
-                            function(error_html) {
-                                growl.error(LOCALE.maketext("The system failed to install the new [asis,SSL] certificate because of an error: [_1]", error_html));
+                            function(errorHTML) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system failed to install the new [asis,SSL] certificate because of an error: [_1]", errorHTML),
+                                    group: "tlsWizard"
+                                });
                             }
                         );
                     } else if (payload.status_code === "RequiresApproval") {
-                        growl.info(LOCALE.maketext("The system has canceled the request for this certificate; however, “[_1]” was already waiting on approval before processing your order. To ensure that this certificate order is canceled, you must [output,url,_2,contact support directly].", provider_html, cert.support_uri));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("The system has canceled the request for this certificate; however, “[_1]” was already waiting on approval before processing your order. To ensure that this certificate order is canceled, you must [output,url,_2,contact support directly].", providerHTML, cert.support_uri),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     } else if (payload.status_code === "OrderCanceled") {
-                        growl.info(LOCALE.maketext("This certificate’s order (ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_id), provider_html));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("This certificate’s order (ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_id), providerHTML),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     } else if (payload.status_code === "OrderItemCanceled") {
-                        growl.info(LOCALE.maketext("This certificate (order item ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_item_id), provider_html));
+                        alertService.add({
+                            type: "info",
+                            message: LOCALE.maketext("This certificate (order item ID “[_1]”) was already canceled directly via “[_2]”.", _.escape(cert.order_item_id), providerHTML),
+                            closeable: true,
+                            replace: false,
+                            group: "tlsWizard"
+                        });
                     } else {
-                        growl.success(LOCALE.maketext("The system has canceled this certificate. Your credit card should not be charged for this order."));
+                        alertService.add({
+                            type: "success",
+                            message: LOCALE.maketext("The system has canceled this certificate. Your credit card should not be charged for this order."),
+                            closeable: true,
+                            replace: false,
+                            autoClose: 10000,
+                            group: "tlsWizard"
+                        });
                     }
 
                     CPANEL.PAGE.pending_certificates = null;
@@ -202,48 +285,96 @@ define(
                         } else {
                             $scope.prepare_pending_certificates();
                         }
-                    }, function(error_html) {
-                        growl.error(LOCALE.maketext("The system encountered an error as it attempted to refresh your pending certificates: [_1]", error_html));
+                    }, function(errorHTML) {
+                        alertService.add({
+                            type: "danger",
+                            message: LOCALE.maketext("The system encountered an error as it attempted to refresh your pending certificates: [_1]", errorHTML),
+                            group: "tlsWizard"
+                        });
                     });
-                }, function(error_html) {
-                    growl.error(LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", error_html));
+                }, function(errorHTML) {
+                    alertService.add({
+                        type: "danger",
+                        message: LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", errorHTML),
+                        group: "tlsWizard"
+                    });
                 });
+            };
+
+            var _addOrderDetailsToDisplayedDomain = function(certificate, displayedDomain) {
+                if (!certificate.domainDetails) {
+                    return;
+                }
+                displayedDomain.orderDetails = certificate.domainDetails[displayedDomain.domain];
             };
 
             $scope.get_displayed_domains = function(pcert) {
                 var domains = pcert.domains;
-                pcert.displayed_domains = [];
-                pcert.display_meta.start = pcert.display_meta.items_per_page * (pcert.display_meta.current_page - 1);
-                pcert.display_meta.limit = Math.min(domains.length, pcert.display_meta.start + pcert.display_meta.items_per_page);
-                for (var i = pcert.display_meta.start; i < pcert.display_meta.limit; i++) {
-                    pcert.displayed_domains.push(domains[i]);
+
+                var start = pcert.display_meta.items_per_page * (pcert.display_meta.current_page - 1);
+                var limit = Math.min(domains.length, start + pcert.display_meta.items_per_page);
+
+                // Domains displayed are the same domains that will be displayed.
+                if (pcert.displayed_domains && pcert.display_meta.start === start && pcert.display_meta.limit === limit && pcert.displayed_domains.length) {
+                    return pcert.displayed_domains;
                 }
+
+                pcert.display_meta.start = start;
+                pcert.display_meta.limit = limit;
+
+                var displayDomains = [];
+                for (var i = pcert.display_meta.start; i < pcert.display_meta.limit; i++) {
+                    var domainObject = {
+                        domain: domains[i]
+                    };
+                    _addOrderDetailsToDisplayedDomain(pcert, domainObject);
+                    displayDomains.push(domainObject);
+                }
+
+                pcert.displayed_domains = displayDomains;
                 return pcert.displayed_domains;
             };
 
-            function _get_string_for_status_code(status_code, provider) {
+            function _getStringForStatusCode(statusCode, provider) {
                 var str;
 
-                if (status_code === "RequiresApproval") {
-                    var provider_disp = $scope.get_provider_display_name(provider);
-                    str = LOCALE.maketext("Waiting for “[_1]” to approve your order …", provider_disp);
+                if (statusCode === "RequiresApproval") {
+                    var providerDisplayName = $scope.get_providerDisplayName(provider);
+                    str = LOCALE.maketext("Waiting for “[_1]” to approve your order …", providerDisplayName);
                 }
 
                 return str;
             }
 
-            $scope.get_cert_status = function(pending_certificate) {
-                var status_code_str = _get_string_for_status_code(pending_certificate.last_status_code, pending_certificate.provider);
+            $scope.get_cert_status = function(pendingCertificate) {
+                var statusCodeStr = _getStringForStatusCode(pendingCertificate.last_status_code, pendingCertificate.provider);
 
-                if (status_code_str) {
-                    return status_code_str;
+                if (statusCodeStr) {
+                    return statusCodeStr;
                 }
 
-                var status = pending_certificate.status;
+                var status = pendingCertificate.status;
                 if (status === "unconfirmed") {
                     return LOCALE.maketext("Pending Completion of Payment");
                 } else if (status === "confirmed") {
-                    return LOCALE.maketext("Payment Completed. Waiting for the provider to issue the certificate …");
+                    if (pendingCertificate.statusDetails && pendingCertificate.statusDetails.loaded) {
+                        var incompleteThings = pendingCertificate.statusDetails.details.filter(function(item) {
+                            if (item.rawStatus === "not-completed") {
+                                return true;
+                            }
+
+                            return false;
+                        });
+                        if (incompleteThings.length === 0) {
+                            return LOCALE.maketext("Payment Completed.") + " " + LOCALE.maketext("Awaiting Validation …");
+                        } else if (incompleteThings.length === 1) {
+                            return LOCALE.maketext("Payment Completed.") + " " + incompleteThings[0].status;
+                        } else {
+                            return LOCALE.maketext("Payment Completed.") + " " + LOCALE.maketext("Multiple validation items pending …");
+                        }
+                    } else {
+                        return LOCALE.maketext("Payment Completed.") + " " + LOCALE.maketext("Waiting for the provider to issue the certificate …");
+                    }
                 } else {
                     return LOCALE.maketext("Status Unknown");
                 }
@@ -258,13 +389,82 @@ define(
             };
 
             $scope.expand_cert = function(cert) {
-                $location.path("/pending-certificates/" + cert.order_item_id);
+                $location.search("orderItemID", cert.order_item_id);
                 $scope.expanded_cert = cert.order_item_id;
+                if (!cert.statusDetails) {
+                    $scope.load_certificate_details(cert);
+                }
                 $anchorScroll($scope.expanded_cert);
             };
 
+            $scope.load_certificate_details = function(certificate) {
+
+                certificate.domainDetails = {};
+                certificate.statusDetails = { loaded: false, loading: true, details: [] };
+
+                function _succeed(details) {
+                    certificate.statusDetails.loaded = true;
+                    certificate.statusDetails.details = details.statusDetails;
+                    certificate.domainDetails = {};
+
+                    angular.forEach(certificate.statusDetails.details, function(detail) {
+                        if (detail.rawStatus === "completed") {
+                            detail.rowStatusClass = "success";
+
+                            // Unset the url for completed things so we don't  get a button
+                            delete detail.actionURL;
+                        } else {
+                            detail.rowStatusClass = "warning";
+                        }
+                    });
+
+                    angular.forEach(certificate.domains, function(domain) {
+
+                        var status = details.domainDetails[domain];
+
+                        if (status) {
+                            certificate.hasDomainDetails = true;
+                        }
+
+                        certificate.domainDetails[domain] = {};
+
+                        if (status === "NOTVALIDATED") {
+                            certificate.domainDetails[domain].rowStatusClass = "warning";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Not Validated");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("The [output,abbr,CA,Certificate,Authority] received the request but has not yet performed a [output,abbr,DCV,Domain Control Validation] check.");
+                        } else if (status === "VALIDATED") {
+                            certificate.domainDetails[domain].rowStatusClass = "success";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Validated");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("The [output,abbr,CA,Certificate,Authority] validated the certificate.");
+
+                        } else if (status === "AWAITINGBRANDING") {
+                            certificate.domainDetails[domain].rowStatusClass = "info";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Awaiting Branding …");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("The [output,abbr,CA,Certificate,Authority] received the request and must now process the brand verification approval.");
+                        } else {
+                            certificate.domainDetails[domain].rowStatusClass = "info";
+                            certificate.domainDetails[domain].rowStatusLabel = LOCALE.maketext("Unknown");
+                            certificate.domainDetails[domain].domainDetailDescription = LOCALE.maketext("Unknown.");
+                        }
+
+                    });
+
+
+                    // Manually add details to currently displayed domain (since it's cached)
+                    angular.forEach(certificate.displayed_domains, function(displayedDomain) {
+                        _addOrderDetailsToDisplayedDomain(certificate, displayedDomain);
+                    });
+                }
+
+                function _finally() {
+                    certificate.statusDetails.loading = false;
+                }
+
+                CertificatesService.getCertificateStatusDetails(certificate.provider, certificate.order_item_id).then(_succeed).finally(_finally);
+            };
+
             $scope.collapse_cert = function() {
-                $location.path("/pending-certificates");
+                $location.search();
                 $scope.expanded_cert = null;
             };
 
@@ -276,24 +476,24 @@ define(
 
                 // rebuild purchasing certificate
                 var cert = new Certificate();
-                var cert_domains = [];
-                var cert_product = CertificatesService.get_product_by_id(pcert.provider, pcert.product_id);
-                var total_price = 0;
+                var certificateDomains = [];
+                var certificateProduct = CertificatesService.get_product_by_id(pcert.provider, pcert.product_id);
+                var totalPrice = 0;
 
-                cert.set_domains(cert_domains);
+                cert.set_domains(certificateDomains);
                 cert.set_virtual_hosts(pcert.vhost_names);
-                cert.set_product(cert_product);
+                cert.set_product(certificateProduct);
 
-                angular.forEach(pcert.domains, function(cert_domain) {
+                angular.forEach(pcert.domains, function(certificateDomain) {
                     angular.forEach(domains, function(domain) {
-                        if (domain.domain === cert_domain) {
-                            cert_domains.push(domain);
-                            total_price += domain.is_wildcard ? cert_product.wildcard_price : cert_product.price;
+                        if (domain.domain === certificateDomain) {
+                            certificateDomains.push(domain);
+                            totalPrice += domain.is_wildcard ? certificateProduct.wildcard_price : certificateProduct.price;
                         }
                     });
                 });
 
-                cert.set_price(total_price);
+                cert.set_price(totalPrice);
 
                 CertificatesService.add_new_certificate(cert);
 
@@ -312,35 +512,35 @@ define(
                 // Repair Orders
                 var orders = {};
                 var domains = CertificatesService.get_all_domains();
-                var virtual_hosts = CertificatesService.get_virtual_hosts();
+                var virtualHosts = CertificatesService.get_virtual_hosts();
 
-                angular.forEach($scope.pending_certificates, function(order_item) {
+                angular.forEach($scope.pending_certificates, function(orderItem) {
 
                     // build new order
-                    orders[order_item.order_id] = orders[order_item.order_id] || {
+                    orders[orderItem.order_id] = orders[orderItem.order_id] || {
                         access_token: "",
                         certificates: [],
-                        order_id: order_item.order_id,
-                        checkout_url: order_item.checkout_url
+                        order_id: orderItem.order_id,
+                        checkout_url: orderItem.checkout_url
                     };
-                    orders[order_item.order_id].certificates.push(order_item);
+                    orders[orderItem.order_id].certificates.push(orderItem);
 
                     // re select the domains
-                    angular.forEach(order_item.domains, function(cert_domain) {
+                    angular.forEach(orderItem.domains, function(certificateDomain) {
                         angular.forEach(domains, function(domain) {
-                            if (domain.domain === cert_domain) {
+                            if (domain.domain === certificateDomain) {
                                 domain.selected = true;
                             }
                         });
                     });
 
                     // re select a product
-                    angular.forEach(order_item.vhost_names, function(vhost_name) {
-                        var vhost_id = CertificatesService.get_virtual_host_by_display_name(vhost_name);
-                        var vhost = virtual_hosts[vhost_id];
+                    angular.forEach(orderItem.vhost_names, function(vHostName) {
+                        var vHostID = CertificatesService.get_virtual_host_by_display_name(vHostName);
+                        var vhost = virtualHosts[vHostID];
                         var product = CertificatesService.get_product_by_id(
-                            order_item.provider,
-                            order_item.product_id
+                            orderItem.provider,
+                            orderItem.product_id
                         );
 
                         /* in case someone deletes the vhost while the certificate is pending */
@@ -392,8 +592,13 @@ define(
                 $scope.restore_orders();
                 $scope.prepare_pending_certificates();
 
-                if ($routeParams.orderitemid) {
-                    $scope.expanded_cert = $routeParams.orderitemid;
+                if ($routeParams.orderItemID) {
+                    $scope.expanded_cert = $routeParams.orderItemID;
+                    angular.forEach($scope.pending_certificates, function(cert) {
+                        if (cert.order_item_id === $scope.expanded_cert) {
+                            $scope.load_certificate_details(cert);
+                        }
+                    });
                     $timeout(function() {
                         $anchorScroll($scope.expanded_cert);
                     }, 500);
@@ -403,7 +608,22 @@ define(
             $scope.init();
         }
 
-        app.controller("PendingCertificatesController", ["$scope", "$location", "$routeParams", "$anchorScroll", "$timeout", "$window", "CertificatesService", "growl", "LocationService", "Certificate", PendingCertificatesController]);
+        app.controller(
+            "PendingCertificatesController",
+            [
+                "$scope",
+                "$location",
+                "$routeParams",
+                "$anchorScroll",
+                "$timeout",
+                "$window",
+                "CertificatesService",
+                "LocationService",
+                "Certificate",
+                "alertService",
+                PendingCertificatesController
+            ]
+        );
 
     }
 );

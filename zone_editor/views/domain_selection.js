@@ -15,7 +15,6 @@ define(
         "lodash",
         "cjt/util/locale",
         "app/models/dynamic_table",
-        "cjt/decorators/growlDecorator",
         "cjt/directives/actionButtonDirective",
         "cjt/decorators/paginationDecorator",
         "cjt/directives/toggleSortDirective",
@@ -28,6 +27,8 @@ define(
         "cjt/validator/domain-validators",
         "cjt/services/viewNavigationApi",
         "cjt/services/cpanel/nvDataService",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "app/directives/convert_to_full_record_name",
         "uiBootstrap"
     ],
@@ -42,7 +43,6 @@ define(
                 "$q",
                 "$location",
                 "$routeParams",
-                "growl",
                 "Domains",
                 "Zones",
                 "$uibModal",
@@ -50,18 +50,19 @@ define(
                 "Features",
                 "defaultInfo",
                 "nvDataService",
+                "alertService",
                 function(
                     $q,
                     $location,
                     $routeParams,
-                    growl,
                     Domains,
                     Zones,
                     $uibModal,
                     viewNavigationApi,
                     Features,
                     defaultInfo,
-                    nvDataService) {
+                    nvDataService,
+                    alertService) {
 
                     var list = this;
 
@@ -119,7 +120,13 @@ define(
                                     defaultInfo.domains_per_page = list.meta.pageSize;
                                 })
                                 .catch(function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "zoneEditor"
+                                    });
                                 });
                         }
                     };
@@ -152,9 +159,22 @@ define(
                         ar.save = function() {
                             return Zones.add_record(ar.domain, ar.resource)
                                 .then( function(results) {
-                                    growl.success(LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "A", ar.domain, _.escape(ar.resource.name)));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "A", ar.domain, _.escape(ar.resource.name)),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "zoneEditor"
+                                    });
                                 }, function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "zoneEditor"
+                                    });
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close({ $value: ar.resource });
@@ -185,9 +205,22 @@ define(
                         cr.save = function() {
                             return Zones.add_record(cr.domain, cr.resource)
                                 .then( function(results) {
-                                    growl.success(LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "CNAME", cr.domain, _.escape(cr.resource.name)));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "CNAME", cr.domain, _.escape(cr.resource.name)),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "zoneEditor"
+                                    });
                                 }, function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "zoneEditor"
+                                    });
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close({ $value: cr.resource });
@@ -220,9 +253,22 @@ define(
                         mxr.save = function() {
                             return Zones.add_record(mxr.domain, mxr.resource)
                                 .then( function(results) {
-                                    growl.success(LOCALE.maketext("You successfully added the [asis,_1] record for “[_2]”.", "MX", mxr.domain));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("You successfully added the [asis,_1] record for “[_2]”.", "MX", mxr.domain),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "zoneEditor"
+                                    });
                                 }, function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "zoneEditor"
+                                    });
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close({ $value: mxr.resource });

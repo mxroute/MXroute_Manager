@@ -1849,7 +1849,7 @@ define(
 
 /* global define: false */
 
-/* jshint -W100 */
+/* eslint-disable camelcase */
 
 define(
     'app/views/manage',[
@@ -1858,12 +1858,13 @@ define(
         "cjt/util/locale",
         "cjt/util/table",
         "cjt/util/parse",
-        "cjt/decorators/growlDecorator",
         "cjt/directives/actionButtonDirective",
         "cjt/decorators/paginationDecorator",
         "cjt/directives/toggleSortDirective",
         "cjt/directives/searchDirective",
         "cjt/directives/pageSizeDirective",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "cjt/services/viewNavigationApi",
         "cjt/directives/quickFiltersDirective",
         "uiBootstrap"
@@ -1874,8 +1875,22 @@ define(
 
         var controller = app.controller(
             "ManageApplicationsController",
-            ["$scope", "$routeParams", "growl", "viewNavigationApi", "$uibModal", "Apps", "defaultInfo",
-                function($scope, $routeParams, growl, viewNavigationApi, $uibModal, Apps, defaultInfo) {
+            [
+                "$scope",
+                "$routeParams",
+                "viewNavigationApi",
+                "$uibModal",
+                "Apps",
+                "defaultInfo",
+                "alertService",
+                function(
+                    $scope,
+                    $routeParams,
+                    viewNavigationApi,
+                    $uibModal,
+                    Apps,
+                    defaultInfo,
+                    alertService) {
                     var manage = this;
 
                     manage.is_loading = false;
@@ -1938,14 +1953,34 @@ define(
                         return Apps.toggle_application_status(app)
                             .then(function(application_data) {
                                 if (application_data.enabled) {
-                                    growl.success(LOCALE.maketext("The application, “[_1]”, is now enabled.", application_data.name));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("The application, “[_1]”, is now enabled.", application_data.name),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "passenger"
+                                    });
                                 } else {
-                                    growl.success(LOCALE.maketext("The application, “[_1]”, is now disabled.", application_data.name));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("The application, “[_1]”, is now disabled.", application_data.name),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "passenger"
+                                    });
                                 }
                                 app.enabled = PARSE.parsePerlBoolean(application_data.enabled);
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "passenger"
+                                });
                             })
                             .finally(function() {
                                 manage.change_in_progress = false;
@@ -1955,7 +1990,7 @@ define(
                     function RemoveRecordModalController($uibModalInstance, appl_name) {
                         var ctrl = this;
 
-                        ctrl.confirm_msg = LOCALE.maketext("Are you certain that you want to delete the application configuration for “[_1]”?", appl_name);
+                        ctrl.confirm_msg = LOCALE.maketext("Are you certain that you want to unregister the application “[_1]”?", appl_name);
 
                         ctrl.cancel = function() {
                             $uibModalInstance.dismiss("cancel");
@@ -1968,10 +2003,23 @@ define(
                                         return app.name === appl_name;
                                     });
                                     manage.render();
-                                    growl.success(LOCALE.maketext("You successfully deleted the application configuration for “[_1]”.", appl_name));
+                                    alertService.add({
+                                        type: "success",
+                                        message: LOCALE.maketext("You successfully unregistered the application “[_1]”.", appl_name),
+                                        closeable: true,
+                                        replace: false,
+                                        autoClose: 10000,
+                                        group: "passenger"
+                                    });
                                 })
                                 .catch(function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "passenger"
+                                    });
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close();
@@ -2203,9 +2251,10 @@ define(
         "cjt/util/parse",
         "cjt/util/table",
         "app/directives/passenger_validators",
-        "cjt/decorators/growlDecorator",
         "cjt/directives/toggleSwitchDirective",
         "cjt/directives/actionButtonDirective",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "cjt/services/viewNavigationApi",
         "cjt/directives/validationContainerDirective",
         "cjt/directives/validationItemDirective",
@@ -2225,8 +2274,26 @@ define(
 
         var controller = app.controller(
             "ConfigurationDetailsController",
-            ["$scope", "$q", "$routeParams", "growl", "viewNavigationApi", "Apps", "Domains", "$uibModal", "defaultInfo",
-                function($scope, $q, $routeParams, growl, viewNavigationApi, Apps, Domains, $uibModal, defaultInfo) {
+            [
+                "$scope",
+                "$q",
+                "$routeParams",
+                "viewNavigationApi",
+                "Apps",
+                "Domains",
+                "$uibModal",
+                "defaultInfo",
+                "alertService",
+                function(
+                    $scope,
+                    $q,
+                    $routeParams,
+                    viewNavigationApi,
+                    Apps,
+                    Domains,
+                    $uibModal,
+                    defaultInfo,
+                    alertService) {
                     var details = this;
 
                     details.is_loading = false;
@@ -2247,7 +2314,7 @@ define(
                         if (details.edit_mode) {
                             return LOCALE.maketext("Edit");
                         } else {
-                            return LOCALE.maketext("Add");
+                            return LOCALE.maketext("Register");
                         }
                     };
 
@@ -2255,7 +2322,7 @@ define(
                         if (details.edit_mode) {
                             return LOCALE.maketext("Edit Application “[_1]”", $routeParams.applname);
                         } else {
-                            return LOCALE.maketext("Add an Application");
+                            return LOCALE.maketext("Register an Application");
                         }
                     };
 
@@ -2298,22 +2365,48 @@ define(
                     details.save_edited_application = function() {
                         return Apps.update_application(details.application, details.previous_name)
                             .then(function() {
-                                growl.success(LOCALE.maketext("You successfully updated the application configuration for “[_1]”.", details.application.name));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("You successfully updated the application “[_1]”.", details.application.name),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "passenger"
+                                });
                                 details.goToView("manage");
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "passenger"
+                                });
                             });
                     };
 
                     details.save_new_application = function() {
                         return Apps.add_application(details.application)
                             .then(function() {
-                                growl.success(LOCALE.maketext("You successfully added the application configuration for “[_1]”.", details.application.name));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("You successfully registered the application “[_1]”.", details.application.name),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "passenger"
+                                });
                                 details.goToView("manage", details.forceLoad);
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "passenger"
+                                });
                             });
                     };
 
@@ -2430,13 +2523,15 @@ define(
         return function() {
 
             // First create the application
-            angular.module("cpanel.applicationManager", ["ngRoute", "ui.bootstrap", "angular-growl", "cjt2.cpanel", "localytics.directives"]);
+            angular.module("cpanel.applicationManager", ["ngRoute", "ui.bootstrap", "cjt2.cpanel", "localytics.directives"]);
 
             // Then load the application dependencies
             var app = require(
                 [
                     "cjt/bootstrap",
                     "cjt/services/autoTopService",
+                    "cjt/services/alertService",
+                    "cjt/directives/alertList",
                     "app/services/apps",
                     "app/services/domains",
                     "app/views/manage",

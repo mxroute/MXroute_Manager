@@ -1,8 +1,22 @@
 @import (reference) "../libraries/bootstrap/source/less/variables.less";
 
+@screen-xxs-max: 600px;
+@screen-xs: (@screen-xxs-max + 1);
+@screen-xs-min: @screen-xs;
+
 .action-column {
-    width: 350px;
+    width: auto;
     text-align: right;
+
+    // Take up minimal width when in table mode
+    @media (min-width: @screen-xs-min) {
+        width: 1%;
+    }
+
+    // Don't wrap the action buttons
+    @media (min-width: @screen-sm-min) {
+        white-space: nowrap;
+    }
 }
 
 html[dir="rtl"] .action-column {
@@ -32,8 +46,17 @@ html[dir="rtl"] .action-column {
 }
 
 .vc-list-panel {
-    padding: 8px 8px 8px 60px;
+    padding: 8px;
     overflow: hidden;
+
+    @media (min-width: @screen-xs-min) {
+        html[dir="ltr"] & {
+            padding-left: 50px;
+        }
+        html[dir="rtl"] & {
+            padding-right: 50px;
+        }
+    }
 }
 
 .box {
@@ -69,18 +92,14 @@ html[dir="rtl"] .action-column {
     }
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: @screen-xxs-max) {
     .responsive-table > tbody > tr,
     .responsive-table > tbody > tr > td {
         border: 0;
     }
 
-    .responsive-table > tbody > tr:nth-child(2n + 1) {
+    .responsive-table > tbody > tr:nth-child(2n + 2) {
         border-top: 1px solid #ccc;
-    }
-
-    .action-column {
-        width: 100%;
     }
 }
 
@@ -342,13 +361,31 @@ html[data-style="dark"] .table > tbody > tr.warning > td code.format {
     padding: 5px 40px 5px 40px;
 }
 
-@media only screen and (max-width: 600px) {
+@media only screen and (max-width: @screen-xxs-max) {
     /* Overwrites master-ltr.cmb.min.css default table styles */
     .responsive-table > thead > tr {
         position: initial;
     }
+
+    // This padding doesn't make any sense without the labels
+    .responsive-table > tbody > tr > td:before {
+        padding: 0;
+    }
+
     .responsive-table > tbody > tr > td.expand-panel-data:before {
         content: none;
+    }
+
+    th.action-column {
+        width: 100%;
+    }
+
+    .responsive-table tr {
+        display: flex;
+    }
+
+    .responsive-table td:first-child {
+        flex: 1 auto;
     }
 }
 
@@ -375,11 +412,16 @@ html[data-style="dark"] .table > tbody > tr.warning > td code.format {
 
 .action-buttons {
     display: inline-block;
-    margin-left: 40px;
 }
 
 .create-another {
     display: inline-block;
+    html[dir="ltr"] & {
+        margin-right: 40px;
+    }
+    html[dir="rtl"] & {
+        margin-left: 40px;
+    }
 }
 
 .truncate {
@@ -446,7 +488,18 @@ html[data-style="dark"] code.format {
 }
 
 .tab-content {
-    margin-top: 20px;
+    padding: 15px;
+
+    html[data-style="basic"] & {
+        background: #fff;
+        border: solid #ddd;
+        border-width: 0 1px 1px 1px;
+    }
+
+    html[data-style="dark"] & {
+        border-bottom: solid #444;
+        border-width: 0 0 1px 0;
+    }
 }
 
 .manage-section {
@@ -499,5 +552,96 @@ html[data-style="dark"] code.format {
 }
 
 .margin-top-10 {
+    margin-top: 10px;
+}
+
+.alert-message ul {
+    margin-top: 5px;
+}
+
+/**
+ * SSH key modal
+ */
+
+.modal-content .ssh-identity-panel {
+    margin-bottom: 0;
+    margin-top: 0;
+
+    .panel-heading {
+        font-size: 1.1em;
+
+        label {
+            margin: 0;
+            display: inline;
+        }
+
+        .fas {
+            font-size: 1.1em;
+        }
+    }
+
+    .panel-body > :last-child {
+        margin-bottom: 0;
+    }
+
+    html[data-style="dark"] & .panel-footer {
+        background: transparent;
+        border-top-color: #8e8e8e;
+    }
+}
+
+#ssh-identity-details-expander {
+    cursor: pointer;
+    box-shadow: none;
+
+    .fa-caret-down {
+        transition: 0.35s;
+    }
+}
+
+#ssh-identity-details-body {
+    dl {
+        margin: 0;
+    }
+    dd + dt {
+        margin-top: 15px;
+    }
+    dd + dt {
+        margin-top: 10px;
+    }
+    dd {
+        margin-top: 5px;
+    }
+
+    pre {
+        font-size: 0.8em;
+    }
+
+    pre:first-child {
+        margin-top: 10px;
+    }
+
+    pre:last-child {
+        margin-bottom: 0;
+    }
+}
+
+/**
+ * Manage Screen
+ */
+
+.manage-section .col-xs-12 {
+    min-height: 0;
+}
+
+#repoNameInput + .help-block {
+    margin-bottom: 0;
+}
+
+.no-connection-callout .callout {
+    margin: 0 0 5px 0;
+}
+
+#btnCancelUpdateRepo {
     margin-top: 10px;
 }

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Gecomprimeerd","Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"[numf,_1] tot [numf,_2] van [quant,_3,item,items] wordt/worden weergegeven","File restoration failure: [_1]":"File restoration failure: [_1]","Incremental":"Incrementeel","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"Niet-gecomprimeerd"};
+    var newLex = {"Compressed":"Gecomprimeerd","Directory":"Directory","Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","File":"Bestand","Incremental":"Incrementeel","Symlink":"Symlink","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"Niet-gecomprimeerd","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

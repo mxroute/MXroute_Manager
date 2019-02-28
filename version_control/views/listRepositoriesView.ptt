@@ -93,7 +93,7 @@
                             [% locale.maketext('Repository Path') %]
                         </span>
                     </th>
-                    <th class="hidden-xs">
+                    <th class="action-column">
                         <!-- Place holder for create and bulk actions for later -->
                     </th>
                 </tr>
@@ -167,7 +167,7 @@
                             ng-bind="repo.repository_root" class="wordbreak display-inline-block">
                         </span>
                     </td>
-                    <td class="action-column hidden-xs"
+                    <td class="action-column"
                         ng-class="{showDeleteMode:repo.delete_requested}">
                         <button id="btnManage_{{repo.qaSafeSuffix}}"
                             class="btn btn-outline-primary btn-sm"
@@ -178,7 +178,7 @@
                             [% locale.maketext("Manage") %]
                         </button>
                         <button id="btnGitWebRedirect_{{repo.qaSafeSuffix}}"
-                            class="btn btn-outline-primary btn-sm"
+                            class="btn btn-outline-primary btn-sm hidden-xs"
                             title="[% locale.maketext('View the repository history in [asis,Gitweb].') %]"
                             ng-click="repositories.redirectToGitWeb(repo.gitWebURL, repo.name)"
                             ng-disabled="repo.cloneInProgress">
@@ -186,12 +186,12 @@
                             [% locale.maketext("History") %]
                         </button>
                         <button type="button" id="btnRepoDelete_{{repo.qaSafeSuffix}}"
-                            class="btn btn-outline-primary btn-sm"
+                            class="btn btn-outline-primary btn-sm hidden-xs"
                             title="[% locale.maketext('Delete the repository.') %]"
                             ng-click="repo.delete_requested = true"
                             ng-disabled="repo.delete_requested || repo.cloneInProgress">
                             <i class="fas fa-trash" aria-hidden="true"></i>
-                            [% locale.maketext("Delete") %]
+                            [% locale.maketext("Remove") %]
                         </button>
                     </td>
                 </tr>
@@ -238,7 +238,7 @@
 
                                 <div class="box col-xs-12 col-sm-6">
                                     <label>[% locale.maketext("Repository Path") %]</label>
-                                    <div id="repoRoot_{{repo.qaSafeSuffix}}"
+                                    <div id="repoRootExpanded_{{repo.qaSafeSuffix}}"
                                         class="info-spacing"
                                         ng-bind="repo.repository_root">
                                     </div>
@@ -253,7 +253,9 @@
                                 </div>
 
                                 <div class="box col-xs-12 col-sm-6" ng-if="repo.cloneURL">
-                                    <label for="repoEditCloneUrl">[% locale.maketext("Clone URL") %]</label>
+                                    <label for="repoEditCloneUrl_{{repo.qaSafeSuffix}}">
+                                        [% locale.maketext("Clone URL") %]
+                                    </label>
                                     <div class="input-group">
                                         <input
                                             name="repoEditCloneUrl"
@@ -281,7 +283,7 @@
                                         [% locale.maketext("Actions") %]
                                     </label>
                                     <div class="expand-actions">
-                                        <button id="btnManage_{{repo.qaSafeSuffix}}"
+                                        <button id="btnMobileManage_{{repo.qaSafeSuffix}}"
                                             class="btn btn-outline-primary btn-sm visible-xs-inline"
                                             title="[% locale.maketext('Manage the repository settings.') %]"
                                             ng-click="repositories.manageRepository(repo.repository_root)">
@@ -301,7 +303,7 @@
                                             ng-click="repo.delete_requested = true"
                                             ng-disabled="repo.delete_requested">
                                             <i class="fas fa-trash" aria-hidden="true"></i>
-                                            [% locale.maketext("Delete") %]
+                                            [% locale.maketext("Remove") %]
                                         </button>
                                     </div>
                                 </div>
@@ -318,17 +320,17 @@
                                         <div class="box">
                                             <span class="delete-message wordbreak" ng-bind="repositories.deleteText(repo)"></span>
                                             <p>
-                                                [% locale.maketext("All of the repository’s files will be [output,strong,permanently] deleted.") %]
+                                                [% locale.maketext("This action [output,strong,only] removes the repository from the list of [asis,cPanel]-managed repositories. The system will [output,strong,not] delete the files. To completely delete the repository, manually delete the files after you remove it from the list.") %]
                                             </p>
                                         </div>
                                         <div class="box">
                                             <button type="button" id="repoConfirmDelete_{{repo.qaSafeSuffix}}"
                                                 class="btn btn-primary btn-sm"
-                                                title="[% locale.maketext('Delete the repository.') %]"
+                                                title="[% locale.maketext('Remove the repository.') %]"
                                                 spinner-id="spinnerDelete_{{repo.qaSafeSuffix}}"
                                                 cp-action="repositories.delete(repo)">
                                                 <i class="fas fa-trash" aria-hidden="true"></i>
-                                                [% locale.maketext("Delete") %]
+                                                [% locale.maketext("Remove") %]
                                             </button>
                                             <button type="button" id="repoCancelDelete_{{repo.qaSafeSuffix}}"
                                                 class="btn btn-link"

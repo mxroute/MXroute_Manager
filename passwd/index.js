@@ -21,12 +21,13 @@ define(
         return function() {
 
             // First create the application
-            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
+            angular.module("App", ["ui.bootstrap", "cjt2.cpanel"]);
 
             // Then load the application dependencies
             var app = require(
                 [
                     "cjt/bootstrap",
+                    "cjt/directives/alertList",
                     "app/views/ExternalAuthController",
                     "app/services/ExternalAuthService",
                 ], function(BOOTSTRAP) {

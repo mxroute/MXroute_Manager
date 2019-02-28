@@ -41,6 +41,7 @@ END;
         </div>
     </div>
 [% ELSIF !(FORM.item('nocreate') == "1") %]
+    <script>YAHOO.util.Connect.asyncRequest( "POST", '[% cp_security_token %]/3rdparty/phpMyAdmin/clearcache.php', null, null);</script>
     <div class="alert alert-success" id="createDatabaseSuccess">
         <span class="glyphicon glyphicon-ok-sign"></span>
         <p>[% locale.maketext("You have created a [asis,MariaDB]/[asis,MySQL] database named “[_1]”.", full_db.html()) %]</p>

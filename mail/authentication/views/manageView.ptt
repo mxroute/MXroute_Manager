@@ -47,5 +47,4 @@
             </table>
         [% END %]
     </div>
-    <div growl></div>
 </div>

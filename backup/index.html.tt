@@ -18,7 +18,7 @@ IF CPANEL.feature("blockers");
     SET email_list_system_filter_info = Api2.exec("Email", "list_system_filter_info", {});
 END;
 
-IF CPANEL.ENV.CPRESELLERSESSION.defined;
+IF CPANEL.ENV.CPRESELLERSESSION.defined && CPANEL.feature("mysql");
     Api1.pre_exec("Mysql", "updateprivs");
     SET update_privs = Api1.exec("Mysql", "updateprivs", [undef]);
     Api1.post_exec("Mysql", "updateprivs");
@@ -31,6 +31,8 @@ Api1.post_exec("CpBackup", "listbackups");
 Api1.pre_exec("Cgi", "backuplink");
 SET backup_link = Api1.exec("Cgi", "backuplink", [undef]);
 Api1.post_exec("Cgi", "backuplink");
+
+SET user_under_quota = execute( 'Quota', 'get_quota_info' ).data.under_quota_overall;
 
 %]
 
@@ -61,7 +63,7 @@ Api1.post_exec("Cgi", "backuplink");
             </p>
             <p style="margin-bottom: 20px;">
                 <a class="btn btn-primary" id="btnFullBackup" href="fullbackup.html">
-                    [% locale.maketext("Download a Full Website Backup") %]
+                    [% locale.maketext("Download a Full Account Backup") %]
                 </a>
             </p>
         </div>
@@ -83,6 +85,7 @@ Api1.post_exec("Cgi", "backuplink");
                     </a>
                 </div>
                 <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    [% IF !user_under_quota %]<div class="alert alert-warning">[% locale.maketext("Restore is disabled because you are currently exceeding your disk quota.") %]</div>[% END %]
                     <h3 id="hdrRestoreHomeDir">[% locale.maketext("Restore a Home Directory Backup") %]</h3>
                     <form action="doupload.html" name="homeform" id="homeform" target="_blank" method="post" enctype="multipart/form-data">
                         <div class="form-group">
@@ -96,7 +99,7 @@ Api1.post_exec("Cgi", "backuplink");
                             </div>
                         </div>
                         <div class="form-group">
-                            <input id="file1-submit-button" class="btn btn-primary" type="submit"  value="[% locale.maketext("Upload") %]" />
+                            <input [% IF !user_under_quota %]disabled[% END %] id="file1-submit-button" class="btn btn-primary" type="submit"  value="[% locale.maketext("Upload") %]" />
                         </div>
                     </form>
                 </div>
@@ -138,7 +141,7 @@ Api1.post_exec("Cgi", "backuplink");
                             </div>
                         </div>
                         <div class="form-group">
-                            <input id="file2-submit-button" class="btn btn-primary" type="submit" value="[% locale.maketext("Upload") %]" />
+                            <input [% IF !user_under_quota %]disabled[% END %] id="file2-submit-button" class="btn btn-primary" type="submit" value="[% locale.maketext("Upload") %]" />
                         </div>
                     </form>
                 </div>
@@ -181,7 +184,7 @@ Api1.post_exec("Cgi", "backuplink");
                             </div>
                         </div>
                         <div class="form-group">
-                            <input id="file4-submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" />
+                            <input [% IF !user_under_quota %]disabled[% END %] id="file4-submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" />
                         </div>
                     </form>
                 </div>
@@ -226,7 +229,7 @@ Api1.post_exec("Cgi", "backuplink");
                             </div>
                         </div>
                         <div class="form-group">
-                            <input id="file3-submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" />
+                            <input [% IF !user_under_quota %]disabled[% END %] id="file3-submit-button" type="submit" class="btn btn-primary" value="[% locale.maketext("Upload") %]" />
                         </div>
                     </form>
                 </div>

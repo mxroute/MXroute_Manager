@@ -17,9 +17,10 @@ define(
         "cjt/util/parse",
         "cjt/util/table",
         "app/directives/passenger_validators",
-        "cjt/decorators/growlDecorator",
         "cjt/directives/toggleSwitchDirective",
         "cjt/directives/actionButtonDirective",
+        "cjt/directives/alertList",
+        "cjt/services/alertService",
         "cjt/services/viewNavigationApi",
         "cjt/directives/validationContainerDirective",
         "cjt/directives/validationItemDirective",
@@ -39,8 +40,26 @@ define(
 
         var controller = app.controller(
             "ConfigurationDetailsController",
-            ["$scope", "$q", "$routeParams", "growl", "viewNavigationApi", "Apps", "Domains", "$uibModal", "defaultInfo",
-                function($scope, $q, $routeParams, growl, viewNavigationApi, Apps, Domains, $uibModal, defaultInfo) {
+            [
+                "$scope",
+                "$q",
+                "$routeParams",
+                "viewNavigationApi",
+                "Apps",
+                "Domains",
+                "$uibModal",
+                "defaultInfo",
+                "alertService",
+                function(
+                    $scope,
+                    $q,
+                    $routeParams,
+                    viewNavigationApi,
+                    Apps,
+                    Domains,
+                    $uibModal,
+                    defaultInfo,
+                    alertService) {
                     var details = this;
 
                     details.is_loading = false;
@@ -61,7 +80,7 @@ define(
                         if (details.edit_mode) {
                             return LOCALE.maketext("Edit");
                         } else {
-                            return LOCALE.maketext("Add");
+                            return LOCALE.maketext("Register");
                         }
                     };
 
@@ -69,7 +88,7 @@ define(
                         if (details.edit_mode) {
                             return LOCALE.maketext("Edit Application “[_1]”", $routeParams.applname);
                         } else {
-                            return LOCALE.maketext("Add an Application");
+                            return LOCALE.maketext("Register an Application");
                         }
                     };
 
@@ -112,22 +131,48 @@ define(
                     details.save_edited_application = function() {
                         return Apps.update_application(details.application, details.previous_name)
                             .then(function() {
-                                growl.success(LOCALE.maketext("You successfully updated the application configuration for “[_1]”.", details.application.name));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("You successfully updated the application “[_1]”.", details.application.name),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "passenger"
+                                });
                                 details.goToView("manage");
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "passenger"
+                                });
                             });
                     };
 
                     details.save_new_application = function() {
                         return Apps.add_application(details.application)
                             .then(function() {
-                                growl.success(LOCALE.maketext("You successfully added the application configuration for “[_1]”.", details.application.name));
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("You successfully registered the application “[_1]”.", details.application.name),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "passenger"
+                                });
                                 details.goToView("manage", details.forceLoad);
                             })
                             .catch(function(error) {
-                                growl.error(error);
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "passenger"
+                                });
                             });
                     };
 

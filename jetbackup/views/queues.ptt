@@ -1,0 +1,96 @@
+<div ng-if="PERMS.canViewQueues == false">
+	<ng-include src="'views/permissionserror.ptt'"></ng-include>
+</div>
+<div ng-if="PERMS.canViewQueues">
+    <div id="QueueList" ng-controller="queues" class="section">
+      <table id="accounts_table" class="table table-striped-child responsive-table">
+        <thead>
+            <tr>
+                <th class="col-sm-1 col-md-1 col-lg-1">
+                    <span>{{ LOCALE.maketext("Type") }}</span>
+                </th>
+                <th class="col-sm-1 col-md-1 col-lg-1">
+                    <span>{{ LOCALE.maketext("Date") }}</span>
+                </th>
+                <th class="col-sm-1 col-md-1 col-lg-1">
+                    <span>{{ LOCALE.maketext("Target") }}</span>
+                </th>
+                <th class="col-sm-1 col-md-1 col-lg-1">
+                    <span>{{ LOCALE.maketext("Status") }}</span>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr ng-repeat="queue in queues track by $index" id="queue_row_{{$index}}">
+                <td data-title="{{ LOCALE.maketext('Type') }}">
+                    <span title="{{ queue.type_name }}">{{ queue.type_name }}</span>
+                </td>
+                <td data-title="{{ LOCALE.maketext('Date') }}">
+                    <span title="{{ UTILS.date(queue.created) }}">{{ UTILS.date(queue.created) }}</span>
+                </td>
+                <td data-title="{{ LOCALE.maketext('Target') }}">
+                    <span title="{{ queue.item_name ? queue.item_name : '-' }}">{{ queue.item_name ? queue.item_name : '-' }}</span>
+                </td>
+                <td data-title="{{ LOCALE.maketext('Status') }}">
+                    <span title="{{ queue.status_name }}">
+                        <i class="fas" ng-class="{ 'fa-check': queue.status == 100, 'fa-times': queue.status > 100, 'fa-cog fa-spin': queue.status < 100 }"></i>
+                        {{ queue.status_name }}
+                    </span>
+                </td>
+            </tr>
+            <tr ng-hide="!loadingQueue">
+                <td colspan="4">
+                    <cp-loading-panel>
+                        <span>{{ LOCALE.maketext("Loading Queue Items") }}</span>
+                    </cp-loading-panel>
+                </td>
+            </tr>
+            <tr ng-hide="queues.length > 0 || loadingQueue">
+                <td colspan="4">
+                    <span>{{ LOCALE.maketext("No Queue Items Found") }}</span>
+                </td>
+            </tr>
+        </tbody>
+      </table>
+        <div class="row hidden-md hidden-lg">
+            <div class="col-xs-12">
+                <p class="text-right" ng-hide="!meta.mobileItemCountText">{{ meta.mobileItemCountText }}</p>
+            </div>
+        </div>
+        <div class="row search-page-container visible-xs-block visible-sm-block hidden-md hidden-lg">
+            <div class="col-xs-12 col-sm-12">
+                <div class="pagination-container">
+                    <page-size id="backup_table_items_per_page_mobile"
+                        allowed-sizes="meta.pageSizes"
+                        total-items="meta.totalItems"
+                        ng-model="meta.pageSize"
+                        show-all="false"
+                        ng-show="showPager"
+                        ng-change="selectPageSize()">
+                    </page-size>
+                    <uib-pagination id="backup_table_paginate_mobile"
+                        total-items="meta.totalItems"
+                        ng-model="meta.currentPage"
+                        max-size="0"
+                        boundary-links="true"
+                        rotate="false"
+                        previous-text="<"
+                        next-text=">"
+                        first-text="<<"
+                        last-text=">>"
+                        items-per-page="meta.pageSize"
+                        ng-show="showPager"
+                        ng-change="selectPage()"
+                        class="pagination-small">
+                    </uib-pagination>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="return-link">
+        <a id="lnkReturn" href="" ng-click="changeView('/')">
+            <span class="glyphicon glyphicon-circle-arrow-left"></span>
+            {{ LOCALE.maketext("Go Back") }}
+        </a>
+    </div>
+</div>

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Quotas cannot exceed [format_bytes,_1].":"Quotas cannot exceed [format_bytes,_1]."};
+    var newLex = {"Quotas cannot exceed [format_bytes,_1].":"Las cuotas no pueden superar los [format_bytes,_1]."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

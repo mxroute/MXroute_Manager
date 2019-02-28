@@ -33,6 +33,8 @@ WRAPPER '_assets/master.html.tt'
         <p id="descDns" class="description">
             [% locale.maketext("DNS converts domain names into computer-readable IP addresses. DNS zone files configure domain names to the correct IP addresses. This feature allows you to create and edit these zone files. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/zoneeditor", "_blank", "lnkZoneEditorDocumentation") %]
         </p>
+        <!-- NOTE: leave the alert-group in single quotes -->
+        <cp-alert-list alert-group="'zoneEditor'"></cp-alert-list>
         <div id="viewContent"
              class="ng-cloak section"
              ng-view
@@ -49,8 +51,6 @@ WRAPPER '_assets/master.html.tt'
     </script>
 
     [% PROCESS '_assets/cjt2_header_include.tt' %]
-
-    <div growl></div>
 
     <script id="zone_editor/views/domain_selection.ptt" type="text/ng-template">
         [% PROCESS "zone_editor/views/domain_selection.ptt" %]

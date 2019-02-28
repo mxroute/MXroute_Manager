@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"An error occurred while processing your request.":"An error occurred while processing your request."};
+    var newLex = {"An error occurred while processing your request.":"Se produjo un error al procesar su solicitud."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

@@ -163,10 +163,12 @@
     [% END -%]
     <!-- UI INCLUDES GLOBAL FOOTER END -->
 
-    [%- IF CPANEL.ENV.DNT.substr(0, 1) != '1' -%]
-    [% IF UI_Includes.can_load_template( 'cp_analytics_cpanel.html.tt' ) -%]
-        <div id="cp-analytics-cpanel">[% UI_Includes.load_template( 'cp_analytics_cpanel.html.tt' ); %]</div>
-    [% END -%]
+    [%- # NOTE: Analytics UI includes are disabled by default and are strictly opt-in only.
+
+        IF CPANEL.analytics_ui_includes_are_enabled()
+        && CPANEL.ENV.DNT.substr(0, 1) != '1'
+        && UI_Includes.can_load_template( 'cp_analytics_cpanel.html.tt' ) -%]
+        <div id="cp-analytics-cpanel">[% UI_Includes.load_template( 'cp_analytics_cpanel.html.tt', {"page_identifier" => analytics_page_identifier} ); %]</div>
     [%- END -%]
 
     <div class="container">

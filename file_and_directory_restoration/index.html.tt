@@ -3,6 +3,7 @@ USE Uapi;
 
 # Declare the root directory
 SET CPANEL.CPVAR.dprefix = "../";
+SET homeDir = CPANEL.homedir;
 
 WRAPPER '_assets/master.html.tt'
     app_key = 'file_and_directory_restoration'
@@ -10,7 +11,7 @@ WRAPPER '_assets/master.html.tt'
     include_legacy_scripts = 0
     use_master_bootstrap = 0
     include_cjt = 0
-    feature = 'filerestoration'
+    feature = 'filerestoration',
     page_stylesheets = CPANEL.is_debug_mode_enabled() ?
         [ "file_and_directory_restoration/index.css" ] :
         [ "file_and_directory_restoration/index.min.css" ];
@@ -28,4 +29,10 @@ WRAPPER '_assets/master.html.tt'
 </div>
 
 [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+<script type="text/javascript">
+    var PAGE = PAGE || {};
+    PAGE.homeDir = "[% homeDir %]";
+</script>
+
 [% END -%]

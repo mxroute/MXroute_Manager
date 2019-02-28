@@ -1,0 +1,30 @@
+@import (reference) "css/base.less";
+@import "css/ux-styles.less";
+
+@page-selector: ~"#email_deliverability";
+
+@import "shared/css/email_deliverability.less";
+
+html[data-style="dark"] @{page-selector} {
+    .table > tbody > tr.warning > td .panel {
+        color: rgb(215, 215, 215);
+    }
+
+    .copy-field-directive {
+        .form-control,
+        .form-control:focus {
+            color: #000;
+        }
+    }
+
+    .alert .alert-message {
+        table-layout: fixed;
+        width: 95%;
+    }
+
+    .record-status-directive {
+        font-weight: normal;
+        font-size: 12px;
+        text-transform: none;
+    }
+}

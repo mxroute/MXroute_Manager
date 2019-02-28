@@ -1,0 +1,263 @@
+<div class="section">
+    <div class="row">
+        <div class="col-xs-12 col-sm-12 col-md-8 col-lg-8">
+             <callout callout-type="warning" role="alert" callout-heading="[% locale.maketext("Warning: Maximum Number of Domains Reached") %]" ng-if="!canCreateDomains()">
+                <p>[% locale.maketext('You have reached the maximum number of alias, addon, and subdomains that you can create.') %]</p>
+                <div class="row">
+                    <div class="col-xs-6">
+                        <a
+                            ng-href="{{ upgradeUrl }}"
+                            ng-if="upgradeUrl"
+                            type="submit"
+                            class="btn btn-primary">
+                                [% locale.maketext('Upgrade Your Account') %]
+                        </a>
+                    </div>
+                    <div class="col-xs-6">
+                        <a
+                            href="#/"
+                            class="btn btnlink pull-right">
+                                <i class="fas fa-reply" aria-hidden="true"></i>
+                                [% locale.maketext('Return to Domains') %]
+                        </a>
+                    </div>
+                </div>
+             </callout>
+             <div class="panel panel-default" ng-if="canCreateDomains()">
+                <div class="panel-heading">
+                    [% locale.maketext('Create a New Domain') %]
+                </div>
+                <div class="panel-body">
+                     <form class="form layout-medium" name="createDomainForm" id="createDomainForm">
+                        <!-- New Domain Name -->
+                        <div class="form-group animate-show-hide animate-show-hide-slide">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                         for="newDomainName"
+                                         label-text="[% locale.maketext('Domain') %]"
+                                         label-id="newDomainNameLabel"
+                                         info-icon-id="iconnewDomainName"
+                                         info-block-id="infoBlocknewDomainName"
+                                         show-info-block="true">
+                                            [% locale.maketext('Enter the domain that you would like to create:') %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div ng-class="getFormFieldClasses(createDomainForm.newDomainName)">
+                                    <input
+                                        id="newDomainName"
+                                        name="newDomainName"
+                                        autofocus
+                                        ng-model="newDomain.newDomainName"
+                                        autocapitalize="off"
+                                        wildcard-fqdn
+                                        domain-is-unique
+                                        ng-model-options="{ debounce: 250 }"
+                                        ng-change="onUpdateNewDomainName()"
+                                        required
+                                        type="text"
+                                        placeholder="my.example.com"
+                                        class="form-control" />
+
+                                    <div class="animate-show-hide animate-show-hide-slide" ng-if="suggestedDomains.length">
+                                        <ul class="list-group domain-suggestion-list-group">
+                                          <li class="list-group-item" ng-repeat="suggestedDomain in suggestedDomains">
+                                            <a href class="btn" ng-click="suggestedDomain.use()">
+                                               [% locale.maketext('Did you mean “[_1]”?', "{{suggestedDomain.domain}}") %]
+                                            </a>
+                                          </li>
+                                          <li class="list-group-item" ng-if="!newDomain.isWildcard">
+                                            <a href class="btn" ng-click="clearSuggestedDomains()">
+                                               <em>[% locale.maketext('Just use “[_1]”.', "{{newDomain.newDomainName}}") %]</em>
+                                            </a>
+                                          </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-xs-12 col-md-6">
+                                    <ul validation-container field-name="newDomainName">
+                                        <li validation-item field-name="newDomainName" validation-name="required" >
+                                            [% locale.maketext('The Domain field is required') %]
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="row" ng-if="!canCreateDomainType(DOMAIN_TYPE_CONSTANTS.ADDON) && newDomain.domainType == DOMAIN_TYPE_CONSTANTS.ADDON">
+                                <div class="col-xs-12">
+                                    <callout callout-type="danger" role="alert" callout-heading="[% locale.maketext('Error:') %]">
+                                        <span ng-if="!newDomain.isWildcard">
+                                            [% locale.maketext('You can only create subdomains on domains that exist on this account.') %]
+                                        </span>
+                                        <span ng-if="newDomain.isWildcard">
+                                            [% locale.maketext('You cannot create a wildcard addon domain.') %]
+                                            [% locale.maketext("You must create a subdomain on an existing domain instead.") %]
+                                        </span>
+
+                                        <a href="#/" target="_blank" class="btn btn-link">
+                                            [% locale.maketext('View Existing Domains') %]
+                                            <i class="fas fa-external-link-alt" aria-hidden="true"></i>
+                                        </a>
+                                    </callout>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- / New Domain Name -->
+
+                        <!-- Create Document Root -->
+                        <div class="form-group animate-show-hide animate-show-hide-slide" ng-if="!mustInheritDocumentRoot">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label for="inheritDocumentRootSet">
+                                        [% locale.maketext('Document Root (File System Location)') %]
+                                    </label>
+                                    <div class="checkbox">
+                                        <label for="inheritDocumentRoot" ng-class="{'text-muted':inheritDocRootSelectionDisabled()}">
+                                            <input
+                                                type="checkbox"
+                                                id="inheritDocumentRoot"
+                                                name="inheritDocumentRoot"
+                                                ng-change="onToggleInheritDocumentRoot()"
+                                                ng-disabled="inheritDocRootSelectionDisabled()"
+                                                ng-model="newDomain.inheritDocumentRoot" />
+                                            [% locale.maketext('Share document root ([_1]) with “[_2]”.', "{{ mainDomain.documentRoot }}", "{{mainDomain.domain}}") %]
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row" ng-if="!newDomain.inheritDocumentRoot">
+                                <div ng-class="getFormFieldClasses(createDomainForm.documentRoot)">
+                                    <div class="input-group">
+                                        <span class="input-group-addon" title="{{ mainDomain.homedir }}/public_html/">
+                                            <span class="fas fa-home"></span>
+                                            <span ng-if="requirePublicHTMLSubs">/public_html/</span>
+                                        </span>
+                                        <input
+                                            id="documentRoot"
+                                            name="documentRoot"
+                                            ng-pattern='documentRootPattern'
+                                            ng-model="newDomain.documentRoot"
+                                            autocapitalize="off"
+                                            ng-change="onDocumentRootUpdated()"
+                                            required
+                                            type="text"
+                                            class="form-control" />
+                                    </div>
+                                    <span class="help-block">[% locale.maketext('Specify the directory where you want the files for this domain to exist.') %]</span>
+                                </div>
+                                <div class="col-xs-12 col-md-6">
+                                    <ul validation-container field-name="documentRoot">
+                                        <li validation-item field-name="documentRoot" validation-name="required" >
+                                            [% locale.maketext('The Document Root field is required') %]
+                                        </li>
+                                        <li validation-item field-name="documentRoot" validation-name="pattern" >
+                                            [% locale.maketext('Directory paths cannot be empty, contain spaces, or contain the following characters: [output,chr,92] ? % * : | [output,quot] [output,gt] [output,lt]') %]
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- / Create Document Root -->
+
+                        <!-- subdomain -->
+                        <div class="form-group animate-show-hide animate-show-hide-slide"
+                            ng-if="newDomain.domainType == DOMAIN_TYPE_CONSTANTS.ADDON && canCreateDomainType(DOMAIN_TYPE_CONSTANTS.ADDON)" >
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                         for="subDomainPart"
+                                         label-text="[% locale.maketext('Subdomain') %]"
+                                         label-id="subDomainPartLabel"
+                                         info-icon-id="iconsubDomainPart"
+                                         info-block-id="infoBlocksubDomainPart"
+                                         show-info-block="true">
+                                            [% locale.maketext('An addon domain requires a subdomain in order to use a separate document root.') %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div ng-class="getFormFieldClasses(createDomainForm.subDomainPart)">
+                                    <div class="input-group">
+                                        <input
+                                            id="subDomainPart"
+                                            name="subDomainPart"
+                                            ng-model="newDomain.subdomain"
+                                            autocapitalize="off"
+                                            valid-subdomain
+                                            not-reserved-subdomain
+                                            required
+                                            ng-maxlength="253 - newDomain.domain.length"
+                                            type="text"
+                                            placeholder="subdomain"
+                                            class="form-control" />
+                                        <span class="input-group-addon">
+                                            .{{ newDomain.domain }}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="col-xs-12 col-md-6">
+                                    <ul validation-container field-name="subDomainPart">
+                                        <li validation-item field-name="subDomainPart" validation-name="required" >
+                                            [% locale.maketext('The Subdomain field is required') %]
+                                        </li>
+                                        <li validation-item field-name="subDomainPart" validation-name="maxlength" >
+                                            [% locale.maketext('The combined length of the subdomain and root domain cannot exceed 254 characters.') %]
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- / subdomain -->
+
+                        <!-- submit -->
+                        <div class="form-group submit-form-group">
+                            <div class="row">
+                                <div class="col-xs-12 col-md-8">
+                                    <button
+                                        type="submit"
+                                        class="btn btn-primary"
+                                        ng-disabled="submittingForm || !createDomainForm.$valid"
+                                        cp-action="createDomain(createDomainForm, newDomain, false)">
+                                            [% locale.maketext('Submit') %]
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        class="btn btn-default"
+                                        ng-disabled="submittingForm || !createDomainForm.$valid"
+                                        cp-action="createDomain(createDomainForm, newDomain, true)">
+                                            [% locale.maketext('Submit and Create Another') %]
+                                    </button>
+                                </div>
+                                <div class="col-xs-12 col-md-4 return-to-list-link">
+                                    <a
+                                        href="#/"
+                                        class="btn btnlink">
+                                            <i class="fas fa-reply" aria-hidden="true"></i>
+                                            [% locale.maketext('Return to Domains') %]
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- / submit -->
+
+                        <!-- creation delayed message -->
+                        <div class="form-group animate-show-hide" ng-if="creationDelayed">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <callout callout-type="info" role="alert">
+                                        <p>
+                                            [% locale.maketext('It can take a moment to create a new domain.') %]
+                                            [% locale.maketext('This occurs on accounts with a large number of domains.') %]
+                                        </p>
+                                    </callout>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- / creation delayed message -->
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

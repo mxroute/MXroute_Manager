@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"The system failed to create the “[_1]” user with the following error: [_2]":"The system failed to create the “[_1]” user with the following error: [_2]","You successfully created the following user: [_1]":"You successfully created the following user: [_1]"};
+    var newLex = {"The system failed to create the “[_1]” user with the following error: [_2]":"El sistema no pudo crear el usuario “[_1]” debido al siguiente error: [_2]","You successfully created the following user: [_1]":"Creó el usuario siguiente correctamente: [_1]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

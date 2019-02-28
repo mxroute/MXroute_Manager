@@ -13,7 +13,9 @@ define(
         "cjt/util/locale",
         "lodash",
         "uiBootstrap",
-        "cjt/decorators/growlDecorator",
+        "cjt/services/alertService",
+        "cjt/directives/alert",
+        "cjt/directives/alertList",
         "app/services/configService",
         "app/views/impactedDomainsPopup"
     ],
@@ -25,8 +27,8 @@ define(
 
         var controller = app.controller(
             "config",
-            ["$scope", "configService", "$uibModal", "$timeout", "alertService", "growl", "growlMessages",
-                function($scope, configService, $uibModal, $timeout, alertService, growl, growlMessages) {
+            ["$scope", "configService", "$uibModal", "$timeout", "alertService",
+                function($scope, configService, $uibModal, $timeout, alertService) {
 
                 // Setup data structures for the view
                     $scope.loadingVhostList = false;
@@ -170,7 +172,13 @@ define(
                                     }
                                 },
                                 function(error) {
-                                    growl.error(error);
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "multiphpManager"
+                                    });
                                 }).finally(function() {
                                     vhostInfo.impactedDomains.loading = false;
                                 });
@@ -256,99 +264,28 @@ define(
                         $scope.restrictedPhp.showAlert = false;
                     };
 
-                    // Apply the new PHP version setting of a selected user
-                    $scope.performApplyDomainPhp = function() {
+                    var setDomainPhpDropdown = function(versionList) {
 
-                        // Destroy all growls and alerts before attempting to submit something.
-                        growlMessages.destroyAllMessages();
-                        alertService.clear();
+                        // versionList is sent to the function when the
+                        // dropdown is bound the first time.
+                        if (typeof versionList !== "undefined") {
+                            $scope.phpVersions = versionList;
 
-                        // hide restricted php warning
-                        if ($scope.restrictedPhp.showAlert) {
-                            $scope.restrictedPhp.showAlert = false;
+                            // Cannot show "inherit" in the dropdown if system default itself doesn't exist.
+                            if (typeof $scope.systemPhp !== "undefined" && $scope.systemPhp !== "") {
+
+                                // A new entry 'inherit' will be added to PHP version list. It allows domains
+                                // to reset back to 'inherit' value.
+                                $scope.phpVersions.push({ version: "inherit", displayPhpVersion: "inherit" });
+                            }
                         }
 
-                        return configService.applyDomainSetting($scope.selectedVersion.version, selectedVhostList)
-                            .then(
-                                function(data) {
-                                    if (typeof data !== "undefined") {
-                                        growl.success(LOCALE.maketext("Successfully applied [asis,PHP] version “[_1]” to the selected [numerate,_2,domain,domains].",
-                                            $scope.selectedVersion.displayPhpVersion, selectedVhostList.length));
-                                        $scope.selectPage();
-                                    }
-                                }, function(response) {
-                                    if (typeof (response.raw) !== "undefined") {
-                                        var errors = response.raw.errors;
-
-                                        // ::TODO:: Should scroll to the error alert when
-                                        // multiple errors occur.
-                                        if (errors.length > 0) {
-                                            var successfulDomains = response.data.vhosts;
-                                            errors.forEach(function(error) {
-                                                alertService.add({
-                                                    type: "danger",
-                                                    message: error,
-                                                    id: "alertMessages",
-                                                    replace: false,
-                                                    closeable: true
-                                                });
-                                            });
-
-                                            var secondPartOfErrorMsg = LOCALE.maketext("For more information, check the error message at the top of the page.");
-                                            if (successfulDomains.length <= 0) {
-                                                var errorMsg = LOCALE.maketext("Failed to apply [asis,PHP] version “[_1]” to the selected [numerate,_2,domain,domains].",
-                                                    $scope.selectedVersion.displayPhpVersion,
-                                                    errors.length) +
-                                                            " " +
-                                                            secondPartOfErrorMsg;
-                                                growl.error(errorMsg);
-                                                return;
-                                            }
-
-                                            growl.success(LOCALE.maketext("Successfully applied [asis,PHP] version “[_1]” to [numerate,_2,a domain,some domains].",
-                                                $scope.selectedVersion.displayPhpVersion,
-                                                successfulDomains.length));
-                                            var msg = LOCALE.maketext("Failed to apply [asis,PHP] version “[_1]” to [numerate,_2,a domain,some domains].",
-                                                $scope.selectedVersion.displayPhpVersion,
-                                                errors.length) +
-                                                    " " +
-                                                    secondPartOfErrorMsg;
-                                            growl.error(msg);
-                                        }
-                                    } else {
-                                        growl.error(response.error);
-                                    }
-                                }).finally(function() {
-                                resetForm();
-                            });
-                    };
-
-                    $scope.applyDomainPhp = function() {
-                        if ($scope.restrictedPhp.domainsSelected.length > 0) {
-                            updatePhpAlert();
+                        if ($scope.phpVersions.length > 0) {
+                            $scope.selectedVersion = $scope.phpVersions[0];
+                            $scope.phpVersionsEmpty = false;
                         } else {
-                            $scope.performApplyDomainPhp();
+                            $scope.phpVersionsEmpty = true;
                         }
-                    };
-
-                    /**
-                 * Fetch the list of vhosts for the user account with their default PHP versions.
-                 * @return {Promise} Promise that when fulfilled will result in the list being loaded with the account's vhost list.
-                 */
-                    var fetchVhostList = function() {
-                        $scope.loadingVhostList = true;
-                        return configService
-                            .fetchList($scope.meta)
-                            .then(function(results) {
-                                applyListToTable(results);
-                            }, function(error) {
-
-                            // failure
-                                growl.error(error);
-                            })
-                            .then(function() {
-                                $scope.loadingVhostList = false;
-                            });
                     };
 
                     var resetForm = function() {
@@ -365,42 +302,80 @@ define(
                         $scope.vhostSelected = false;
                     };
 
-                    var setDomainPhpDropdown = function(versionList) {
+                    // Apply the new PHP version setting of a selected user
+                    $scope.performApplyDomainPhp = function() {
 
-                    // versionList is sent to the function when the
-                    // dropdown is bound the first time.
-                        if (typeof versionList !== "undefined") {
-                            $scope.phpVersions = versionList;
+                        alertService.clear();
 
-                            // Cannot show "inherit" in the dropdown if system default itself doesn't exist.
-                            if (typeof $scope.systemPhp !== "undefined" && $scope.systemPhp !== "") {
-
-                            // A new entry 'inherit' will be added to PHP version list. It allows domains
-                            // to reset back to 'inherit' value.
-                                $scope.phpVersions.push({ version: "inherit", displayPhpVersion: "inherit" });
-                            }
+                        // hide restricted php warning
+                        if ($scope.restrictedPhp.showAlert) {
+                            $scope.restrictedPhp.showAlert = false;
                         }
 
-                        if ($scope.phpVersions.length > 0) {
-                            $scope.selectedVersion = $scope.phpVersions[0];
-                            $scope.phpVersionsEmpty = false;
-                        } else {
-                            $scope.phpVersionsEmpty = true;
-                        }
+                        return configService.applyDomainSetting($scope.selectedVersion.version, selectedVhostList)
+                            .then(
+                                function(data) {
+                                    if (typeof data !== "undefined") {
+                                        alertService.add({
+                                            type: "success",
+                                            message: LOCALE.maketext("Successfully applied [asis,PHP] version “[_1]” to the selected [numerate,_2,domain,domains].", $scope.selectedVersion.displayPhpVersion, selectedVhostList.length),
+                                            closeable: true,
+                                            replace: false,
+                                            autoClose: 10000,
+                                            group: "multiphpManager"
+                                        });
+                                        $scope.selectPage();
+                                    }
+                                }, function(response) {
+                                    if (typeof (response.raw) !== "undefined") {
+                                        var errors = response.raw.errors;
+
+                                        // ::TODO:: Should scroll to the error alert when
+                                        // multiple errors occur.
+                                        if (errors.length > 0) {
+                                            var successfulDomains = [];
+                                            if (response.data && response.data.vhosts) {
+                                                successfulDomains = response.data.vhosts;
+                                            }
+                                            errors.forEach(function(error) {
+                                                alertService.add({
+                                                    type: "danger",
+                                                    message: error,
+                                                    closeable: true,
+                                                    replace: false,
+                                                    group: "multiphpManager"
+                                                });
+                                            });
+
+                                            alertService.add({
+                                                type: "success",
+                                                message: LOCALE.maketext("Successfully applied [asis,PHP] version “[_1]” to [numerate,_2,a domain,some domains].", $scope.selectedVersion.displayPhpVersion, successfulDomains.length),
+                                                closeable: true,
+                                                replace: false,
+                                                autoClose: 10000,
+                                                group: "multiphpManager"
+                                            });
+                                        }
+                                    } else {
+                                        alertService.add({
+                                            type: "danger",
+                                            message: response.error,
+                                            closeable: true,
+                                            replace: false,
+                                            group: "multiphpManager"
+                                        });
+                                    }
+                                }).finally(function() {
+                                resetForm();
+                            });
                     };
 
-                    /**
-                 * Select a specific page
-                 * @param  {Number} page Page number
-                 */
-                    $scope.selectPage = function(page) {
-
-                    // set the page if requested.
-                        if (page && angular.isNumber(page)) {
-                            $scope.meta.currentPage = page;
+                    $scope.applyDomainPhp = function() {
+                        if ($scope.restrictedPhp.domainsSelected.length > 0) {
+                            updatePhpAlert();
+                        } else {
+                            $scope.performApplyDomainPhp();
                         }
-
-                        return fetchVhostList();
                     };
 
                     var applyListToTable = function(resultList) {
@@ -489,10 +464,48 @@ define(
                         $scope.allRowsSelected = (filteredList.length > 0) && (countNonSelected === 0);
                     };
 
+                    /**
+                     * Fetch the list of vhosts for the user account with their default PHP versions.
+                     * @return {Promise} Promise that when fulfilled will result in the list being loaded with the account's vhost list.
+                     */
+                    var fetchVhostList = function() {
+                        $scope.loadingVhostList = true;
+                        return configService
+                            .fetchList($scope.meta)
+                            .then(function(results) {
+                                applyListToTable(results);
+                            }, function(error) {
+
+                                // failure
+                                alertService.add({
+                                    type: "danger",
+                                    message: error,
+                                    closeable: true,
+                                    replace: false,
+                                    group: "multiphpManager"
+                                });
+                            })
+                            .then(function() {
+                                $scope.loadingVhostList = false;
+                            });
+                    };
+
+                    /**
+                     * Select a specific page
+                     * @param  {Number} page Page number
+                     */
+                    $scope.selectPage = function(page) {
+
+                        // set the page if requested.
+                        if (page && angular.isNumber(page)) {
+                            $scope.meta.currentPage = page;
+                        }
+
+                        return fetchVhostList();
+                    };
+
                     $scope.$on("$viewContentLoaded", function() {
 
-                    // Destroy all growls and alerts before attempting to submit something.
-                        growlMessages.destroyAllMessages();
                         alertService.clear();
 
                         // add php user friendly version
@@ -509,7 +522,13 @@ define(
                             var results = configService.prepareList(PAGE.vhostListData);
                             applyListToTable(results);
                         } else {
-                            growl.error(PAGE.vhostListData.errors[0]);
+                            alertService.add({
+                                type: "danger",
+                                message: PAGE.vhostListData.errors[0],
+                                closeable: true,
+                                replace: false,
+                                group: "multiphpManager"
+                            });
                         }
 
                         // Load system PHP version.
@@ -520,14 +539,26 @@ define(
                             };
 
                         } else {
-                            growl.error(PAGE.systemPHPData.errors[0]);
+                            alertService.add({
+                                type: "danger",
+                                message: PAGE.systemPHPData.errors[0],
+                                closeable: true,
+                                replace: false,
+                                group: "multiphpManager"
+                            });
                         }
 
                         // Load the installed PHP versions.
                         if (PAGE.versionListData.status) {
                             setDomainPhpDropdown(PAGE.versionListData.data.versions );
                         } else {
-                            growl.error(PAGE.versionListData.errors[0]);
+                            alertService.add({
+                                type: "danger",
+                                message: PAGE.versionListData.errors[0],
+                                closeable: true,
+                                replace: false,
+                                group: "multiphpManager"
+                            });
                         }
                     });
                 }

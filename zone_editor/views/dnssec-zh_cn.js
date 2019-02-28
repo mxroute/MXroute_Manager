@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"This feature is not available to your account.":"This feature is not available to your account.","[quant,_1,bit,bits]":"[quant,_1,bit,bits]"};
+    var newLex = {"This feature is not available to your account.":"您的帐户无法使用该功能。","[quant,_1,bit,bits]":"[quant,_1,位,位]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

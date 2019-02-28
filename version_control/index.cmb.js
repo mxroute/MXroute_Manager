@@ -1669,6 +1669,16 @@ define(
                 * @return {String} Returns a human readable DateTime string.
                 */
                 function getHumanReadableTime(epochTime) {
+                    if (!epochTime) {
+                        return LOCALE.maketext("Not available.");
+                    } else if (typeof epochTime !== "number") {
+                        epochTime = Number(epochTime);
+                        if ( isNaN(epochTime) ) {
+                            return LOCALE.maketext("Not available.");
+                        }
+                    }
+
+                    epochTime = Math.floor(epochTime);
                     return LOCALE.local_datetime(epochTime, "datetime_format_medium");
                 }
 
@@ -1810,7 +1820,7 @@ define(
                                     if (repository && repository.length > 0) {
                                         return $q.resolve(repository[0]);
                                     } else {
-                                        throw new Error(LOCALE.maketext("Repository “[_1]” could not be found.", repositoryPath));
+                                        return $q.reject(LOCALE.maketext("The system could not find the “[_1]” repository.", repositoryPath));
                                     }
 
                                 } catch (err) {
@@ -2021,9 +2031,11 @@ define(
 
 define('app/services/sseAPIService',[
     "angular",
-    "lodash"
+    "cjt/core",
+    "lodash",
 ], function(
         angular,
+        CJT,
         _
     ) {
     "use strict";
@@ -2196,7 +2208,7 @@ define('app/services/sseAPIService',[
                 // https://developer.microsoft.com/en-us/microsoft-edge/platform/status/serversenteventseventsource/
                 if (!window.EventSource) {
                     var script = document.createElement("script");
-                    script.src = "/libraries/eventsource-polyfill/eventsource.js";
+                    script.src = CJT.buildFullPath("libraries/eventsource-polyfill/eventsource.js");
                     script.onload = function() {
                         if (ready) {
                             ready();
@@ -2712,23 +2724,29 @@ define(
                      */
                     repositories.delete = function(repo) {
                         repo.removing = true;
+                        var successMessage;
+                        if (repositories.hasFilemanagerAccess) {
+                            successMessage = LOCALE.maketext("The system successfully removed the “[_1]” repository from the list of [asis,cPanel]-managed repositories. You can use the [output,url,_2,File Manager,target,_3] interface to delete the repository contents.", repo.name, repo.fileManagerRedirectURL, "file-manager");
+                        } else {
+                            successMessage = LOCALE.maketext("The system successfully removed the “[_1]” repository from the list of [asis,cPanel]-managed repositories.", repo.name);
+                        }
                         return versionControlService.deleteRepository(repo.repository_root)
                             .then(function() {
                                 table.remove(repo);
                                 repositories.render();
                                 alertService.add({
                                     type: "success",
-                                    message: LOCALE.maketext("The system successfully deleted the “[_1]” repository in the “[_2]” directory.", repo.name, repo.repository_root),
+                                    message: successMessage,
                                     closeable: true,
                                     replace: false,
-                                    autoClose: 10000,
+                                    autoClose: false,
                                     group: "versionControl"
                                 });
 
                             }, function(error) {
                                 alertService.add({
                                     type: "danger",
-                                    message: LOCALE.maketext("The system could not delete the “[_1]” repository in the “[_2]” directory.", repo.name, repo.repository_root),
+                                    message: LOCALE.maketext("The system could not remove the “[_1]” repository in the “[_2]” directory.", repo.name, repo.repository_root),
                                     closeable: true,
                                     replace: false,
                                     group: "versionControl"
@@ -2746,7 +2764,7 @@ define(
                      * @return {String} Returns a dynamic string as a message to the user, that cooresponds to the exact repository within the delete action-scope, to inform/ask the user if they are certain that they would like to permanatly delete a repository from their cPanel instance/account/system.
                      */
                     repositories.deleteText = function(repo) {
-                        return LOCALE.maketext("Are you sure that you want to delete the “[_1]” repository?", repo.name);
+                        return LOCALE.maketext("Are you sure that you want to remove the “[_1]” repository from the list of [asis,cPanel]-managed repositories?", repo.name);
                     };
 
                     /**
@@ -2797,6 +2815,8 @@ define(
                                         _.assign(repo, response);
                                     }
 
+                                    // Use assign to update the source object in-place
+                                    _.assign(repo, response);
                                 }, function(error) {
 
                                     alertService.add({
@@ -2823,6 +2843,369 @@ define(
         return controller;
     }
 );
+
+/*
+ * version_control/utils/cloneUrlParser.js         Copyright(c) 2018 cPanel, Inc.
+ *                                                           All rights Reserved.
+ * copyright@cpanel.net                                         http://cpanel.net
+ * This code is subject to the cPanel license. Unauthorized copying is prohibited
+ */
+
+/* eslint-env amd */
+
+define('app/utils/cloneUrlParser',[],function() {
+    "use strict";
+
+    function parseCloneUrl(cloneUrl) {
+
+        var parts = {};
+
+        if (!cloneUrl) {
+            return parts;
+        }
+
+        parts.scheme = parseUrlParts(cloneUrl.match(/^\S+:\/\//i));
+        parts.userInfo = parseUrlParts(cloneUrl.match(/^\S+@/i));
+        parts.ipv6Authority = parseUrlParts(cloneUrl.match(/^\[\S+\]/i));
+        if (parts.ipv6Authority) {
+            parts.ipv6Authority = parts.ipv6Authority.replace(/(\[|\])/gi, "");
+        }
+        parts.authority = ( parts.ipv6Authority === null ) ? parseUrlParts(cloneUrl.split(/((:\d+\/)|(\/|:))/i)) : null;
+        parts.port = parseUrlParts(cloneUrl.match(/^:(\d+)/i), 1); // Parse out the port if it exists.
+        parts.path = parseUrlParts(cloneUrl.match(/^\S+/i));
+        parts.unparsed = cloneUrl;
+
+        function parseUrlParts(matches, returnIndex) {
+            returnIndex = returnIndex || 0;
+            if ( matches !== null && matches.length > 0 ) {
+                cloneUrl = cloneUrl.replace(matches[0], "");
+                return matches[returnIndex];
+            }
+            return null;
+        }
+
+        return parts;
+    }
+
+    return {
+        parse: parseCloneUrl,
+    };
+
+});
+
+/*
+ * version_control/services/knownHostsService.js      Copyright 2018 cPanel, Inc.
+ *                                                           All rights Reserved.
+ * copyright@cpanel.net                                         http://cpanel.net
+ * This code is subject to the cPanel license. Unauthorized copying is prohibited
+ */
+
+/* eslint-env amd */
+/* global PAGE: false */
+define(
+    'app/services/knownHostsService',[
+        "angular",
+        "cjt/util/locale",
+        "cjt/util/parse",
+        "cjt/io/uapi-request",
+        "cjt/io/uapi",
+        "cjt/services/APIService",
+    ],
+    function(angular, LOCALE, PARSE, UAPIREQUEST) {
+        "use strict";
+
+        var app = angular.module("cpanel.versionControl.knownHostsService", ["cjt2.services.api"]);
+        app.value("PAGE", PAGE); // TODO: Consolidate this higher up
+
+        app.factory("knownHostsService", [
+            "$q",
+            "APIService",
+            "$filter",
+            "PAGE",
+            "$timeout",
+            "$rootScope",
+            function($q, APIService, $filter, PAGE, $timeout, $rootScope) {
+
+                var KnownHostsService = function() {};
+                KnownHostsService.prototype = new APIService();
+
+                angular.extend(KnownHostsService.prototype, {
+
+                    /**
+                     * Checks whether the current keys for a given hostname/port combination
+                     * are in the known_hosts file. This is helpful to use before cloning or
+                     * pulling, since the errors provided by those APIs are not very clear
+                     * when keys are missing or mismatched.
+                     *
+                     * The known_hosts file differentiates by port, so that is why we need to
+                     * provide the port.
+                     *
+                     * @param  {String} hostname      The hostname to check
+                     * @param  {Number|String} port   The port to check
+                     * @return {Promise}              If resolved, then the keys already exists in
+                     *                                the known_hosts file. If rejected, then the keys
+                     *                                don't exist in the known_hosts file. In most cases
+                     *                                the object provided to the promise callback will
+                     *                                contain a 'keys' property containing the current
+                     *                                keys for the server.
+                     */
+                    verify: function(hostname, port) {
+                        var apiCall = new UAPIREQUEST.Class();
+                        apiCall.initialize("KnownHosts", "verify");
+
+                        apiCall.addArgument("host_name", hostname);
+                        if (port) {
+                            apiCall.addArgument("port", port);
+                        }
+
+                        return this.deferred(apiCall).promise.then(
+                            function success(res) {
+                                var data = res && res.data || {};
+
+                                if (data.status) {
+                                    return {
+                                        status: "recognized",
+                                    };
+                                } else if (data.host.length && data.failure_type) {
+                                    return $q.reject({
+                                        status: "unrecognized-" + data.failure_type,
+                                        keys: data.host,
+                                    });
+                                }
+
+                                return $q.reject({
+                                    status: "unrecognized-unknown",
+                                });
+                            },
+                            function failure(error) {
+                                return $q.reject({
+                                    status: "unrecognized-unknown",
+                                    error: error,
+                                });
+                            }
+                        );
+                    },
+
+                    /**
+                     * Adds the current keys for an SSH server listening on a given
+                     * hostname/port combination to the user's known_hosts file.
+                     *
+                     * @param  {String} hostname      The server's hostname
+                     * @param  {Number|String} port   The server's port
+                     * @return {Promise}              If resolved, then the operation was successful.
+                     *                                Rejections are not caught or manipulated because
+                     *                                we cannot be sure what the status was before we
+                     *                                tried to add the host keys, so we just pass the
+                     *                                API error through as normal.
+                     */
+                    create: function(hostname, port) {
+                        var apiCall = new UAPIREQUEST.Class();
+                        apiCall.initialize("KnownHosts", "create");
+
+                        apiCall.addArgument("host_name", hostname);
+                        if (port) {
+                            apiCall.addArgument("port", port);
+                        }
+
+                        return this.deferred(apiCall).promise.then(function(res) {
+                            return {
+                                status: "recognized",
+                            };
+                        });
+                    }
+
+                });
+
+                return new KnownHostsService();
+            }
+        ]);
+    }
+);
+
+/*
+ * version_control/services/sshKeyVerification.js     Copyright 2018 cPanel, Inc.
+ *                                                           All rights Reserved.
+ * copyright@cpanel.net                                         http://cpanel.net
+ * This code is subject to the cPanel license. Unauthorized copying is prohibited
+ */
+
+/* eslint-env amd */
+
+define('app/services/sshKeyVerification',[
+    "angular",
+    "lodash",
+    "cjt/util/locale",
+    "app/utils/cloneUrlParser",
+    "ngSanitize",
+    "uiBootstrap",
+    "app/services/knownHostsService",
+    "cjt/directives/actionButtonDirective",
+], function(
+        angular,
+        _,
+        LOCALE,
+        cloneUrlParser
+    ) {
+
+    "use strict";
+
+    angular
+        .module("cpanel.versionControl.sshKeyVerificationService", ["cpanel.versionControl.knownHostsService", "ui.bootstrap", "ngSanitize", "cjt2.directives.actionButton", ])
+        .factory("sshKeyVerification", [
+            "knownHostsService",
+            "$uibModal",
+            function(
+                knownHostsService,
+                $uibModal
+            ) {
+
+                var _memoizedVerify = _initMemoizedVerify();
+
+                var service = {
+
+                    // A memoized version of knownHostsService.verify
+                    verify: _memoizedVerify,
+
+                    /**
+                     * Get the hostname and port of an SSH-based clone URL.
+                     *
+                     * @param  {String} cloneUrl    The URL to parse
+                     * @return {Object|Undefined}   An object with hostname and port properties, unless
+                     *                              it is not an SSH-based URL
+                     */
+                    getHostnameAndPort: function getHostnameAndPort(cloneUrl) {
+                        var parts = cloneUrlParser.parse(cloneUrl);
+
+                        if (parts.scheme === "ssh://" || (!parts.scheme && parts.userInfo)) {
+                            return {
+                                hostname: parts.authority || parts.ipv6Authority,
+                                port: parts.port,
+                            };
+                        }
+                    },
+
+                    /**
+                     * Opens a modal for key verification so that the user can choose
+                     * whether to accept and save the key or not.
+                     *
+                     * @param {Object}         props             An object of properties that the modal will use.
+                     * @param {String}         props.hostname    The server's hostname.
+                     * @param {String|Number} [props.port]       The server's port (optional).
+                     * @param {String}         props.type        The key's failure type (unrecognized-new, unrecognized-changed)
+                     * @param {Function}      [props.onAccept]   A callback function that is called when someone chooses to accept
+                     *                                           the new/changed key and save it to known_hosts. This function is
+                     *                                           called with one argument - a promise that resolves when the changes
+                     *                                           are successfully saved and rejects when it's unsuccessful.
+                     * @return {Modal}   An angular-ui-bootstrap modal instance
+                     */
+                    openModal: function openModal(props) {
+                        var self = this;
+                        self.modal = $uibModal.open({
+                            templateUrl: "views/sshKeyVerification.ptt",
+                            controllerAs: "modal",
+                            controller: KeyVerificationController,
+                            resolve: {
+                                props: function() {
+                                    return props;
+                                },
+                            },
+                        });
+
+                        self.modal.result.finally(function() {
+                            delete self.modal;
+                        });
+
+                        return self.modal;
+                    },
+
+                };
+
+
+                /**
+                 * The constructor for the SSH key verification modal controller.
+                 *
+                 * See service.openModal for documentation on the props argument.
+                 */
+                function KeyVerificationController(props) {
+                    _.assign(this, props);
+                }
+
+                KeyVerificationController.$inject = ["props"];
+
+                _.assign(KeyVerificationController.prototype, {
+
+                    /**
+                     * Attempt to add the host to the known_hosts file and continue with
+                     * creation.
+                     *
+                     * @return {Promise}   When resolved, we successfully added the host.
+                     *                     When rejected, something went wrong.
+                     */
+                    acceptIdentity: function acceptIdentity() {
+                        var self = this;
+
+                        var acceptPromise = knownHostsService.create( self.hostname, self.port ).then(
+                            function success(data) {
+                                return data.status;
+                            }
+                        ).finally(function() {
+
+                            // We attempted a change to the known_hosts file, so our cached verification results are probably stale
+                            var cacheKey = _memoizedVerifyResolver(self.hostname, self.port);
+                            _memoizedVerify.cache.delete(cacheKey);
+                            _memoizedVerify(self.hostname, self.port);
+                        });
+
+                        return self.onAccept ? self.onAccept(acceptPromise) : acceptPromise;
+                    },
+
+                    rejectIdentity: function rejectIdentity() {
+                        service.modal.dismiss();
+                    },
+
+                    newKeyIntro: function newKeyIntro() {
+                        return LOCALE.maketext("You have not connected this [asis,cPanel] account to the SSH server for “[output,strong,_1].” The system cannot verify the server’s identity.", this.hostname);
+                    },
+
+                    changedKeyIntro: function changedKeyIntro() {
+                        return LOCALE.maketext("The current identity of the SSH server at “[output,strong,_1]” does not match its identity in your account’s [asis,known_hosts] file.", this.hostname);
+                    },
+
+                    keyIsNew: function keyIsNew() {
+                        return this.type === "unrecognized-new";
+                    },
+
+                    keyIsChanged: function keyIsChanged() {
+                        return this.type === "unrecognized-changed";
+                    },
+
+                });
+
+                /**
+                 * These are some small caching optimizations for the knownHostsService.verify
+                 * method so that we don't make repeated requests for identical hostname/port
+                 * combinations unless we know something has changed.
+                 */
+
+                function _memoizedVerifyResolver(hostname, port) {
+                    port = port ? ":" + port : "";
+                    return hostname + port;
+                }
+
+                function _initMemoizedVerify() {
+                    var memoizedVerify = _.memoize(knownHostsService.verify, _memoizedVerifyResolver);
+                    var memoizedVerifyCache = memoizedVerify.cache;
+
+                    var boundMemoizedVerify = memoizedVerify.bind(knownHostsService);
+                    boundMemoizedVerify.cache = memoizedVerifyCache;
+
+                    return boundMemoizedVerify;
+                }
+
+                return service;
+            }
+        ]);
+});
 
 /*
  * cpanel - base/frontend/paper_lantern/user_manager/services/directoryLookupService.js
@@ -2929,13 +3312,14 @@ define(
 define(
     'app/directives/cloneURLValidator',[
         "angular",
+        "app/utils/cloneUrlParser",
         "cjt/util/locale",
         "cjt/validator/validator-utils",
         "cjt/validator/ip-validators",
         "cjt/validator/domain-validators",
-        "cjt/validator/validateDirectiveFactory"
+        "cjt/validator/validateDirectiveFactory",
     ],
-    function(angular, LOCALE, validationUtils, IP_VALIDATOR, DOMAIN_VALIDATOR) {
+    function(angular, cloneUrlParser, LOCALE, validationUtils, IP_VALIDATOR, DOMAIN_VALIDATOR) {
         "use strict";
 
         var cloneURLValidator = {
@@ -2955,28 +3339,17 @@ define(
                 // Check for blank string.
                 if (typeof cloneUrl === "undefined" || cloneUrl === null) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("You must specify a valid clone [asis,URL]."));
+                    result.add("cloneURLValidator", LOCALE.maketext("You must specify a valid clone URL."));
                     return result;
                 }
 
-                // Split out all parts of the URL:
-                var storedParts = [];
-
-                var scheme = parseUrlParts(cloneUrl.match(/^\S+:\/\//i));
-                var userInfo = parseUrlParts(cloneUrl.match(/^\S+@/i));
-                var ipv6Authority = parseUrlParts(cloneUrl.match(/^\[\S+\]/i));
-                var authority = ( ipv6Authority === null ) ? parseUrlParts(cloneUrl.split(/((:\d+\/)|(\/|:))/i)) : null;
-                parseUrlParts(cloneUrl.match(/^:\d+/i)); // Parse out the port if it exists.
-                var path = parseUrlParts(cloneUrl.match(/^\S+/i));
-
-                function parseUrlParts(section) {
-                    if ( section !== null && section.length > 0 ) {
-                        cloneUrl = cloneUrl.replace(section[0], "");
-                        storedParts.push(section[0]);
-                        return section[0];
-                    }
-                    return null;
-                }
+                var parts = cloneUrlParser.parse(cloneUrl);
+                var scheme = parts.scheme;
+                var userInfo = parts.userInfo;
+                var ipv6Authority = parts.ipv6Authority;
+                var authority = parts.authority;
+                var path = parts.path;
+                var unparsed = parts.unparsed;
 
                 // Check for valid protocols (http:// | https:// | ssh:// | git://)
                 var protocolPattern = /^(?:git|ssh|https?)(?::\/\/)$/i;
@@ -2986,7 +3359,7 @@ define(
                 var userAndPassPattern = /^\S+:\S+@/i;
                 if ( userAndPassPattern.test(userInfo) ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,cannot] include a password."));
+                    result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,cannot] include a password."));
                     return result;
                 }
 
@@ -3004,7 +3377,7 @@ define(
                     // Prevents invalid non-required protocol.
                     if ( !hasValidProtocol && scheme !== null ) {
                         result.isValid = false;
-                        result.add("cloneURLValidator", LOCALE.maketext("The provided clone [asis,URL] [output,strong,must] include a valid protocol."));
+                        result.add("cloneURLValidator", LOCALE.maketext("The provided clone URL [output,strong,must] include a valid protocol."));
                         return result;
                     }
 
@@ -3012,14 +3385,13 @@ define(
                 }
                 if ( !preDomainValid ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("Clone [asis,URL] [output,strong,must] include a valid protocol or username."));
+                    result.add("cloneURLValidator", LOCALE.maketext("Clone URLs [output,strong,must] include a valid protocol or username."));
                     return result;
                 }
 
                 // Check for valid ipv6
                 if ( ipv6Authority !== null ) {
-                    var ipv6AuthorityWithoutBrackets = ipv6Authority.replace(/(\[|\])/gi, "");
-                    var validIPV6 = IP_VALIDATOR.methods.ipv6(ipv6AuthorityWithoutBrackets);
+                    var validIPV6 = IP_VALIDATOR.methods.ipv6(ipv6Authority);
 
                     if ( !validIPV6.isValid ) {
                         var errorMsg = combineErrorMessages(validIPV6.messages);
@@ -3038,14 +3410,14 @@ define(
 
                     if ( !validIPV4.isValid && !validFQDN.isValid ) {
                         result.isValid = false;
-                        result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,must] include a valid [asis,IP] address or a fully-qualified domain name."));
+                        result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,must] include a valid IP address or a fully-qualified domain name."));
                         return result;
                     }
 
                 // If there is no valid ipv4, ipv6, or domain name
                 } else if ( ipv6Authority === null ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,must] include a valid [asis,IP] address or a fully-qualified domain name."));
+                    result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,must] include a valid IP address or a fully-qualified domain name."));
                     return result;
                 }
 
@@ -3070,9 +3442,9 @@ define(
                 }
 
                 // Check for any left over cloneUrl parts that indicates spaces were used in the URL construction.
-                if ( cloneUrl !== "" ) {
+                if ( unparsed !== "" ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,cannot] include whitespace characters."));
+                    result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,cannot] include whitespace characters."));
                     return result;
                 }
 
@@ -3116,7 +3488,7 @@ define(
 );
 
 /*
-# version_control/views/CreateRepositoriesController.js      Copyright 2017 cPanel, Inc.
+# version_control/views/CreateRepositoriesController.js      Copyright 2018 cPanel, Inc.
 #                                                           All rights Reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
@@ -3127,9 +3499,11 @@ define(
 define(
     'app/views/createRepositoriesController',[
         "angular",
+        "lodash",
         "cjt/util/locale",
         "uiBootstrap",
         "app/services/versionControlService",
+        "app/services/sshKeyVerification",
         "cjt/services/alertService",
         "cjt/directives/alert",
         "cjt/directives/alertList",
@@ -3143,9 +3517,10 @@ define(
         "cjt/validator/path-validators",
         "app/services/directoryLookupService",
         "app/directives/cloneURLValidator",
-        "cjt/filters/htmlFilter"
+        "cjt/filters/htmlFilter",
+        "cjt/decorators/uibTypeaheadDecorator",
     ],
-    function(angular, LOCALE) {
+    function(angular, _, LOCALE) {
         "use strict";
 
         var app = angular.module("cpanel.versionControl");
@@ -3153,8 +3528,8 @@ define(
 
         var controller = app.controller(
             "CreateRepositoriesController",
-            ["$scope", "$location", "versionControlService", "PAGE", "alertService", "directoryLookupService",
-                function($scope, $location, versionControlService, PAGE, alertService, directoryLookupService) {
+            ["$scope", "$location", "versionControlService", "sshKeyVerification", "PAGE", "alertService", "directoryLookupService",
+                function($scope, $location, versionControlService, sshKeyVerification, PAGE, alertService, directoryLookupService) {
 
                     var repository = this;
 
@@ -3172,8 +3547,65 @@ define(
                         createAnother: false
                     };
 
+                    repository.ssh = {};
+
                     repository.pathExcludeList = "[^'\":\\\\*?<>|@&=%#`$(){};\\[\\]\\s]+";// This is for angular input validation.
                     var directoryLookupFilter = /[%*{}()=?`$@:|[\]'"<>&#;\s\\]+/g;// This is the same regex for directory lookup service filter.
+
+                    // Utility function
+                    function _bothAreSameServer(obj1, obj2) {
+                        return obj1
+                            && obj2
+                            && obj1.hostname === obj2.hostname
+                            && obj2.port     === obj2.port;
+                    }
+
+                    /**
+                     * When a user inputs a Clone URL, this method is fired to perform
+                     * an API check against the user's knowns_hosts file.
+                     *
+                     * While some state is updated after the API check, the data mostly
+                     * lays dormant until the createRepository method is called.
+                     *
+                     * All of the relevant state is stored on the repository.ssh object.
+                     */
+                    repository.checkKnownHosts = function() {
+
+                        var cloneUrl = repository.formData.cloneURL;
+                        var newServer = cloneUrl && sshKeyVerification.getHostnameAndPort(cloneUrl);
+
+                        if (!newServer) {
+                            repository.ssh = {};
+                            return;
+                        }
+
+                        if ( _bothAreSameServer(repository.ssh, newServer) ) {
+                            return;
+                        }
+
+                        repository.ssh.hostname = newServer.hostname;
+                        repository.ssh.port = newServer.port;
+                        repository.ssh.status = "verifying";
+                        repository.ssh.keys = [];
+
+                        function _updateScope(data) {
+
+                            /**
+                             * It's possible to have a race if there are multiple checks in flight
+                             * simultaneously. This check ensures that we only update the scope if
+                             * the finished request was initiated using the current input value.
+                             */
+                            if ( !_bothAreSameServer(repository.ssh, newServer) ) {
+                                return;
+                            }
+
+                            repository.ssh.status = data.status;
+                            repository.ssh.keys = data.keys;
+                            return data.status;
+                        }
+
+                        return repository.ssh.promise = sshKeyVerification.verify(newServer.hostname, newServer.port).then(_updateScope, _updateScope);
+                    };
 
                     /**
                      * Back to List View
@@ -3186,14 +3618,16 @@ define(
                     /**
                      * Reset Form Data
                      * @method resetFormData
+                     * @param {Object} opts   An object of optional values.
+                     * @param {Boolean} opts.isCreateAnother   If true, it will only be a partial reset for Create Another.
                      */
-                    repository.resetFormData = function() {
+                    repository.resetFormData = function(opts) {
                         repository.formData = {
                             repoName: "",
                             repoPath: "",
-                            clone: true,
+                            clone: opts.isCreateAnother ? repository.formData.clone : true,
                             cloneURL: "",
-                            createAnother: false
+                            createAnother: Boolean(opts.isCreateAnother),
                         };
                         repository.createRepoForm.$setPristine();
                     };
@@ -3205,87 +3639,166 @@ define(
                      */
                     repository.createRepository = function() {
 
-                        if (repository.formData.repoName &&
-                            repository.formData.repoPath) {
+                        if (!repository.formData.repoName || !repository.formData.repoPath) {
+                            return;
+                        }
 
-                            var repositoryPath = repository.homeDirPath + repository.formData.repoPath;
+                        alertService.clear(null, "versionControl");
 
-                            if (!repository.formData.clone) {
-                                repository.formData.cloneURL = null;
-                            }
+                        if (!repository.formData.clone) {
+                            repository.formData.cloneURL = null;
+                        }
 
-                            return versionControlService.createRepository(
-                                repository.formData.repoName,
-                                repositoryPath,
-                                repository.formData.cloneURL).then(function(response) {
 
-                                // Clone Repository Success
-                                if (repository.formData.cloneURL) {
-                                    alertService.add({
-                                        type: "info",
-                                        message: LOCALE.maketext("The system successfully initiated the clone process for the “[_1]” repository.", repository.formData.repoName) + " " + LOCALE.maketext("The system may require more time to clone large remote repositories."),
-                                        closeable: true,
-                                        replace: false,
-                                        group: "versionControl",
-                                        id: response.cloneTaskID,
-                                        counter: false
-                                    });
-
-                                    if (!repository.formData.createAnother) {
-                                        repository.backToListView();
-                                    } else {
-                                        repository.resetFormData();
-                                    }
-
-                                } else {
-
-                                    // Create repository Success
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("The system successfully created the “[_1]” repository.", repository.formData.repoName),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "versionControl"
-                                    });
-
-                                    if (!repository.formData.createAnother) {
-                                        var repoSummary = response;
-                                        var cloneURL = repoSummary.cloneURL;
-
-                                        if (typeof cloneURL !== "undefined" && cloneURL) {
-                                            repository.displaySuccessSummary = true;
-
-                                            repository.summary = {};
-                                            repository.summary.remoteURL = cloneURL;
-                                            var parts = repository.summary.remoteURL.split("/");
-
-                                            if (parts && parts.length > 0) {
-                                                repository.summary.directoryName = parts[parts.length - 1];
-                                            } else {
-                                                repository.summary.directoryName = "";
-                                            }
-
-                                            repository.summary.readOnly = repoSummary.clone_urls.read_write.length === 0 ? true : false;
-                                        } else {
-                                            repository.backToListView();
-                                        }
-                                    } else {
-                                        repository.resetFormData();
-                                    }
-                                }
-
-                            }, function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "versionControl"
-                                });
+                        if (repository.formData.cloneURL && (repository.ssh.status === "unrecognized-new" || repository.ssh.status === "unrecognized-changed")) {
+                            _showKeyVerificationModal();
+                            return;
+                        } else if (repository.formData.cloneURL && repository.ssh.promise) {
+                            return repository.ssh.promise.then(function(status) {
+                                delete repository.ssh.promise;
+                                return repository.createRepository();
                             });
+                        } else {
+                            return _createRepository();
                         }
                     };
+
+                    /**
+                     * Opens up the modal for SSH key verification.
+                     */
+                    function _showKeyVerificationModal() {
+                        alertService.clear(null, "versionControl");
+
+                        repository.ssh.modal = sshKeyVerification.openModal({
+                            hostname: repository.ssh.hostname,
+                            port: repository.ssh.port,
+                            type: repository.ssh.status,
+                            keys: repository.ssh.keys,
+                            onAccept: _onAcceptKey,
+                        });
+
+                        /**
+                         * Handle the case where the modal is dismissed, rather than closed.
+                         * Dismissal is when the user clicks the cancel button or if they click
+                         * outside of the modal, causing it to disappear.
+                         */
+                        repository.ssh.modal.result.catch(function() {
+                            alertService.add({
+                                type: "danger",
+                                message: LOCALE.maketext("The system [output,strong,cannot] clone this repository if you do not trust the host key for “[output,strong,_1]”. To create your repository, select one of the following options:", repository.ssh.hostname),
+                                list: [
+                                    LOCALE.maketext("Enter a clone URL that uses the HTTPS or Git protocols instead of SSH."),
+                                    LOCALE.maketext("Enter a clone URL for a different, previously-trusted host."),
+                                    LOCALE.maketext("Click [output,em,Create] again and choose to trust the remote server."),
+                                ],
+                                closeable: true,
+                                replace: true,
+                                group: "versionControl",
+                                id: "known-hosts-verification-cancelled",
+                            });
+                        });
+                    }
+
+                    function _onAcceptKey(promise) {
+                        return promise.then(
+                            function success(newStatus) {
+                                repository.ssh.status = newStatus;
+                                return _createRepository();
+                            },
+                            function failure(error) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system failed to add the fingerprints from “[_1]” to the [asis,known_hosts] file: [_2]", repository.ssh.hostname, error),
+                                    closeable: true,
+                                    replace: true,
+                                    group: "versionControl",
+                                    id: "known-hosts-verification-failure",
+                                });
+                            }
+                        ).finally(function() {
+                            repository.ssh.modal.close();
+                            delete repository.ssh.modal;
+                        });
+                    }
+
+                    /**
+                     * The common bits for actually creating the repo.
+                     */
+                    function _createRepository() {
+
+                        var repositoryPath = repository.homeDirPath + repository.formData.repoPath;
+
+                        return versionControlService.createRepository(
+                            repository.formData.repoName,
+                            repositoryPath,
+                            repository.formData.cloneURL).then(function(response) {
+
+                            // Clone Repository Success
+                            if (repository.formData.cloneURL) {
+                                alertService.add({
+                                    type: "info",
+                                    message: LOCALE.maketext("The system successfully initiated the clone process for the “[_1]” repository.", repository.formData.repoName) + " " + LOCALE.maketext("The system may require more time to clone large remote repositories."),
+                                    closeable: true,
+                                    replace: false,
+                                    group: "versionControl",
+                                    id: response.cloneTaskID,
+                                    counter: false
+                                });
+
+                                if (!repository.formData.createAnother) {
+                                    repository.backToListView();
+                                } else {
+                                    repository.resetFormData({ isCreateAnother: true });
+                                }
+
+                            } else {
+
+                                // Create repository Success
+                                alertService.add({
+                                    type: "success",
+                                    message: LOCALE.maketext("The system successfully created the “[_1]” repository.", repository.formData.repoName),
+                                    closeable: true,
+                                    replace: false,
+                                    autoClose: 10000,
+                                    group: "versionControl"
+                                });
+
+                                if (!repository.formData.createAnother) {
+                                    var repoSummary = response;
+                                    var cloneURL = repoSummary.cloneURL;
+
+                                    if (typeof cloneURL !== "undefined" && cloneURL) {
+                                        repository.displaySuccessSummary = true;
+
+                                        repository.summary = {};
+                                        repository.summary.remoteURL = cloneURL;
+                                        var parts = repository.summary.remoteURL.split("/");
+
+                                        if (parts && parts.length > 0) {
+                                            repository.summary.directoryName = parts[parts.length - 1];
+                                        } else {
+                                            repository.summary.directoryName = "";
+                                        }
+
+                                        repository.summary.readOnly = repoSummary.clone_urls.read_write.length === 0 ? true : false;
+                                    } else {
+                                        repository.backToListView();
+                                    }
+                                } else {
+                                    repository.resetFormData({ isCreateAnother: true });
+                                }
+                            }
+
+                        }, function(error) {
+                            alertService.add({
+                                type: "danger",
+                                message: error,
+                                closeable: true,
+                                replace: false,
+                                group: "versionControl"
+                            });
+                        });
+                    }
 
                     /**
                      * Directory lookup
@@ -3374,7 +3887,8 @@ define(
         "cjt/directives/alertList",
         "cjt/directives/actionButtonDirective",
         "jquery-chosen",
-        "angular-chosen"
+        "angular-chosen",
+        "cjt/decorators/angularChosenDecorator",
     ],
     function(angular, _, LOCALE) {
         "use strict";
@@ -3384,8 +3898,8 @@ define(
 
         var controller = app.controller(
             "ManageRepositoriesController",
-            ["$scope", "$window", "$location", "$timeout", "versionControlService", "sseAPIService", "PAGE", "$routeParams", "alertService",
-                function($scope, $window, $location, $timeout, versionControlService, sseAPIService, PAGE, $routeParams, alertService) {
+            ["$scope", "$window", "$location", "$timeout", "versionControlService", "sseAPIService", "PAGE", "$routeParams", "alertService", "sshKeyVerification", "$q",
+                function($scope, $window, $location, $timeout, versionControlService, sseAPIService, PAGE, $routeParams, alertService, sshKeyVerification, $q) {
 
                     var repository = this;
 
@@ -3473,36 +3987,30 @@ define(
                     */
                     function retrieveRepositoryInfo(requestedRepoPath) {
 
+                        var repoInfo;
                         return versionControlService.getRepositoryInformation(requestedRepoPath, "name,tasks,clone_urls,branch,last_update,source_repository,last_deployment,deployable")
                             .then(function(response) {
-                                var repoInfo = response;
+                                repoInfo = response;
+                                var branchPromise = _retrieveAvailableBranches(requestedRepoPath);
 
-                                return versionControlService.getRepositoryInformation(requestedRepoPath, "available_branches")
-                                    .then(function(response) {
-                                        repoInfo.available_branches = response.available_branches;
+                                /**
+                                 * If we fail to retrieve the available branches, we will let the UI
+                                 * go ahead and display in its mostly broken state, while performing
+                                 * this SSH key check in the background for later use with the Try
+                                 * Again button.
+                                 */
+                                branchPromise.catch(function() {
+                                    var sshServer = sshKeyVerification.getHostnameAndPort(response && response.source_repository && response.source_repository.url);
+                                    if (sshServer) {
+                                        repository.ssh = {};
+                                        repository.ssh.hostname = sshServer.hostname;
+                                        repository.ssh.port = sshServer.port;
+                                        repository.ssh.promise = sshKeyVerification.verify(sshServer.hostname, sshServer.port);
+                                    }
+                                });
 
-                                        if (typeof repoInfo.available_branches === "undefined" || repoInfo.available_branches === null) {
-                                            repository.unableToRetrieveAvailableBranches = true;
-                                        } else {
-                                            repository.unableToRetrieveAvailableBranches = repoInfo.available_branches.length === 0;
-                                        }
-                                    }, function(error) {
-                                        repoInfo.available_branches = [];
-                                        repository.unableToRetrieveAvailableBranches = true;
-
-                                        alertService.add({
-                                            type: "danger",
-                                            message: LOCALE.maketext("The system cannot update information for the repository at ‘[_1]’ because it cannot access the remote repository.", repoInfo.repository_root),
-                                            closeable: true,
-                                            replace: false,
-                                            group: "versionControl"
-                                        });
-
-                                    }).finally(function() {
-                                        setFormData(repoInfo);
-                                    });
+                                return branchPromise;
                             }, function(error) {
-
                                 alertService.add({
                                     type: "danger",
                                     message: error,
@@ -3514,8 +4022,133 @@ define(
 
                             })
                             .finally(function() {
+                                setFormData(repoInfo);
                                 repository.isLoading = false;
                             });
+                    }
+
+                    function _retrieveAvailableBranches(requestedRepoPath) {
+                        return versionControlService.getRepositoryInformation(requestedRepoPath, "available_branches")
+                            .then(function(response) {
+                                repository.branchList = response && response.available_branches || [];
+                            }, function(error) {
+                                repository.unableToRetrieveAvailableBranches = true;
+                                return $q.reject(error);
+                            });
+                    }
+
+                    /**
+                     * We don't want to show an alert if there are issues fetching the branches during the
+                     * initial page load, but if it's in response to a user action it's good to have feedback.
+                     */
+                    function _retrieveAvailableBranchesTryAgain() {
+                        return _retrieveAvailableBranches( repository.repoPath ).catch(function() {
+                            alertService.add({
+                                type: "danger",
+                                id: "retrieve-branches-again-error",
+                                message: LOCALE.maketext("The system cannot update information for the repository at “[_1]” because it cannot access the remote repository.", repository.repoPath),
+                                closeable: true,
+                                replace: true,
+                                group: "versionControl"
+                            });
+                        });
+                    }
+
+                    /**
+                     * Changes the text for the callout that's used when unableToRetrieveAvailableBranches = true.
+                     *
+                     * @param  {Boolean} hasRemote   True when the repository was cloned from a remote repo.
+                     */
+                    $scope.$watch("repository.hasRemote", function(hasRemote) {
+                        if (hasRemote) {
+                            repository._noConnectionText = LOCALE.maketext("The system could not contact the remote repository.");
+                            repository._tryAgainTooltipText = LOCALE.maketext("Attempt to contact the remote repository again.");
+                        } else {
+                            repository._noConnectionText = LOCALE.maketext("The system could not read from the repository.");
+                            repository._tryAgainTooltipText = LOCALE.maketext("Attempt to read from the repository again.");
+                        }
+                    });
+
+                    /**
+                     * Try to fetch the list of available_branches again.
+                     *
+                     * @return {Promise}                    Resolves if it successfully retrieves the available branches.
+                     *                                      Rejects otherwise.
+                     */
+                    repository.tryAgain = function tryAgain() {
+                        alertService.removeById("retrieve-branches-again-error", "versionControl");
+                        if (!repository.ssh.promise) {
+                            return _retrieveAvailableBranchesTryAgain();
+                        }
+
+                        return repository.ssh.promise.then(
+                            function success() {
+
+                                // SSH host key verification is not the problem, so just try again
+                                return _retrieveAvailableBranchesTryAgain();
+                            },
+                            function failure(data) {
+                                repository.ssh.status = data.status;
+                                repository.ssh.keys = data.keys;
+
+                                _showKeyVerificationModal();
+                            }
+                        );
+                    };
+
+                    /**
+                     * Opens up the modal for SSH key verification.
+                     */
+                    function _showKeyVerificationModal() {
+                        alertService.clear(null, "versionControl");
+
+                        repository.ssh.modal = sshKeyVerification.openModal({
+                            hostname: repository.ssh.hostname,
+                            port: repository.ssh.port,
+                            type: repository.ssh.status,
+                            keys: repository.ssh.keys,
+                            onAccept: _onAcceptKey,
+                        });
+
+                        /**
+                         * Handle the case where the modal is dismissed, rather than closed.
+                         * Dismissal is when the user clicks the cancel button or if they click
+                         * outside of the modal, causing it to disappear.
+                         */
+                        repository.ssh.modal.result.catch(function() {
+                            alertService.add({
+                                type: "danger",
+                                message: LOCALE.maketext("The system [output,strong,cannot] connect to the remote repository if you do not accept the host key for “[output,strong,_1].”", repository.ssh.hostname),
+                                closeable: true,
+                                replace: true,
+                                group: "versionControl",
+                                id: "known-hosts-verification-cancelled",
+                            });
+                        });
+
+                        return repository.ssh.modal;
+                    }
+
+                    function _onAcceptKey(promise) {
+                        return promise.then(
+                            function success(newStatus) {
+                                repository.ssh.status = newStatus;
+                                return _retrieveAvailableBranchesTryAgain();
+                            },
+                            function failure(error) {
+                                alertService.add({
+                                    type: "danger",
+                                    message: LOCALE.maketext("The system failed to add the fingerprints from “[_1]” to the [asis,known_hosts] file: [_2]", repository.ssh.hostname, error),
+                                    closeable: true,
+                                    replace: true,
+                                    group: "versionControl",
+                                    id: "known-hosts-verification-failure",
+                                });
+                            }
+                        ).finally(function() {
+                            repository.ssh.modal.close();
+                            delete repository.ssh.modal;
+                        });
                     }
 
                     /**
@@ -3540,7 +4173,9 @@ define(
                         repository.commitMessage = data.commitMessage;
                         repository.author = data.author;
 
-                        repository.branchList = data.available_branches;
+                        if (data.available_branches) {
+                            repository.branchList = data.available_branches;
+                        }
 
                         repository.hasRemote = data.hasRemote;
                         repository.remoteInformation = data.source_repository;
@@ -3920,29 +4555,30 @@ define(
                         return versionControlService.deployRepository(
                             repository.repoPath
                         ).then(function(response) {
+                            var data = response.data || {};
 
-                            return versionControlService.getRepositoryInformation(repository.repoPath, "tasks")
-                                .then(function(data) {
-                                    repository.deployTasks = getDeployTasks(data.tasks);
+                            /**
+                             * We have to fake the task object, since the task data returned from the
+                             * VersionControlDeployment::create and VersionControlDeployment::retrieveAPI calls don't match.
+                             */
+                            repository.deployTasks = getDeployTasks([
+                                {
+                                    action: "deploy",
+                                    task_id: data.task_id,
+                                    sse_url: data.sse_url,
+                                    args: {
+                                        log_file: data.log_path,
+                                    },
+                                }
+                            ]);
 
-                                    if (repository.deployTasks && repository.deployTasks.length > 0) {
-                                        repository.deployInProgress = true;
-                                        initializeSSE();
-                                    } else {
-                                        repository.deployInProgress = false;
-                                    }
+                            if (repository.deployTasks && repository.deployTasks.length > 0) {
+                                repository.deployInProgress = true;
+                                initializeSSE();
+                            } else {
+                                repository.deployInProgress = false;
+                            }
 
-                                }, function(error) {
-
-                                    // display error
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error.message,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "versionControl"
-                                    });
-                                });
                         }, function(error) {
                             repository.deployInProgress = false;
                             alertService.add({
@@ -4009,7 +4645,7 @@ define(
                     };
 
                     /**
-                     * Copies the repo's clone link to you machine's clipboard
+                     * Copies the repo's clone link to your machine's clipboard
                      * @method cloneToClipboard
                      * @param {String} cloneUrl The URL to be used to clone repos.
                      */
@@ -4043,10 +4679,7 @@ define(
                      *  @return {Boolean} Returns if there are any branches in the branchList.
                      */
                     repository.hasAvailableBranches = function() {
-                        if (typeof repository.branchList !== "undefined" && repository.branchList) {
-                            return (repository.branchList.length !== 0);
-                        }
-                        return false;
+                        return Boolean(repository.branchList && repository.branchList.length !== 0);
                     };
 
 
@@ -4087,7 +4720,16 @@ define(
         return function() {
 
             // First create the application
-            angular.module("cpanel.versionControl", ["ngRoute", "ui.bootstrap", "cjt2.cpanel", "cpanel.versionControl.service", "cpanel.services.directoryLookup", "cpanel.versionControl.sseAPIService", "localytics.directives"]);
+            angular.module("cpanel.versionControl", [
+                "ngRoute",
+                "ui.bootstrap",
+                "cjt2.cpanel",
+                "cpanel.versionControl.service",
+                "cpanel.versionControl.sshKeyVerificationService",
+                "cpanel.services.directoryLookup",
+                "cpanel.versionControl.sseAPIService",
+                "localytics.directives",
+            ]);
 
             // Then load the application dependencies
             var app = require(

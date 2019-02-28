@@ -33,7 +33,7 @@ ELSE;
     IF del_subdomain_error;
         errors.push(del_subdomain_error.html());
     ELSE;
-        successes.push(locale.maketext("Debug data only: The linked subdomain “[_1]” has been removed.", FORM.fullsubdomain));
+        successes.push(locale.maketext("The linked subdomain “[_1]” has been removed.", FORM.fullsubdomain));
     END;
 
 END;
@@ -72,3 +72,4 @@ END;
 
 </div><!-- end body-content -->
 [% END #wrapper -%]
+
