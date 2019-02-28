@@ -32,12 +32,6 @@ SET endtime = CPDate.add_local_interval(
 SET form_target = RAW_FORM('target');
 SET query_specific_domain_yn = (form_target != CPANEL.authuser);
 
-SET PROTOCOLS = execute_or_die(
-    'Bandwidth',
-    'get_enabled_protocols'
-).data;
-
-
 SET bwdata = execute(
     'Bandwidth',
     'query',
@@ -85,11 +79,9 @@ PROCESS '_bandwidth_graph_include.tmpl';
                     <td>
                         <b>[% locale.maketext("All Traffic") %]</b>
                     </td>
-                    [% IF PROTOCOLS.grep('http') %]
                     <td>
                         <b>[% locale.maketext("HTTP Traffic") %]</b>
                     </td>
-                    [% END %]
                 </tr>
                 [%
                     Api1.pre_exec("Bandwidth", "displaybw");
@@ -116,15 +108,11 @@ PROCESS '_bandwidth_graph_include.tmpl';
 </div>
 
 <script>
-
-var PROTOCOLS = [% JSON.stringify(PROTOCOLS) %];
-
 //XXX: LOCALE’s CLDR isn’t loading correctly on page load.
 wait_for_CLDR_to_load( function() {
     var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
         domain: [% JSON.stringify(RAW_FORM('domain')) %],
         time_format: function(t) { return LOCALE.numf(t.getDate()) },
-        protocols_order: PROTOCOLS,
         container_path: "#bwgraph_el",
         min_date: [% "${starttime}000" %],
         max_date: [% "${endtime}000" %],
@@ -133,10 +121,7 @@ wait_for_CLDR_to_load( function() {
     } );
     [% IF !query_specific_domain_yn -%]
         if (did_sth) {
-            Bandwidth_Graph.draw_protocols_time_graph_key({
-              protocols_order: PROTOCOLS,
-              container_path: "#bwgraph_el"
-            });
+            Bandwidth_Graph.draw_protocols_time_graph_key("#bwgraph_el");
         }
     [% END -%]
 } );

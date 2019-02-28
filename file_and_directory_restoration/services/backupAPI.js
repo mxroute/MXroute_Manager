@@ -11,12 +11,11 @@ define(
     [
         "angular",
         "cjt/util/locale",
-        "cjt/util/parse",
         "cjt/io/uapi-request",
         "cjt/services/APIService",
         "cjt/io/uapi", // IMPORTANT: Load the driver so it's ready
     ],
-    function(angular, LOCALE, PARSE, APIREQUEST) {
+    function(angular, LOCALE, APIREQUEST) {
         "use strict";
         var app;
         try {
@@ -36,12 +35,6 @@ define(
                     "incremental": LOCALE.maketext("Incremental")
                 };
 
-                var validTypes = {
-                    "file": LOCALE.maketext("File"),
-                    "dir": LOCALE.maketext("Directory"),
-                    "symlink": LOCALE.maketext("Symlink")
-                };
-
                 /**
                  * Parse raw data for consumption by front end
                  *
@@ -58,10 +51,9 @@ define(
 
                         // using "datetime_format_medium" doesn't work in cPanel if you
                         // are operating in debug mode (works in non-debug mode)
-                        backup.lastModifiedTime = LOCALE.local_datetime(parseInt(backup.mtime, 10), "datetime_format_short");
+                        backup.lastModifiedTime = LOCALE.local_datetime(parseInt(backup.mtime, 10), "datetime_format_medium");
                         if (validBackupTypes.hasOwnProperty(backup.backupType)) {
                             backup.backupType = validBackupTypes[backup.backupType];
-                            backup.type = validTypes[backup.type];
                         } else {
                             throw "DEVELOPER ERROR: Invalid backup type";
                         }
@@ -69,18 +61,6 @@ define(
                     });
 
                     return parsedBackups;
-                }
-
-                function parseDirectoryContents(directoryContents) {
-                    var parsedContents = [];
-
-                    directoryContents.data.forEach(function(content) {
-                        content.conflict = PARSE.parsePerlBoolean(content.conflict);
-                        content.exists = PARSE.parsePerlBoolean(content.exists);
-                        parsedContents.push(content);
-                    });
-                    directoryContents.data = parsedContents;
-                    return directoryContents;
                 }
 
                 // Set up the service's constructor and parent
@@ -93,13 +73,13 @@ define(
                     /**
                      * Get a list of all directories and files of a given path
                      * @public
-                     * @method listDirectoryContents
+                     * @method listDirectory
                      * @param {string} path The full path of the directory
                      * @param {string} currentPage The current page of pagination
                      * @param {string} pageSize Number of items in each page requested
                      * @return {Promise} Promise that will fulfill the request.
                      */
-                    listDirectoryContents: function(path, currentPage, pageSize) {
+                    listDirectory: function(path, currentPage, pageSize) {
                         var apiCall = new APIREQUEST.Class();
                         apiCall.initialize("Restore", "directory_listing");
                         apiCall.addArgument("path", path);
@@ -108,8 +88,9 @@ define(
                             apiCall.addPaging(currentPage, pageSize);
                         }
                         var deferred = this.deferred(apiCall, {
-                            transformAPISuccess: parseDirectoryContents,
-
+                            transformAPISuccess: function(response) {
+                                return response;
+                            },
                             transformAPIFailure: function(response) {
                                 return response.error;
                             }
@@ -125,11 +106,10 @@ define(
                      * @param {string} fullPath The full path of the file
                      * @return {Promise} Promise that will fulfill the request.
                      */
-                    listBackups: function(fullPath, exists) {
+                    listBackups: function(fullPath) {
                         var apiCall = new APIREQUEST.Class();
                         apiCall.initialize("Restore", "query_file_info");
                         apiCall.addArgument("path", fullPath);
-                        apiCall.addArgument("exists", exists);
 
                         var deferred = this.deferred(apiCall, {
                             transformAPISuccess: parseBackupData,
@@ -145,12 +125,12 @@ define(
                     /**
                      * Restore a single file or a directory
                      * @public
-                     * @method restoreBackup
+                     * @method restore
                      * @param {string} fullPath The full path of the file
                      * @param {string} backupID The identification string for backup
                      * @return {Promise} Promise that will fulfill the request.
                      */
-                    restoreBackup: function(fullPath, backupID) {
+                    restore: function(fullPath, backupID) {
                         var apiCall = new APIREQUEST.Class();
                         apiCall.initialize("Restore", "restore_file");
                         apiCall.addArgument("backupID", backupID);

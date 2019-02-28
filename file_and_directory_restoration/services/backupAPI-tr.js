@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Sıkıştırılmış","Directory":"Dizin","File":"Dosya","Incremental":"Artımlı","Symlink":"Symlink","Uncompressed":"Sıkıştırılmamış"};
+    var newLex = {"Compressed":"Sıkıştırılmış","Incremental":"Artımlı","Uncompressed":"Sıkıştırılmamış"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

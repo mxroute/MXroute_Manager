@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Save":"保存","Successfully saved the changes.":"変更が正常に保存されました。","The [asis,INI] content does not exist. You may add new content.":"[asis,INI] のコンテンツが存在しません。新しいコンテンツを追加することができます。","You must click “[_1]” to apply the new changes.":"新しい変更を適用するには、“[_1]” をクリックする必要があります。","[comment,used for highlight in select option]-- Not Available --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- 利用できません --[comment,used for highlight in select option]","[comment,used for highlight in select option]-- Select a location --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- 場所を選択します --[comment,used for highlight in select option]"};
+    var newLex = {"Errors occurred while retrieving the [asis,PHP INI] locations.":"[asis,PHP INI] の場所を取得しているときにエラーが発生しました。","Save":"保存","Successfully saved the changes.":"変更が正常に保存されました。","The [asis,INI] content does not exist. You may add new content.":"[asis,INI] のコンテンツが存在しません。新しいコンテンツを追加することができます。","You must click “[_1]” to apply the new changes.":"新しい変更を適用するには、“[_1]” をクリックする必要があります。","[comment,used for highlight in select option]-- Not Available --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- 利用できません --[comment,used for highlight in select option]","[comment,used for highlight in select option]-- Select a location --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- 場所を選択します --[comment,used for highlight in select option]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

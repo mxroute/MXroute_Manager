@@ -1,10 +1,5 @@
 [%
-    IF FORM.domain;
     SET docroot = Api2.exec("DomainLookup" , "getdocroot" , {"domain" =>FORM.domain}).0.docroot;
-    ELSE;
-    # This happens when loading the main page before the redirect occurs.
-    SET docroot = '';
-    END
 %]
 <div class="tab-pane active" id="tab1">
     <p id="error1p">[% locale.maketext("Click one of the common error pages below to edit:") %]</p>

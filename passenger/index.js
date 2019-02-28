@@ -22,15 +22,13 @@ define(
         return function() {
 
             // First create the application
-            angular.module("cpanel.applicationManager", ["ngRoute", "ui.bootstrap", "cjt2.cpanel", "localytics.directives"]);
+            angular.module("cpanel.applicationManager", ["ngRoute", "ui.bootstrap", "angular-growl", "cjt2.cpanel", "localytics.directives"]);
 
             // Then load the application dependencies
             var app = require(
                 [
                     "cjt/bootstrap",
                     "cjt/services/autoTopService",
-                    "cjt/services/alertService",
-                    "cjt/directives/alertList",
                     "app/services/apps",
                     "app/services/domains",
                     "app/views/manage",

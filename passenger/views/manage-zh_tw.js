@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Are you certain that you want to unregister the application “[_1]”?":"Are you certain that you want to unregister the application “[_1]”?","The application, “[_1]”, is now disabled.":"The application, “[_1]”, is now disabled.","The application, “[_1]”, is now enabled.":"The application, “[_1]”, is now enabled.","You reached your account’s allotment of applications, [numf,_1].":"You reached your account’s allotment of applications, [numf,_1].","You successfully unregistered the application “[_1]”.":"You successfully unregistered the application “[_1]”."};
+    var newLex = {"Are you certain that you want to delete the application configuration for “[_1]”?":"Are you certain that you want to delete the application configuration for “[_1]”?","The application, “[_1]”, is now disabled.":"The application, “[_1]”, is now disabled.","The application, “[_1]”, is now enabled.":"The application, “[_1]”, is now enabled.","You reached your account’s allotment of applications, [numf,_1].":"You reached your account’s allotment of applications, [numf,_1].","You successfully deleted the application configuration for “[_1]”.":"You successfully deleted the application configuration for “[_1]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

@@ -1,7 +1,7 @@
-/* globals LANG, FTP_ACCOUNTS_MAXED, REQUIRED_PASSWORD_STRENGTH, DNS, SERVER_TYPE, CPANEL_USER */
-/* globals FTP_SERVER, SFTP_PORT, FTP_PORT */
+/* jshint -W098, -W108 */
+/* globals LANG, FTP_ACCOUNTS_MAXED, REQUIRED_PASSWORD_STRENGTH, DNS, DEDICATED_IP, SERVER_TYPE, CPANEL_USER */
+/* globals FTP_SERVER, SFTP_PORT, FTP_PORT, LOG_ICON, MAIN_ICON, ANON_ICON*/
 // UAPI: note that this module has been converted to the UAPI JSON call
-/* eslint-disable camelcase */
 var OPEN_MODULE;
 var PATH_POPUPS = [];
 var ADD_VALID = [];
@@ -451,16 +451,16 @@ var build_special_accounts_table = function(result) {
         if (SERVER_TYPE === "PURE") {
             row = '<tr class="' + zebra + '">';
             if (accounts[i].accttype === "main") {
-                row += '<td class="special_col1" data-title="' + LOCALE.maketext("Type") + '"><i class="fas fa-user" aria-hidden="true" id="special_image_[% i %]" title="' + special_main_description + '"></i></td>';
+                row += '<td class="special_col1" data-title="' + LOCALE.maketext("Type") + '"><img src="[% main_icon %]" alt="" id="special_image_[% i %]" title="' + special_main_description + '"/></td>';
 
             }
             if (accounts[i].accttype === "anonymous") {
-                row += '<td class="special_col1" data-title="' + LOCALE.maketext("Type") + '"><i class="fas fa-user-secret" aria-hidden="true" id="special_image_[% i %]" title="' + special_anon_description + '"></i></td>';
+                row += '<td class="special_col1" data-title="' + LOCALE.maketext("Type") + '"><img src="[% anon_icon %]" alt="" id="special_image_[% i %]" title="' + special_anon_description + '"/></td>';
 
                 YAHOO.util.Dom.get("list_of_anonymous_account_ids").value += "special" + i + "|";
             }
             if (accounts[i].accttype === "logaccess") {
-                row += '<td class="special_col1" data-title="' + LOCALE.maketext("Type") + '"><i class="fas fa-file" aria-hidden="true" id="special_image_[% i %]" title="' + special_log_description + '"></i></td>';
+                row += '<td class="special_col1" data-title="' + LOCALE.maketext("Type") + '"><img src="[% log_icon %]" alt="" id="special_image_[% i %]" title="' + special_log_description + '"/></td>';
 
             }
             row += '<td class="special_col2" data-title="' + LOCALE.maketext("Log In") + '">[% serverlogin %]<input type="hidden" id="login_[% i %]" value="[% login %]" /></td>';
@@ -492,13 +492,13 @@ var build_special_accounts_table = function(result) {
         } else {
             row = '<tr class="' + zebra + '">';
             if (accounts[i].accttype === "main") {
-                row += '<td class="pro_special_col1" data-title="' + LOCALE.maketext("Type") + '"><i class="fas fa-user" aria-hidden="true" id="special_image_[% i %]" title="' + special_main_description + '"></i></td>';
+                row += '<td class="pro_special_col1" data-title="' + LOCALE.maketext("Type") + '"><img src="[% main_icon %]" alt="" id="special_image_[% i %]"  title="' + special_main_description + '"/></td>';
             }
             if (accounts[i].accttype === "anonymous") {
-                row += '<td class="pro_special_col1" data-title="' + LOCALE.maketext("Type") + '"><i class="fas fa-user-secret" aria-hidden="true" id="special_image_[% i %]" title="' + special_anon_description + '"></i></td>';
+                row += '<td class="pro_special_col1" data-title="' + LOCALE.maketext("Type") + '"><img src="[% anon_icon %]" alt="" id="special_image_[% i %]"  title="' + special_anon_description + '"/></td>';
             }
             if (accounts[i].accttype === "logaccess") {
-                row += '<td class="pro_special_col1" data-title="' + LOCALE.maketext("Type") + '"><i class="fas fa-file" aria-hidden="true" id="special_image_[% i %]" title="' + special_log_description + '"></i></td>';
+                row += '<td class="pro_special_col1" data-title="' + LOCALE.maketext("Type") + '"><img src="[% log_icon %]" alt="" id="special_image_[% i %]"  title="' + special_log_description + '"/></td>';
             }
             row += '<td class="pro_special_col2" data-title="' + LOCALE.maketext("Log In") + '">[% serverlogin %]<input type="hidden" id="login_[% i %]" value="[% login %]" /></td>';
             row += '<td class="pro_special_col3" data-title="' + LOCALE.maketext("Path") + '">[% path %]</td>';
@@ -514,6 +514,7 @@ var build_special_accounts_table = function(result) {
             row += "</td></tr>";
         }
 
+        // TODO: replace this using YAHOO.lang.substitute
         row = row.replace(/\[% i %\]/g, "special" + i);
         row = row.replace(/\[% type %\]/g, accounts[i].accttype);
         row = row.replace(/\[% login %\]/g, accounts[i].login);
@@ -524,6 +525,9 @@ var build_special_accounts_table = function(result) {
         row = row.replace(/\[% diskquota %\]/g, accounts[i].diskquota);
         row = row.replace(/\[% url.acct %\]/g, encodeURIComponent(accounts[i].login));
         row = row.replace(/\[% url.accttype %\]/g, encodeURIComponent(accounts[i].accttype));
+        row = row.replace(/\[% main_icon %\]/g, MAIN_ICON);
+        row = row.replace(/\[% anon_icon %\]/g, ANON_ICON);
+        row = row.replace(/\[% log_icon %\]/g, LOG_ICON);
         row = row.replace(/\[% ftp_port %\]/g, FTP_PORT);
         row = row.replace(/\[% sftp_port %\]/g, SFTP_PORT);
         row = row.replace(/\[% ftp_server %\]/g, FTP_SERVER);
@@ -1202,4 +1206,3 @@ var init = function() {
     load_special_accounts_table();
 };
 YAHOO.util.Event.onDOMReady(init);
-/* eslint-enable camelcase */

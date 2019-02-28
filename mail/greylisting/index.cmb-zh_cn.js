@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Successfully disabled [asis,Greylisting] on all domains.":"已成功禁用所有域上的 [asis,Greylisting]。","Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"已成功禁用“[output,class,_1,nobreak]”上的 [asis,Greylisting]。","Successfully enabled [asis,Greylisting] on all domains.":"已成功启用所有域上的 [asis,Greylisting]。","Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"已成功启用“[output,class,_1,nobreak]”上的 [asis,Greylisting]。"};
+    var newLex = {"Successfully disabled [asis,Greylisting] on all domains.":"Successfully disabled [asis,Greylisting] on all domains.","Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.","Successfully enabled [asis,Greylisting] on all domains.":"Successfully enabled [asis,Greylisting] on all domains.","Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.":"Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

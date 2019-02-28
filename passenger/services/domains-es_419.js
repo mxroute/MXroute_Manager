@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Addon Domains":"Dominios adicionales","Main Domain":"Dominio principal","Other":"Otro","Subdomains":"Subdominios"};
+    var newLex = {"Addon Domains":"Addon Domains","Main Domain":"Main Domain","Other":"Other","Subdomains":"Subdomains"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

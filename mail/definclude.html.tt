@@ -64,7 +64,7 @@
                     <div class="row">
                         <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
                              <span class="help-block">
-                             [% locale.maketext("Enter a path relative to your home directory. If the script requires an interpreter such as Perl or PHP, omit the /usr/bin/perl or /usr/bin/php portion. Make sure that your script is executable and has the appropriate [output,url,_1,target,_2,hashbang,id,lnkTarget]. If you do not know how to add the [output,url,_1,target,_2,hashbang,id,lnkTarget2], save the script file with the correct extension and it will be added automatically.",'http://en.wikipedia.org/wiki/Hashbang','_blank' ) %]
+                             [% locale.maketext("Enter a path relative to your home directory. If the script requires an interpreter such as Perl or PHP, omit the /usr/bin/perl or /usr/bin/php portion. Make sure that your script is executable and has the appropriate [output,url,_1,target,_2,hashbang,id,lnkTarget]. If you do not know how to add the [output,url,_1,target,_2,hashbang,id,lnkTarget], save the script file with the correct extension and it will be added automatically.",'http://en.wikipedia.org/wiki/Hashbang','_blank' ) %]
                              </span>
                         </div>
                     </div>

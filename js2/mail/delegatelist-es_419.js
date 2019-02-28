@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Saving …":"Guardando…","The data on this page is no longer synchronized with the server. Please [output,url,_1,refresh the page].":"Los datos de esta página ya no están sincronizados con el servidor. [output,url,_1,Actualice la página].","You have successfully updated delegation of administrative privileges for the mailing list “[_1]”.":"Actualizó los privilegios de administración de la delegación de esta lista de correo electrónico correctamente“[_1]”."};
+    var newLex = {"Saving …":"Saving …","The data on this page is no longer synchronized with the server. Please [output,url,_1,refresh the page].":"The data on this page is no longer synchronized with the server. Please [output,url,_1,refresh the page].","You have successfully updated delegation of administrative privileges for the mailing list “[_1]”.":"You have successfully updated delegation of administrative privileges for the mailing list “[_1]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

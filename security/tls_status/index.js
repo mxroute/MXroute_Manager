@@ -16,6 +16,7 @@ define(
 
             angular.module("App", [
                 "ui.bootstrap",
+                "angular-growl",
                 "cjt2.cpanel",
                 "ui.scroll",
                 "ngAnimate"
@@ -24,8 +25,6 @@ define(
             var app = require(
                 [
                     "cjt/bootstrap",
-                    "cjt/services/alertService",
-                    "cjt/directives/alertList",
                     "app/services/DomainsService",
                     "app/views/ViewDomainsController"
                 ],
@@ -64,8 +63,13 @@ define(
 
                     // viewName
 
-                    app.config(["$routeProvider",
-                        function($routeProvider) {
+                    app.config(["$routeProvider", "growlProvider",
+                        function($routeProvider, growlProvider) {
+
+                            // $locationProvider.html5Mode(true);
+                            // $locationProvider.hashPrefix("!");
+
+                            growlProvider.globalPosition("top-right");
 
                             $routeProvider.when("/", {
                                 controller: "ViewDomainsController",

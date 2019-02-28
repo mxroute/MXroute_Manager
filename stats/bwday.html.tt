@@ -23,11 +23,6 @@ SET endtime = CPDate.add_local_interval(
     timezone,
 ) - 1;
 
-SET PROTOCOLS = execute_or_die(
-    'Bandwidth',
-    'get_enabled_protocols'
-).data;
-
 SET expirations = execute(
     'Bandwidth',
     'get_retention_periods',
@@ -91,15 +86,11 @@ PROCESS '_bandwidth_graph_include.tmpl';
 </div>
 
 <script>
-
-var PROTOCOLS = [% JSON.stringify(PROTOCOLS) %];
-
 //XXX: LOCALE’s CLDR isn’t loading correctly on page load.
 wait_for_CLDR_to_load( function() {
     var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
         time_format: function(t) { return LOCALE.local_datetime(t, "time_format_short") },
         container_path: "#bwgraph_el",
-        protocols_order: PROTOCOLS,
         min_date: [% "${starttime}000" %],
         max_date: [% "${endtime}000" %],
         resolution: [% JSON.stringify(interval) %],
@@ -107,10 +98,7 @@ wait_for_CLDR_to_load( function() {
     } );
     [% IF !query_specific_domain_yn -%]
         if (did_sth) {
-            Bandwidth_Graph.draw_protocols_time_graph_key({
-              container_path: "#bwgraph_el",
-              protocols_order: PROTOCOLS
-            });
+            Bandwidth_Graph.draw_protocols_time_graph_key("#bwgraph_el");
         }
     [% END -%]
 } );

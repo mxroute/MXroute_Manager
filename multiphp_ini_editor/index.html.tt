@@ -29,8 +29,6 @@ SET ea_version = EasyApache.get_ea_version();
 [% IF ea_version >= 4 -%]
 [% SET ini_paths_data = Uapi.exec('LangPHP', 'php_ini_get_user_paths', {}) -%]
 <div class="body-content">
-    <!-- NOTE: leave the alert-group in single quotes -->
-    <cp-alert-list alert-group="'multiphpIniEditor'"></cp-alert-list>
     <div id="viewContent"
          ng-cloak>
         <!-- INI settings information -->
@@ -48,7 +46,6 @@ SET ea_version = EasyApache.get_ea_version();
         </ul>
         <div class="tab-content" ng-view></div>
     </div>
-    <!--TODO remove this once we replace the info growl thing -->
     <div growl></div>
  </div>
 

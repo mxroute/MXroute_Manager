@@ -1,6 +1,0 @@
-<div id="jb_devErrorBlock" class="alert alert-danger"> <!-- remove it in 4.1 -->
-	<span class="glyphicon glyphicon-exclamation-sign"></span>
-	<div class="alert-message">
-		<strong>Error:</strong> You don't have permissions to access this page.
-	</div>
-</div>

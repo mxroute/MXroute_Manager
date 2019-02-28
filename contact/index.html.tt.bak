@@ -1,0 +1,33 @@
+[%
+    SET CPANEL.CPVAR.dprefix="../";
+    SET scripts = [];
+    IF CPANEL.appname == "webmail";
+        SET scripts = [
+            'libraries/angularjs/1.4.4/angular.js'
+        ];
+    END;
+%]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'contact_information'
+    page_stylesheets = [
+        'css2-min/contact/index.css'
+    ]
+    page_scripts = scripts
+%]
+
+[% IF (CPANEL.feature('updatenotificationprefs') || CPANEL.feature("updatecontact")) && !ExpVar.expand('$isarchiveuser') %]
+    [% IF CPANEL.appname != "webmail" || CPANEL.authuser == CPANEL.user %]
+        [% Api1.exec("include", ["contact_validator.html.tt"]) %]
+    [% END %]
+    <div class="body-content">
+        <form id="mainform" name="mainform"  action="saveemail.html">
+            [% Api1.exec("include", ["indexincludeform.html.tt"]) %]
+        </form>
+    </div><!-- end body-content -->
+[% ELSE %]
+    <div class="body-content">
+        [% Api1.exec("include", ["../refresh.html.tt"]) %]
+    </div><!-- end body-content -->
+[% END %]
+[% END #wrapper -%]

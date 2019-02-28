@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"مضغوط","Directory":"الدليل","Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","File":"الملف","Incremental":"تزايدي","Symlink":"Symlink","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"غير مضغوط","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
+    var newLex = {"Compressed":"مضغوط","Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"عرض [numf,_1] إلى [numf,_2] من [quant,_3,عنصر,عنصر]","File restoration failure: [_1]":"File restoration failure: [_1]","Incremental":"تزايدي","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"غير مضغوط"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

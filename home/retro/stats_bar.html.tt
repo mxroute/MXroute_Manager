@@ -30,9 +30,8 @@ END;
         END;
     END
 %]
-[% IF UI_Includes.can_load_template( 'above_stats_bar.html.tt' ) -%]
-<div id="include-above-stats-bar">[% UI_Includes.load_template( 'above_stats_bar.html.tt' ); %]</div>
-[% END %]
+
+[% UI_Includes.content( 'above_stats_bar.html.tt' ); %]
 
 <div id="content-stats" class="section">
     <div id="stats-header">
@@ -81,7 +80,3 @@ END;
         <a href="#" id="toggle_extended_stats">[% locale.maketext("Expand Stats") %]</a>
     </div>
 </div><!-- end content-stats -->
-
-[% IF UI_Includes.can_load_template( 'below_stats_bar.html.tt' ) -%]
-<div id="include-below-stats-bar">[% UI_Includes.load_template( 'below_stats_bar.html.tt' ); %]</div>
-[% END %]

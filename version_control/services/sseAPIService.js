@@ -9,11 +9,9 @@
 
 define([
     "angular",
-    "cjt/core",
-    "lodash",
+    "lodash"
 ], function(
         angular,
-        CJT,
         _
     ) {
     "use strict";
@@ -186,7 +184,7 @@ define([
                 // https://developer.microsoft.com/en-us/microsoft-edge/platform/status/serversenteventseventsource/
                 if (!window.EventSource) {
                     var script = document.createElement("script");
-                    script.src = CJT.buildFullPath("libraries/eventsource-polyfill/eventsource.js");
+                    script.src = "/libraries/eventsource-polyfill/eventsource.js";
                     script.onload = function() {
                         if (ready) {
                             ready();

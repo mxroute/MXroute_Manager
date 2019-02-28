@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"No":"No","Overwrite File?":"¿Desea sobrescribir el archivo?","Yes":"Sí"};
+    var newLex = {"No":"No","Overwrite File?":"Overwrite File?","Yes":"Sí"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

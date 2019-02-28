@@ -478,29 +478,23 @@ define(
                      */
                     repositories.delete = function(repo) {
                         repo.removing = true;
-                        var successMessage;
-                        if (repositories.hasFilemanagerAccess) {
-                            successMessage = LOCALE.maketext("The system successfully removed the “[_1]” repository from the list of [asis,cPanel]-managed repositories. You can use the [output,url,_2,File Manager,target,_3] interface to delete the repository contents.", repo.name, repo.fileManagerRedirectURL, "file-manager");
-                        } else {
-                            successMessage = LOCALE.maketext("The system successfully removed the “[_1]” repository from the list of [asis,cPanel]-managed repositories.", repo.name);
-                        }
                         return versionControlService.deleteRepository(repo.repository_root)
                             .then(function() {
                                 table.remove(repo);
                                 repositories.render();
                                 alertService.add({
                                     type: "success",
-                                    message: successMessage,
+                                    message: LOCALE.maketext("The system successfully deleted the “[_1]” repository in the “[_2]” directory.", repo.name, repo.repository_root),
                                     closeable: true,
                                     replace: false,
-                                    autoClose: false,
+                                    autoClose: 10000,
                                     group: "versionControl"
                                 });
 
                             }, function(error) {
                                 alertService.add({
                                     type: "danger",
-                                    message: LOCALE.maketext("The system could not remove the “[_1]” repository in the “[_2]” directory.", repo.name, repo.repository_root),
+                                    message: LOCALE.maketext("The system could not delete the “[_1]” repository in the “[_2]” directory.", repo.name, repo.repository_root),
                                     closeable: true,
                                     replace: false,
                                     group: "versionControl"
@@ -518,7 +512,7 @@ define(
                      * @return {String} Returns a dynamic string as a message to the user, that cooresponds to the exact repository within the delete action-scope, to inform/ask the user if they are certain that they would like to permanatly delete a repository from their cPanel instance/account/system.
                      */
                     repositories.deleteText = function(repo) {
-                        return LOCALE.maketext("Are you sure that you want to remove the “[_1]” repository from the list of [asis,cPanel]-managed repositories?", repo.name);
+                        return LOCALE.maketext("Are you sure that you want to delete the “[_1]” repository?", repo.name);
                     };
 
                     /**
@@ -569,8 +563,6 @@ define(
                                         _.assign(repo, response);
                                     }
 
-                                    // Use assign to update the source object in-place
-                                    _.assign(repo, response);
                                 }, function(error) {
 
                                     alertService.add({

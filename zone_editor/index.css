@@ -262,7 +262,7 @@ html[dir="rtl"] .pull-right {
     display: none;
 }
 
-@media only screen and (max-width: 768px) {
+@media only screen and (max-width: 600px) {
     .zone-record-col {
         max-width: 100%;
     }
@@ -273,6 +273,12 @@ html[dir="rtl"] .pull-right {
 
     html[dir="rtl"] .responsive-table > tbody > tr > td.action-buttons .btn {
         padding-right: 0;
+    }
+
+    .responsive-table > tbody > tr > td.gear-column {
+        visibility: hidden;
+        display: none;
+        vertical-align: middle;
     }
 
     .table-form-label {
@@ -317,14 +323,17 @@ html[dir="rtl"] .pull-right {
         width: 100%;
     }
 
+    th#nameHeader,
     th#nameInlineEditor {
         width: 100%;
     }
 
+    th#ttlHeader,
     td#ttlInlineEditor {
         width: 100%;
     }
 
+    th#recordHeader,
     td#recordInlineEditor {
         width: 100%;
     }
@@ -467,15 +476,4 @@ html[dir="rtl"] .toggle-control-label {
 /* ------------------------------------------------------------------------------ */
 .page-size .form-group {
     margin-bottom: 0;
-}
-
-/* ------------------------------------------------------------------------------ */
-/* Make sure the select boxes are displaying full text
-/* ------------------------------------------------------------------------------ */
-#recordType {
-    min-width: 75px;
-}
-
-#recordTTL {
-    min-width: 70px;
 }

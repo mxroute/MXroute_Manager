@@ -1,0 +1,115 @@
+[%
+USE Api2;
+USE Master;
+
+SET CPANEL.CPVAR.indexpage = "1";
+
+SET homeDir = CPANEL.homedir,
+    isReseller = ExpVar.expand('$isresellerlogin'),
+    domain = CPANEL.CPDATA.DNS,
+    user_theme = CPANEL.CPDATA.RS,
+    user = CPANEL.user;
+
+SET embeded_styles_list = ["home/dashboard.css"];
+SET page_styles_list = [];
+
+IF !CPANEL.ua_is_mobile;
+    embeded_styles_list.push("css/angular-chosen-spinner.css");
+    page_styles_list.push("libraries/chosen/1.5.1/chosen.min.css");
+END;
+%]
+
+[% js_code_first = PROCESS js_block_first %]
+
+[% js_page_first = PROCESS register_nvdata %]
+
+[% WRAPPER '_assets/master.html.tt'
+    page_title = locale.maketext("Main")
+    page_js_top = js_code_first
+    page_js = js_page_first
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    embed_stylesheets = embeded_styles_list
+    page_stylesheets = page_styles_list
+    hide_page_heading = 1
+    app_key = "home"
+    use_master_bootstrap = 0
+    focus_feature_search = 1
+-%]
+<div growl limit-messages="1"></div>
+
+<div class="row">
+    <div id="main" class="col-xs-12 col-sm-12 col-md-9 col-lg-9">
+        [% PROCESS home/views/applicationList.html.tt %]
+    </div><!-- end main -->
+
+    <div id="stats" class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
+        <div id="statsSection" class="panel panel-widget" ng-controller="statisticsController" ng-cloak>
+            <div id="statsHeaderSection" class="panel-heading widget-heading">
+                [% locale.maketext("Statistics") %]
+                <span spinner id="loadingStatsSpinner" glyph-class="fa fa-spinner" class="pull-right" title="[% locale.maketext('Loading …') %]"></span>
+            </div>
+
+            <table class="table">
+                <tbody>
+                    <tr id="row_{{::app.id}}" ng-repeat="app in ::statistics | orderBy:'-percent' track by app.id" ng-class="::getStatStatus(app.percent)" class="app-stat-row">
+                        <td class="app-stat-data">
+                            <a ng-if="::app.hasURL" id="lnkstats_{{::app.id}}" class="app-name" href="{{::app.href}}">{{::app.desc}}</a>
+                            <span ng-if="::!app.hasURL" id="lblStatsName_{{::app.id}}" class="app-name">{{::app.desc}}</span>
+                            <div>
+                                <span id="lblstats_{{::app.id}}_count">{{::app.count}}</span> / <span id="lblstats_{{::app.id}}">{{::app.max}}</span>
+                                <span ng-if="::app.max !== '∞'" dir="ltr">( {{::app.percent}}% )</span>
+                            </div>
+                            <div class="progress" ng-if="::app.max !== '∞'">
+                              <div id="progressbar_{{::app.id}}" class="progress-bar" ng-attr-style="width:{{::app.percent}}%"></div>
+                            </div>
+                        </td>
+                        <td class="app-stat-upgrade">
+                            <a ng-if="::app.needFix && app.hasUpgradeURL" id="lnkupgrade_{{::app.id}}" href="{{::app.upgrade}}">
+                            <i id="imgUpgrade_{{::app.id}}" class="fa fa-plus fa-2x" aria-hidden="true"></i>
+                            </a>
+                            <a ng-if="::app.needFix && !app.hasUpgradeURL && app.hasURL" id="lnkMaintain_{{::app.id}}" href="{{::app.href}}">
+                            <i id="imgMaintain_{{::app.id}}" class="fa fa-wrench fa-2x" aria-hidden="true"></i>
+                            </a>
+                            <i id="imgWarning_{{::app.id}}" ng-if="::app.needFix && !app.hasUpgradeURL && !app.hasURL" class="fa fa-exclamation-triangle fa-2x" aria-hidden="true"></i>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div><!-- end stats -->
+</div>
+
+[%
+    SET application_dir  = ExpVar.expand('$basedir') _ "/home/";
+    SET file = ExpVar.expand('$basefilename');
+    SET requirejs_url_base = '/frontend/' _ user_theme;
+%]
+
+[% PROCESS '_assets/cjt2_header_include.tt' %]
+[% END #wrapper -%]
+
+
+[% BLOCK js_block_first %]
+
+<script type="text/javascript">
+    var DEFAULT_BOX_ORDER = [% varcache.available_applications.grouporder.json %];
+
+    PAGE.isRTL = document.getElementsByTagName("HTML")[0].getAttribute("dir") === "rtl";
+    PAGE.currentTheme = [% user_theme.json %];
+    PAGE.securityToken = [% cp_security_token.json %];
+    PAGE.userName = [% user.json %];
+    PAGE.domain = [% domain.json %];
+</script>
+
+[% PROCESS home/views/applicationListHeader.html.tt %]
+
+[% END %]
+
+[% BLOCK register_nvdata %]
+<script type="text/javascript">
+    register_interfacecfg_nvdata('xmainrollstatus');
+    register_interfacecfg_nvdata('xmaingroupsorder');
+</script>
+[% END %]

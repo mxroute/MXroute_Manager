@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"已压缩","Directory":"目录","Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","File":"文件","Incremental":"增量","Symlink":"Symlink","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"已解压缩","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
+    var newLex = {"Compressed":"已压缩","Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"正在显示 [numf,_1] 至 [numf,_2] 项，共 [quant,_3,个项目,个项目]","File restoration failure: [_1]":"File restoration failure: [_1]","Incremental":"增量","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"已解压缩"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

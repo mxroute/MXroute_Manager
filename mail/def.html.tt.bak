@@ -1,0 +1,118 @@
+[%
+SET CPANEL.CPVAR.dprefix = "../";
+SET mail_domains = execute("Email", "list_mail_domains", {});
+%]
+
+[% js_code = PROCESS js_block %]
+[% WRAPPER '_assets/master.html.tt'
+    app_key = 'default_address'
+    page_js = js_code
+ -%]
+
+<div class="body-content">
+    <p id="defaultAddressDesc" class="description">
+        [% locale.maketext("Catch any email that is sent to an invalid email address for your domain. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/DefaultAddress", "_blank", "lnkDefaultAddressDocumentation") %]
+    </p>
+
+    <div class="section">
+        <h2>[% locale.maketext("Default Address Maintenance") %]</h2>
+        <form method="post" name="fwdf" id="fwdf" action="dosetdef.html" onsubmit="return do_validate(this.id);">
+        <div class="form-group">
+            <label id="lblSendUnrouted" for="defsel">
+                [% locale.maketext("Send all unrouted email for the following domain:") %]
+            </label>
+
+            <div class="row">
+                <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
+                    <select id="defsel" name="domain" class="form-control" onchange="loaddest();">
+                        [% FOREACH hashref IN mail_domains.data %]
+                            <option value="[% hashref.domain.html() %]">[% hashref.domain.html() %]</option>
+                        [% END %]
+                    </select>
+
+
+                    <span id="showdest" style="display:none;">
+                        <b>[% locale.maketext("Current Setting") %]</b>: <span id="currentdest"></span>
+                    </span>
+                </div>
+            </div>
+        </div>
+        [% INCLUDE "definclude.html.tt" %]
+        </form>
+    </div>
+
+
+</div>
+
+[% END %]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+
+var input_modded = 0;
+
+function defcallback(result) {
+    var defaddy = result[0]['defaultaddress'] || '[% locale.maketext("Not Found")  %]';
+    defaddy = defaddy.replace(/^\"/,'').replace(/\"$/,'');
+    document.getElementById('currentdest').textContent=defaddy;
+    var inputEl = document.getElementById('fwdemail');
+    if (!input_modded && inputEl) {
+        var fwd_radio = document.fwdf.fwdopt;
+        var emailtest=/^.+@.+\./;
+        var localtest=/^\s*\w+\s*$/;
+
+        var failtest = /^\s*:fail:/;
+        var discardtest = /^\s*:blackhole:/;
+        var system_user_test = /^[% CPANEL.user %]$/;
+        var pipetest = /\|/;
+        var advEl = document.getElementById('advance');
+        var userval = document.getElementById("user").value;
+
+        if (system_user_test.test(defaddy)) {
+            selectRadioByValue(fwd_radio,'system');
+            CPANEL.animate.slide_down(advEl);
+        }
+        else if (emailtest.test(defaddy) || localtest.test(defaddy) || defaddy == userval) {
+            selectRadioByValue(fwd_radio,'fwd');
+            inputEl.value=defaddy;
+            if (advEl) { advEl.style.display='none'; }
+        }
+        else if (failtest.test(defaddy)) {
+            selectRadioByValue(fwd_radio,'fail');
+            var failEl = document.getElementById('fail_input');
+            if (failEl) { failEl.value = defaddy.replace(/\s*:fail:\s*/,''); }
+            if (advEl) { advEl.style.display='none'; }
+        }
+        else if (discardtest.test(defaddy)) {
+            selectRadioByValue(fwd_radio,'blackhole');
+            CPANEL.animate.slide_down(advEl);
+        }
+        else if (pipetest.test(defaddy)) {
+            selectRadioByValue(fwd_radio,'pipe');
+            var pipeEl = document.getElementById('pipefwd');
+            if (pipeEl) { pipeEl.value = defaddy.replace(/\s*\|\s*/,'').replace('[% CPANEL.homedir %]','').replace(/^\//,''); }
+            CPANEL.animate.slide_down(advEl);
+        }
+    }
+}
+
+function selectRadioByValue(El,Tvalue) {
+    for(var i=0;i<El.length;i++) {
+        if (El[i].value == Tvalue) {
+            El[i].checked=true;
+            break;
+        }
+    }
+}
+
+function loaddest() {
+    input_modded = 0;
+    document.getElementById('showdest').style.display='';
+    var defsel = document.getElementById('defsel');
+    var domain = defsel.options[defsel.selectedIndex].value;
+    document.getElementById('currentdest').innerHTML='[% locale.maketext("Updating") %]....';
+    cpanel_jsonapi2(defcallback,'Email','listdefaultaddresses','domain',domain);
+}
+YAHOO.util.Event.onDOMReady(loaddest);
+</script>
+[% END %]

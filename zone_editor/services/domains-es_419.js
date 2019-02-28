@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"The API request failed with the following error: [_1] - [_2].":"La solicitud del API produjo el siguiente error: [_1] - [_2].","Your session may have expired or you logged out of the system. [output,url,_1,Login] again to continue.":"Es posible que su sesión haya expirado o se desconectó del sistema. [output,url,_1,Inicie sesión] nuevamente para continuar."};
+    var newLex = {"The API request failed with the following error: [_1] - [_2].":"The API request failed with the following error: [_1] - [_2].","Your session may have expired or you logged out of the system. [output,url,_1,Login] again to continue.":"Your session may have expired or you logged out of the system. [output,url,_1,Login] again to continue."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

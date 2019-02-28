@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"No":"否","Overwrite File?":"覆盖文件?","Yes":"是"};
+    var newLex = {"No":"No","Overwrite File?":"Overwrite File?","Yes":"Yes"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

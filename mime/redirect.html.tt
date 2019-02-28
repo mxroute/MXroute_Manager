@@ -177,9 +177,7 @@ END;
                 <tr>
                      <th>[% locale.maketext('Domain') %]</th>
                      <th>[% locale.maketext('Directory') %]</th>
-                     <th>[% locale.maketext('Regular Expression') %]</th>
-                     <th>[% locale.maketext('Redirect [asis,URL]') %]</th>
-                     <th>[% locale.maketext('[asis,HTTP] Status Code') %]</th>
+                     <th>[% locale.maketext('Redirect Url') %]</th>
                      <th>[% locale.maketext('Type') %]</th>
                      <th>[% locale.maketext('Match www.') %]</th>
                      <th>[% locale.maketext('Wildcard') %]</th>
@@ -198,24 +196,16 @@ END;
                 <tr>
                     <td data-title="[% locale.maketext('Domain') %]" class="long-column">[% q.displaydomain.html().replace('\.', '<wbr>.') %]</td>
                     <td data-title="[% locale.maketext('Directory') %]" class="long-column">
-                    [% IF !q.kind.lower.match('redirectmatch') %]
                         <a href="http://[% q.urldomain FILTER html %][% q.source FILTER html %]" target="_blank">
                             [% q.displaysourceurl.html().replace('\.', '<wbr>.') %]
                         </a>
-                    [% END %]
                     </td>
-                    <td data-title="[% locale.maketext('Directory') %]" class="long-column">
-                    [% IF q.kind.lower.match('redirectmatch') %]
-                        [% q.source FILTER html %]
-                    [% END %]
-                    </td>
-                    <td data-title="[% locale.maketext('Redirect [asis,URL]') %]" class="long-column">[% q.destination.html().replace('\.', '<wbr>.') %]</td>
-                    <td data-title="[% locale.maketext('[asis,HTTP] Status Code') %]" class="long-column">[% q.statuscode.html() %]</td>
+                    <td data-title="[% locale.maketext('Redirect Url') %]" class="long-column">[% q.destination.html().replace('\.', '<wbr>.') %]</td>
                     <td data-title="[% locale.maketext('Type') %]">[% q.type %]</td>
                     <td data-title="[% locale.maketext('Match www.') %]">[% IF (q.matchwww) %]<span class="glyphicon glyphicon-ok"></span>[% ELSE %]&nbsp;[% END %]</td>
                     <td data-title="[% locale.maketext('Wildcard') %]">[% IF (q.wildcard) %]<span class="glyphicon glyphicon-ok"></span>[% ELSE %]&nbsp;[% END %]</td>
                     <td data-title="[% locale.maketext("Actions") %]">
-                        <a class="btn btn-link" href="delredirectconfirm.html?domain=[% q.domain FILTER uri %]&path=[% q.source FILTER uri %]&docroot=[% q.docroot FILTER uri %]&args=[% q.arguments FILTER uri %]">
+                        <a class="btn btn-link" href="delredirectconfirm.html?domain=[% q.domain FILTER uri %]&path=[% q.source FILTER uri %]&docroot=[% q.docroot FILTER uri %]">
                             <span class="glyphicon glyphicon-trash"></span>
                             [% locale.maketext("Delete") %]
                         </a>

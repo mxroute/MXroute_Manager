@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Browse":"Navegar","Cancel":"Cancelar","Filter Name":"Filtrar nombre","Saving filter “[output,class,_1,code]” …":"Guardando filtro “[output,class,_1,code]” …","Success! The filters list is reloading now.":"¡Éxito! Ahora se está recargando la lista de filtros.","The filter name cannot be empty.":"El nombre del filtro no puede estar vacío.","The filter name cannot contain “[output,class,_1,code]” or “[output,class,_2,code]”.":"El nombre del filtro no puede contener “[output,class,_1,code]” o “[output,class,_2,code]”.","You have successfully created a new filter. You can create another one now, or you can [output,url,_1,return to the filters list].":"Creó un filtro nuevo correctamente. Puede crear otro nuevo ahora o [output,url,_1,regresar a la lista de filtros]."};
+    var newLex = {"Browse":"Browse","Cancel":"Cancelar","Filter Name":"Filtrar nombre","Saving filter “[output,class,_1,code]” …":"Saving filter “[output,class,_1,code]” …","Success! The filters list is reloading now.":"Success! The filters list is reloading now.","The filter name cannot be empty.":"The filter name cannot be empty.","The filter name cannot contain “[output,class,_1,code]” or “[output,class,_2,code]”.":"The filter name cannot contain “[output,class,_1,code]” or “[output,class,_2,code]”.","You have successfully created a new filter. You can create another one now, or you can [output,url,_1,return to the filters list].":"You have successfully created a new filter. You can create another one now, or you can [output,url,_1,return to the filters list]."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

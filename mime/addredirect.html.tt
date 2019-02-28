@@ -19,7 +19,7 @@
         [% redirect_info = execute('Mime', 'redirect_info', { url=RAW_FORM('url'), domain=RAW_FORM('domain') }) %]
         <div id="addSuccess" class="alert alert-success">
             <span id="addSuccessImg" class="glyphicon glyphicon-ok-sign"></span>
-            <span id="addSuccessText">[% locale.maketext("“[_1]” on “[_2]” redirects to “[_3]”.", RAW_FORM('path').html || '/', redirect_info.data.domain.html, FORM.url) %]</span>
+            <span id="addSuccessText">[% locale.maketext("“[_1]” on “[_2]” redirects to “[_3]”.", RAW_FORM('path').html, redirect_info.data.domain.html, FORM.url) %]</span>
         </div>
     [% END %]
 

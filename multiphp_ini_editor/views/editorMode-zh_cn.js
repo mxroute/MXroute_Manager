@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Save":"保存","Successfully saved the changes.":"已成功保存更改。","The [asis,INI] content does not exist. You may add new content.":"[asis,INI] 内容不存在。 您可以添加新内容。","You must click “[_1]” to apply the new changes.":"必须单击“[_1]”以应用新更改。","[comment,used for highlight in select option]-- Not Available --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- 不可用 --[comment,used for highlight in select option]","[comment,used for highlight in select option]-- Select a location --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- 选择位置 --[comment,used for highlight in select option]"};
+    var newLex = {"Errors occurred while retrieving the [asis,PHP INI] locations.":"Errors occurred while retrieving the [asis,PHP INI] locations.","Save":"Save","Successfully saved the changes.":"Successfully saved the changes.","The [asis,INI] content does not exist. You may add new content.":"The [asis,INI] content does not exist. You may add new content.","You must click “[_1]” to apply the new changes.":"You must click “[_1]” to apply the new changes.","[comment,used for highlight in select option]-- Not Available --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- Not Available --[comment,used for highlight in select option]","[comment,used for highlight in select option]-- Select a location --[comment,used for highlight in select option]":"[comment,used for highlight in select option]-- Select a location --[comment,used for highlight in select option]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

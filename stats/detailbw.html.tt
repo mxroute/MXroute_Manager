@@ -29,13 +29,6 @@ SET endtime = CPDate.add_local_interval(
     timezone,
 ) - 1;
 
-
-SET PROTOCOLS = execute_or_die(
-    'Bandwidth',
-    'get_enabled_protocols'
-).data;
-
-
 SET bwdata = execute(
     'Bandwidth',
     'query',
@@ -70,9 +63,11 @@ PROCESS '_bandwidth_graph_include.tmpl';
                 <tr>
                     <td><b>[% locale.maketext("Day") %]</b></td>
                     <td><b>[% locale.maketext("All Traffic") %]</b></td>
-                    [% FOR protocol IN PROTOCOLS %]
-                      <td><b>[% locale.maketext("[_1][comment,A protocol like HTTP or SMTP] Traffic", protocol.upper()) %]</b></td>
-                    [% END %]
+                    <td><b>[% locale.maketext("HTTP Traffic") %]</b></td>
+                    <td><b>[% locale.maketext("SMTP Traffic") %]</b></td>
+                    <td><b>[% locale.maketext("FTP Traffic") %]</b></td>
+                    <td><b>[% locale.maketext("POP3 Traffic") %]</b></td>
+                    <td><b>[% locale.maketext("IMAP Traffic") %]</b></td>
                 </tr>
                     [%
                         Api1.pre_exec("Bandwidth", "displaybw") ;
@@ -100,25 +95,18 @@ PROCESS '_bandwidth_graph_include.tmpl';
 </div>
 
 <script>
-
-var PROTOCOLS = [% JSON.stringify(PROTOCOLS) %];
-
 //XXX: LOCALE’s CLDR isn’t loading correctly on page load.
 wait_for_CLDR_to_load( function() {
     var did_sth = Bandwidth_Graph.draw_protocols_time_graph( {
         time_format: function(t) { return LOCALE.numf(t.getDate()) },
         container_path: "#bwgraph_el",
-        protocols_order: PROTOCOLS,
         min_date: [% "${starttime}000" %],
         max_date: [% "${endtime}000" %],
         resolution: "hourly",
         api_protocol_data: [% JSON.stringify(bwdata.data) %]
     } );
     if (did_sth) {
-        Bandwidth_Graph.draw_protocols_time_graph_key({
-          container_path: "#bwgraph_el",
-          protocols_order: PROTOCOLS
-        });
+        Bandwidth_Graph.draw_protocols_time_graph_key("#bwgraph_el");
     }
 } );
 

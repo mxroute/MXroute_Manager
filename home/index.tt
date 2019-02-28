@@ -2,7 +2,6 @@
 USE Api2;
 USE Master;
 USE CPBranding;
-USE UI_Includes;
 
 SET CPANEL.CPVAR.indexpage = "1";
 
@@ -53,10 +52,6 @@ SET upgradeUrl = CPANEL.CPVAR.dprefix _ CPBranding.get_implementer_from_availabl
     </div><!-- end main -->
 
     <div id="stats" class="col-xs-12 col-sm-12 col-md-3 col-lg-3">
-        [% IF UI_Includes.can_load_template( 'above_general_information.html.tt' ) -%]
-        <div id="include-above-general-informaion">[% UI_Includes.load_template( 'above_general_information.html.tt' ); %]</div>
-        [% END %]
-
         <div id="generalInfoSection" class="panel panel-widget">
             <div id="generalInfoHeaderSection" class="panel-heading widget-heading">
                 [% locale.maketext("General Information") %]
@@ -159,11 +154,6 @@ SET upgradeUrl = CPANEL.CPVAR.dprefix _ CPBranding.get_implementer_from_availabl
                 </tbody>
             </table>
         </div>
-
-        [% IF UI_Includes.can_load_template( 'above_stats_bar.html.tt' ) -%]
-        <div id="include-above-stats-bar">[% UI_Includes.load_template( 'above_stats_bar.html.tt' ); %]</div>
-        [% END %]
-
         <div id="statsSection" class="panel panel-widget" ng-controller="statisticsController" ng-cloak>
             <div id="statsHeaderSection" class="panel-heading widget-heading">
                 [% locale.maketext("Statistics") %]
@@ -215,10 +205,6 @@ SET upgradeUrl = CPANEL.CPVAR.dprefix _ CPBranding.get_implementer_from_availabl
             </table>
         </div>
     </div><!-- end stats -->
-
-    [% IF UI_Includes.can_load_template( 'below_stats_bar.html.tt' ) -%]
-    <div id="include-below-stats-bar">[% UI_Includes.load_template( 'below_stats_bar.html.tt' ); %]</div>
-    [% END %]
 </div>
 
 [%

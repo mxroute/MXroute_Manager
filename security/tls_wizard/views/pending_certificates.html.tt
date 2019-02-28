@@ -50,7 +50,7 @@
                                     </span>
                                 </div>
 
-                                <span class="label label-info xs-full-width-label" ng-bind-html="get_cert_status(pcert)"></span>
+                                <span class="label label-info xs-full-width-label" ng-bind="get_cert_status(pcert)"></span>
 
                                 <a ng-if="product && product.x_warn_after && (get_time() > pcert.created_time + product.x_warn_after)" class="label label-warning" target="{{pcert.support_uri_is_http ? '_blank' : '_self'}}" ng-href="{{pcert.support_uri}}" ng-click="$event.stopPropagation()">
                                     [% locale.maketext('This order is taking longer than expected.') %]
@@ -63,6 +63,8 @@
                                     [% locale.maketext('Complete Purchase') %]
                                 </a>
 
+
+
                                 <a href="javascript:void(0)" ng-if="expanded_cert != pcert.order_item_id" class="btn btn-link"><span class='fas fa-eye fa-lg'></span> [% locale.maketext('Show Details') %]</a>
                                 <a href="javascript:void(0)" ng-if="expanded_cert == pcert.order_item_id" class="btn btn-link"><span class='fas fa-eye-slash fa-lg'></span> [% locale.maketext('Hide Details') %]</a>
                             </div>
@@ -74,34 +76,11 @@
                                 <div class="col-md-4">
                                     <table class="table">
                                         <thead>
-                                            <th>
-                                                [% locale.maketext("Domains:") %]
-                                                <span class="label label-info pull-right" ng-if="pcert.statusDetails && pcert.statusDetails.loading">
-                                                    <span class="fas fa-spinner fa-lg fa-spin"></span>
-                                                    [% locale.maketext('Loading Details …') %]
-                                                </span>
-                                                <a ng-if="pcert.hasDomainDetails && !pcert.showDomainDetails" ng-click="pcert.showDomainDetails = true" class="btn btn-link pull-right show-hide-domain-details">
-                                                    [% locale.maketext('Show Order Details') %] <span class='glyphicon glyphicon-chevron-down'></span>
-                                                </a>
-                                                <a ng-if="pcert.hasDomainDetails && pcert.showDomainDetails" ng-click="pcert.showDomainDetails = false" class="btn btn-link pull-right show-hide-domain-details" >
-                                                    [% locale.maketext('Hide Order Details') %] <span class='glyphicon glyphicon-chevron-up'></span>
-                                                </a>
-                                            </th>
+                                            <th>[% locale.maketext("Domains:") %]</th>
                                         </thead>
                                         <tbody>
-                                            <tr ng-repeat="domain in get_displayed_domains(pcert)" >
-                                                <td>
-                                                    <div>
-                                                        <div class="domain-contaner" style="max-width:100%">
-                                                           <div class="cutoff_with_ellipses" ng-bind="domain.domain" title="{{domain.domain}}" ></div>
-                                                        </div>
-                                                    </div>
-                                                    <div ng-if="pcert.showDomainDetails && domain.orderDetails" class="animate-if">
-                                                       <span class="info-block">
-                                                            <span ng-bind-html="domain.orderDetails.domainDetailDescription"></span>
-                                                       </span>
-                                                    </div>
-                                                </td>
+                                            <tr ng-repeat="domain in get_displayed_domains(pcert)">
+                                                <td class="domain-contaner"><div class="cutoff_with_ellipses" ng-bind="domain" title="{{domain}}"></div></td>
                                             </tr>
                                         </tbody>
                                     </table>
@@ -123,56 +102,36 @@
                                 <div class="col-md-8">
                                     <table class="table cert-information-table">
                                         <thead>
-                                            <th colspan="3">
-                                                [% locale.maketext("Certificate Order Information:") %]
-                                                <span class="label label-info" ng-if="pcert.statusDetails && pcert.statusDetails.loading">
-                                                    <span class="fas fa-spinner fa-lg fa-spin"></span>
-                                                    [% locale.maketext('Loading Details …') %]
-                                                </span>
-                                            </th>
+                                            <th colspan="2">[% locale.maketext("Certificate Information:") %]</th>
                                         </thead>
                                         <tbody>
                                             <tr ng-if="pcert.order_id">
                                                 <td class="pending-cert-info-label">[% locale.maketext('Order [asis,ID]:') %]</td>
-                                                <td colspan=2 ng-bind="pcert.order_id"></td>
+                                                <td ng-bind="pcert.order_id"></td>
                                             </tr>
                                             <tr>
                                                 <td class="pending-cert-info-label">[% locale.maketext('Order Item [asis,ID]:') %]</td>
-                                                <td colspan=2 ng-bind="pcert.order_item_id"></td>
+                                                <td ng-bind="pcert.order_item_id"></td>
                                             </tr>
                                             <tr>
                                                 <td class="pending-cert-info-label">[% locale.maketext('Provider:') %]</td>
-                                                <td colspan=2 ng-bind="get_product_by_id(pcert.provider, pcert.product_id).provider_display_name"></td>
+                                                <td ng-bind="get_product_by_id(pcert.provider, pcert.product_id).provider_display_name"></td>
                                             </tr>
                                             <tr>
-                                                <td class="pending-cert-info-label">[% locale.maketext('Product:') %]</td>
-                                                <td colspan=2 ng-bind="get_product_by_id(pcert.provider, pcert.product_id).display_name"></td>
+                                                <td  class="pending-cert-info-label">[% locale.maketext('Product:') %]</td>
+                                                <td ng-bind="get_product_by_id(pcert.provider, pcert.product_id).display_name"></td>
                                             </tr>
                                             <tr>
-                                                <td class="pending-cert-info-label">[% locale.maketext('Request Date:') %]</td>
-                                                <td colspan=2 ng-bind="cjt1_LOCALE.local_datetime(pcert.created_time,'datetime_format_full')"></td>
+                                                <td  class="pending-cert-info-label">[% locale.maketext('Request Date:') %]</td>
+                                                <td ng-bind="cjt1_LOCALE.local_datetime(pcert.created_time,'datetime_format_full')"></td>
                                             </tr>
                                             <tr>
-                                                <td class="pending-cert-info-label">[% locale.maketext('Last Poll Date:') %]</td>
-                                                <td colspan=2 ng-bind="cjt1_LOCALE.local_datetime(pcert.last_poll_time,'datetime_format_full')"></td>
+                                                <td  class="pending-cert-info-label">[% locale.maketext('Last Poll Date:') %]</td>
+                                                <td ng-bind="cjt1_LOCALE.local_datetime(pcert.last_poll_time,'datetime_format_full')"></td>
                                             </tr>
                                             <tr>
-                                                <td class="pending-cert-info-label">[% locale.maketext('Status:') %]</td>
-                                                <td colspan=2 ng-bind-html="get_cert_status(pcert)"></td>
-                                            </tr>
-                                            <tr ng-repeat="detail in pcert.statusDetails.details" ng-class="::detail.rowStatusClass">
-                                                <td style="padding-left:24px;">
-                                                    <div ng-bind-html="::detail.label"></div>
-                                                </td>
-                                                <td colspan="{{ detail.actionURL ? 1 : 2 }}">
-                                                    <span ng-bind-html="::detail.status"></span>
-                                                </td>
-                                                <td ng-if="detail.actionURL" style="text-align:right">
-                                                    <a class="btn btn-link detail-action-link" href="{{ :: detail.actionURL }}" target="_blank">
-                                                        {{ :: detail.actionLabel }}
-                                                        <i ng-if="detail.actionIcon" ng-class="detail.actionIcon"></i>
-                                                    </a>
-                                                </td>
+                                                <td  class="pending-cert-info-label">[% locale.maketext('Status:') %]</td>
+                                                <td ng-bind="get_cert_status(pcert)"></td>
                                             </tr>
                                         </tbody>
                                     </table>

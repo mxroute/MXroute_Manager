@@ -64,7 +64,7 @@ SET cancel_url = to_uri(environment, actionlessuri);
         NEXT IF key == 'action';
         NEXT IF key == 'request_note';
         NEXT IF key == 'license'%]
-    <input type="hidden" name="[% key | html %]" value="[% form.$key | html %]" id="[% key | html %]" />
+    <input type="hidden" name="[% key | html %]" value="[% form.$key | html %]" id="[% key %]" />
     [% END %]
     <p>
         <textarea name="request_note" cols="80" rows="5" class="form-control" id="txtModerationRequest">[%-

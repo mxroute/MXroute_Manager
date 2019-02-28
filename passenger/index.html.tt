@@ -39,8 +39,6 @@ WRAPPER '_assets/master.html.tt'
         <p id="descPassenger" class="description">
             [% locale.maketext("This feature allows you to deploy Ruby applications via [asis,mod_passenger].") %]
         </p>
-        <!-- NOTE: leave the alert-group in single quotes -->
-        <cp-alert-list alert-group="'passenger'"></cp-alert-list>
         <div id="viewContent"
              class="ng-cloak"
              ng-view
@@ -56,6 +54,7 @@ WRAPPER '_assets/master.html.tt'
 
     [% PROCESS '_assets/cjt2_header_include.tt' %]
 
+    <div growl></div>
     <script id="passenger/views/manage.ptt" type="text/ng-template">
         [% PROCESS "passenger/views/manage.ptt" %]
     </script>

@@ -28,7 +28,8 @@ define(
         "cjt/directives/triStateCheckbox",
         "cjt/filters/qaSafeIDFilter",
         "cjt/directives/spinnerDirective",
-        "cjt/directives/quickFiltersDirective"
+        "cjt/directives/quickFiltersDirective",
+        "cjt/decorators/growlDecorator"
     ],
     function(angular, _, LOCALE) {
         "use strict";
@@ -47,27 +48,12 @@ define(
             "$window",
             "CertificatesService",
             "IdVerDefaults",
+            "growl",
             "CountriesService",
             "Certificate",
             "LocationService",
             "SearchSettingsModel",
-            "alertService",
-            function($rootScope,
-                $scope,
-                $controller,
-                $location,
-                $filter,
-                $timeout,
-                $sce,
-                $routeParams,
-                $window,
-                CertificatesService,
-                IdVerDefaults,
-                COUNTRIES,
-                Certificate,
-                LocationService,
-                SearchSettingsModel,
-                alertService) {
+            function($rootScope, $scope, $controller, $location, $filter, $timeout, $sce, $routeParams, $window, CertificatesService, IdVerDefaults, growl, COUNTRIES, Certificate, LocationService, SearchSettingsModel) {
 
                 $scope.show_introduction_block = CertificatesService.show_introduction_block;
 
@@ -91,19 +77,19 @@ define(
 
                 $scope.identity_verification = {};
 
-                var savedIDVer = CertificatesService.get_stored_extra_settings().simple_identity_verification;
-                if (savedIDVer) {
-                    IdVerDefaults.restore_previous($scope.identity_verification, savedIDVer);
+                var saved_idver = CertificatesService.get_stored_extra_settings().simple_identity_verification;
+                if (saved_idver) {
+                    IdVerDefaults.restore_previous($scope.identity_verification, saved_idver);
                 } else {
                     IdVerDefaults.set_defaults($scope.identity_verification);
                 }
 
                 // reset on visit to purchase certs
-                angular.forEach($scope.virtual_hosts, function(virtualHost) {
-                    virtualHost.reset();
+                angular.forEach($scope.virtual_hosts, function(virtual_host) {
+                    virtual_host.reset();
 
                     /*  ensure wildcards are shown in this interface */
-                    virtualHost.show_wildcards = true;
+                    virtual_host.show_wildcards = true;
                 });
 
                 /* build map for lookup later. */
@@ -131,7 +117,7 @@ define(
 
                 $scope.cart_price_strings = null;
 
-                var defaultSearchValues = {
+                var default_search_values = {
                     "certTerms": {
                         "1_year": true,
                         "2_year": false,
@@ -140,48 +126,48 @@ define(
                 };
 
                 $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_domain_search_options());
-                $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), defaultSearchValues);
+                $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), default_search_values);
 
                 $scope.displayProxySubdomains = true;
 
                 $scope.filter_domains = function(domains) {
 
-                    var filteredDomains = domains;
+                    var filtered_domains = domains;
 
                     if ($scope.meta.filterValue) {
-                        filteredDomains = $filter("filter")(filteredDomains, $scope.meta.filterValue);
+                        filtered_domains = $filter("filter")(filtered_domains, $scope.meta.filterValue);
                     }
 
-                    filteredDomains = $scope.searchFilterOptions.filter(filteredDomains);
+                    filtered_domains = $scope.searchFilterOptions.filter(filtered_domains);
 
-                    return filteredDomains;
+                    return filtered_domains;
                 };
 
                 $scope.filter_products = function(products) {
 
-                    var filteredProducts = products;
+                    var filtered_products = products;
 
-                    var selectedDomains = $scope.selected_domains;
-                    var wildcardDomains = $filter("filter")(selectedDomains, {
+                    var selected_domains = $scope.selected_domains;
+                    var wildcard_domains = $filter("filter")(selected_domains, {
                         is_wildcard: true
                     });
 
-                    filteredProducts = $filter("filter")(filteredProducts, function(product) {
-                        if (!product.wildcard_price && wildcardDomains.length) {
+                    filtered_products = $filter("filter")(filtered_products, function(product) {
+                        if (!product.wildcard_price && wildcard_domains.length) {
                             return;
-                        } else if (!product.price && selectedDomains.length - wildcardDomains.length > 0) {
+                        } else if (!product.price && selected_domains.length - wildcard_domains.length > 0) {
                             return;
                         }
                         return true;
                     });
 
                     if ($scope.meta.productFilterValue) {
-                        filteredProducts = $filter("filter")(filteredProducts, $scope.meta.productFilterValue);
+                        filtered_products = $filter("filter")(filtered_products, $scope.meta.productFilterValue);
                     }
 
-                    filteredProducts = $scope.productSearchFilterOptions.filter(filteredProducts);
+                    filtered_products = $scope.productSearchFilterOptions.filter(filtered_products);
 
-                    return filteredProducts;
+                    return filtered_products;
                 };
 
                 $scope.toggle_values = function(items, att, value) {
@@ -253,14 +239,14 @@ define(
 
                 };
 
-                $scope.select_domain = function(selectedDomain) {
-                    if (selectedDomain.selected && selectedDomain.is_wildcard) {
+                $scope.select_domain = function(selected_domain) {
+                    if (selected_domain.selected && selected_domain.is_wildcard) {
 
                         // select domains covered by this wildcard
-                        var coveredDomains = $filter("filter")($scope.domains, function(domain) {
-                            return CertificatesService.compare_wildcard_domain(selectedDomain, domain.domain);
+                        var covered_domains = $filter("filter")($scope.domains, function(domain) {
+                            return CertificatesService.compare_wildcard_domain(selected_domain, domain.domain);
                         });
-                        $scope.toggle_values(coveredDomains, "selected", true);
+                        $scope.toggle_values(covered_domains, "selected", true);
                     }
                     $scope.update_selected_domains();
                     $scope.check_selected_domains();
@@ -307,7 +293,7 @@ define(
                     domain.certificate_type = "unsecured";
                     var ihost = $scope.get_domain_certificate(domain.domain);
                     if (ihost && ihost.certificate) {
-                        if (!ihost.certificate.is_self_signed && ihost.certificate.validation_type) {
+                        if (!ihost.certificate.is_self_signed) {
                             domain.certificate_type = ihost.certificate.validation_type;
                         }
                     }
@@ -358,7 +344,6 @@ define(
                 $scope.pendingCertificateObject = function(domain) {
                     var result = false;
                     angular.forEach($scope.pending_certificates, function(pcert) {
-
                         angular.forEach(pcert.vhost_names, function(vhostName) {
                             if (vhostName === domain.virtual_host) {
                                 result = pcert;
@@ -369,13 +354,13 @@ define(
                 };
 
                 $scope.view_pending_certificate = function(domain) {
-                    var orderItemID = $scope.pending_certificate(domain);
-                    $scope.go_to_pending(orderItemID);
+                    var order_item_id = $scope.pending_certificate(domain);
+                    $scope.go_to_pending(order_item_id);
                 };
 
-                $scope.go_to_pending = function(orderItemID) {
-                    if (orderItemID) {
-                        $location.path("/pending-certificates/").search("orderItemID", orderItemID);
+                $scope.go_to_pending = function(order_item_id) {
+                    if (order_item_id) {
+                        $location.path("/pending-certificates/" + order_item_id);
                     } else {
                         $location.path("/pending-certificates");
                     }
@@ -424,9 +409,9 @@ define(
                     }
                 };
 
-                $scope.get_virtual_host_by_display_name = function(vhostName) {
-                    var vhostIndex = CertificatesService.get_virtual_host_by_display_name(vhostName);
-                    return $scope.virtual_hosts[vhostIndex];
+                $scope.get_virtual_host_by_display_name = function(vhost_name) {
+                    var vhost_index = CertificatesService.get_virtual_host_by_display_name(vhost_name);
+                    return $scope.virtual_hosts[vhost_index];
                 };
 
                 $scope.get_virtual_host_certificate = function(domain) {
@@ -441,17 +426,17 @@ define(
                     if (!domains.length) {
                         return false;
                     }
-                    var providerName = $scope.get_current_or_default_provider();
-                    return CertificatesService.ensure_domains_can_pass_dcv(domains, providerName);
+                    var provider_name = $scope.get_current_or_default_provider();
+                    return CertificatesService.ensure_domains_can_pass_dcv(domains, provider_name);
                 };
 
                 $scope.get_current_or_default_provider = function() {
 
-                    var productObject = $scope.get_product();
+                    var product_obj = $scope.get_product();
 
                     /* if it's set, use that */
-                    if (productObject) {
-                        var product = $scope.get_product_by_id(productObject.provider, productObject.id);
+                    if (product_obj) {
+                        var product = $scope.get_product_by_id(product_obj.provider, product_obj.id);
                         if (product) {
                             return product.provider_name;
                         }
@@ -473,7 +458,7 @@ define(
                 };
 
 
-                $scope.get_other_vhost_domains = function(matchDomain) {
+                $scope.get_other_vhost_domains = function(match_domain) {
                     return $filter("filter")($scope.domains, function(domain) {
                         if (domain.is_wildcard) {
                             return false;
@@ -484,10 +469,10 @@ define(
                         if (domain.resolved === 0) {
                             return false;
                         }
-                        if (domain.domain === matchDomain.domain) {
+                        if (domain.domain === match_domain.domain) {
                             return false;
                         }
-                        if (domain.virtual_host !== matchDomain.virtual_host) {
+                        if (domain.virtual_host !== match_domain.virtual_host) {
                             return false;
                         }
                         return true;
@@ -495,14 +480,14 @@ define(
                 };
 
                 $scope.get_selected_vhosts = function() {
-                    var coveredDomains = $scope.get_covered_domains();
-                    var coveredSelectedDomains = _.filter( coveredDomains, { selected: true } );
-                    return _.uniq(coveredSelectedDomains.map(function(domain) {
+                    var covered_domains = $scope.get_covered_domains();
+                    var covered_selected_domains = _.filter( covered_domains, { selected: true } );
+                    return _.uniq(covered_selected_domains.map(function(domain) {
                         return domain.virtual_host;
                     }));
                 };
 
-                function _domainIsOnPartialVhost(domain) {
+                function _domain_is_on_partial_vhost(domain) {
                     if (domain.selected) {
                         return false;
                     }
@@ -524,20 +509,20 @@ define(
                 }
 
                 $scope.has_partial_vhosts = function() {
-                    return $scope.domains.some(_domainIsOnPartialVhost);
+                    return $scope.domains.some(_domain_is_on_partial_vhost);
                 };
 
                 $scope.get_partial_vhost_domains = function() {
-                    return $scope.domains.filter(_domainIsOnPartialVhost);
+                    return $scope.domains.filter(_domain_is_on_partial_vhost);
                 };
 
-                $scope.get_undercovered_vhost_message = function(otherDomains) {
-                    var flatDomains = otherDomains.map(function(domain) {
+                $scope.get_undercovered_vhost_message = function(other_domains) {
+                    var flat_domains = other_domains.map(function(domain) {
                         return domain.domain;
                     });
                     var msg = "";
                     msg += "<p>" + LOCALE.maketext("The certificate will secure some, but not all, of the domains on websites on which they exist.") + "</p>";
-                    msg += "<p>" + LOCALE.maketext("If you choose to continue, the certificate will not secure the following [numerate,_1,domain,domains], and because a certificate will exist on their website, you may have to purchase a new certificate to secure all of these domains later. [list_and_quoted,_2]", flatDomains.length, flatDomains) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("If you choose to continue, the certificate will not secure the following [numerate,_1,domain,domains], and because a certificate will exist on their website, you may have to purchase a new certificate to secure all of these domains later. [list_and_quoted,_2]", flat_domains.length, flat_domains) + "</p>";
                     return msg;
                 };
 
@@ -550,14 +535,14 @@ define(
                     $scope.goto("domains");
                 };
 
-                $scope.get_other_domains_msg = function(domain, otherDomains) {
-                    var flatDomains = otherDomains.map(function(domain) {
+                $scope.get_other_domains_msg = function(domain, other_domains) {
+                    var flat_domains = other_domains.map(function(domain) {
                         return domain.domain;
                     });
                     var msg = "";
-                    msg += "<p>" + LOCALE.maketext("This certificate will not secure [quant,_2,other domain,other domains] on the same website as “[_1]”.", domain.domain, flatDomains.length) + "</p>";
-                    msg += "<p>" + LOCALE.maketext("Because you cannot secure a single website with multiple certificates, in order to secure any unselected [numerate,_1,domain,domains] in the future, you would need to purchase a new certificate to secure all of these domains.", flatDomains.length) + "</p>";
-                    msg += "<p>" + LOCALE.maketext("Would you like to secure the following additional [numerate,_2,domain,domains] with this certificate? [list_and_quoted,_1]", flatDomains, flatDomains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("This certificate will not secure [quant,_2,other domain,other domains] on the same website as “[_1]”.", domain.domain, flat_domains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("Because you cannot secure a single website with multiple certificates, in order to secure any unselected [numerate,_1,domain,domains] in the future, you would need to purchase a new certificate to secure all of these domains.", flat_domains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("Would you like to secure the following additional [numerate,_2,domain,domains] with this certificate? [list_and_quoted,_1]", flat_domains, flat_domains.length) + "</p>";
                     return msg;
                 };
 
@@ -569,8 +554,8 @@ define(
                     });
                 };
 
-                $scope.get_other_wildcard_domains = function(matchDomain) {
-                    if (!matchDomain.is_wildcard) {
+                $scope.get_other_wildcard_domains = function(match_domain) {
+                    if (!match_domain.is_wildcard) {
                         return false;
                     }
                     return $filter("filter")($scope.domains, function(domain) {
@@ -580,34 +565,34 @@ define(
                         if (domain.is_wildcard) {
                             return false;
                         }
-                        if (domain.domain === matchDomain.domain) {
+                        if (domain.domain === match_domain.domain) {
                             return false;
                         }
-                        if (CertificatesService.compare_wildcard_domain(matchDomain, domain.domain) === false) {
+                        if (CertificatesService.compare_wildcard_domain(match_domain, domain.domain) === false) {
                             return false;
                         }
                         return true;
                     });
                 };
 
-                function _isFailedDCVDomain(domain) {
+                function _is_failed_dcv_domain(domain) {
                     return domain.resolved !== 1;
                 }
 
                 $scope.has_failed_dcv_domains = function() {
-                    return $scope.selected_domains.some(_isFailedDCVDomain);
+                    return $scope.selected_domains.some(_is_failed_dcv_domain);
                 };
 
                 $scope.get_failed_dcv_domains = function() {
-                    return $scope.selected_domains.filter(_isFailedDCVDomain);
+                    return $scope.selected_domains.filter(_is_failed_dcv_domain);
                 };
 
-                $scope.get_failed_dcv_message = function(failedDCVDomains) {
-                    var flatDomains = failedDCVDomains.map(function(domain) {
+                $scope.get_failed_dcv_message = function(failed_dcv_domains) {
+                    var flat_domains = failed_dcv_domains.map(function(domain) {
                         return domain.domain;
                     });
                     var msg = "";
-                    msg += "<p>" + LOCALE.maketext("The following [numerate,_2,domain,domains] failed [numerate,_2,its,their] [output,abbr,DCV,Domain Control Validation] check: [list_and_quoted,_1]", flatDomains, flatDomains.length) + "</p>";
+                    msg += "<p>" + LOCALE.maketext("The following [numerate,_2,domain,domains] failed [numerate,_2,its,their] [output,abbr,DCV,Domain Control Validation] check: [list_and_quoted,_1]", flat_domains, flat_domains.length) + "</p>";
                     return msg;
                 };
 
@@ -625,9 +610,9 @@ define(
                     if (domain.is_wildcard) {
                         return false;
                     }
-                    var coverageDomain = CertificatesService.domain_covered_by_wildcard(domain.domain);
-                    if (coverageDomain && coverageDomain.selected) {
-                        return coverageDomain;
+                    var coverage_domain = CertificatesService.domain_covered_by_wildcard(domain.domain);
+                    if (coverage_domain && coverage_domain.selected) {
+                        return coverage_domain;
                     }
                     return false;
                 };
@@ -649,12 +634,12 @@ define(
                     }
                 };
 
-                $scope.get_currency_string = function(num, priceUnit) {
+                $scope.get_currency_string = function(num, price_unit) {
                     num += 0.001;
                     var str = LOCALE.numf(num);
                     str = "$" + str.substring(0, str.length - 1);
-                    if (priceUnit) {
-                        str += " " + priceUnit;
+                    if (price_unit) {
+                        str += " " + price_unit;
                     }
                     return str;
                 };
@@ -671,23 +656,11 @@ define(
                 };
 
                 $scope.cant_checkout_msg = function() {
-                    alertService.add({
-                        type: "warn",
-                        message: LOCALE.maketext("You cannot check out until you resolve all errors (in red)."),
-                        closeable: true,
-                        replace: false,
-                        group: "tlsWizard"
-                    });
+                    growl.warning(LOCALE.maketext("You cannot check out until you resolve all errors (in red)."));
                 };
 
                 $scope.cant_products_msg = function() {
-                    alertService.add({
-                        type: "warn",
-                        message: LOCALE.maketext("You need to select at least one domain before you can select a product."),
-                        closeable: true,
-                        replace: false,
-                        group: "tlsWizard"
-                    });
+                    growl.warning(LOCALE.maketext("You need to select at least one domain before you can select a product."));
                 };
 
                 $scope.clear_cloud_domain = function(domain) {
@@ -726,24 +699,24 @@ define(
                     if (!product) {
                         return "";
                     }
-                    var productObject = $scope.get_product_by_id(product.provider, product.id);
-                    if (!productObject) {
+                    var product_obj = $scope.get_product_by_id(product.provider, product.id);
+                    if (!product_obj) {
                         return "";
                     }
-                    return productObject.display_name;
+                    return product_obj.display_name;
                 };
 
-                $scope.get_product_by_id = function(providerName, productID) {
-                    return CertificatesService.get_product_by_id(providerName, productID);
+                $scope.get_product_by_id = function(provider_name, product_id) {
+                    return CertificatesService.get_product_by_id(provider_name, product_id);
                 };
 
-                $scope.check_product_match = function(productA) {
-                    var productB = $scope.get_product();
+                $scope.check_product_match = function(product_a) {
+                    var product_b = $scope.get_product();
 
-                    if (!productA || !productB) {
+                    if (!product_a || !product_b) {
                         return false;
                     }
-                    if (productA.id === productB.id && productA.provider === productB.provider) {
+                    if (product_a.id === product_b.id && product_a.provider === product_b.provider) {
                         return true;
                     }
                 };
@@ -760,24 +733,24 @@ define(
                 };
 
                 $scope.get_product_estimate_string = function(product) {
-                    var priceString = $scope.get_currency_string($scope.calculate_product_price(product));
-                    return "(" + LOCALE.maketext("[_1] total", priceString, product.price_unit) + ")";
+                    var price_string = $scope.get_currency_string($scope.calculate_product_price(product));
+                    return "(" + LOCALE.maketext("[_1] total", price_string, product.price_unit) + ")";
                 };
 
-                var _calculateProductPrice = function(product, nonwildcards, wildcards) {
+                var _calculate_product_price = function(product, nonwildcards, wildcards) {
 
                     // No product, possible during transition to other page.
                     if (!product) {
                         return;
                     }
 
-                    var totalPrice = 0;
+                    var total_price = 0;
 
                     if (wildcards.length && product.wildcard_price) {
-                        totalPrice += wildcards.length * product.wildcard_price;
+                        total_price += wildcards.length * product.wildcard_price;
                     }
                     if (nonwildcards.length && product.price) {
-                        totalPrice += nonwildcards.length * product.price;
+                        total_price += nonwildcards.length * product.price;
                     }
 
                     // product includes main domain free
@@ -786,9 +759,9 @@ define(
                         // adjust for main domains that are covered by wildcard domains
                         // subtract the price of the main domain for each wildcard domain
 
-                        var nonWildcardKeys = {};
+                        var nonwildcard_keys = {};
                         nonwildcards.forEach(function(domain) {
-                            nonWildcardKeys[domain.domain] = domain;
+                            nonwildcard_keys[domain.domain] = domain;
                         });
 
                         wildcards.forEach(function(domain) {
@@ -804,29 +777,29 @@ define(
                             // “faux”-strip logic in place and, for here,
                             // manually ensure that we’re matching against
                             // the wildcard’s parent domain.
-                            var trulyStripped = domain.domain.replace(/^\*\./, "");
+                            var truly_stripped = domain.domain.replace(/^\*\./, "");
 
-                            if (nonWildcardKeys[trulyStripped]) {
-                                totalPrice -= product.price;
+                            if (nonwildcard_keys[truly_stripped]) {
+                                total_price -= product.price;
                             }
                         });
                     }
 
-                    return totalPrice;
+                    return total_price;
                 };
 
                 $scope.calculate_product_price = function(product) {
-                    var selectedDomains = $scope.selected_domains;
+                    var selected_domains = $scope.selected_domains;
 
-                    var wildcardDomains = $filter("filter")(selectedDomains, {
+                    var wildcard_domains = $filter("filter")(selected_domains, {
                         is_wildcard: true
                     });
 
-                    var nonWildcardDomains = $filter("filter")(selectedDomains, {
+                    var non_wildcard_domains = $filter("filter")(selected_domains, {
                         is_wildcard: false
                     });
 
-                    return _calculateProductPrice(product, nonWildcardDomains, wildcardDomains);
+                    return _calculate_product_price(product, non_wildcard_domains, wildcard_domains);
                 };
 
 
@@ -840,14 +813,14 @@ define(
 
                 $scope.get_product_prices = function() {
                     var prices = [];
-                    var selectedDomains = $scope.selected_domains;
-                    var wildcardDomains = selectedDomains.filter(function(domain) {
+                    var selected_domains = $scope.selected_domains;
+                    var wildcard_domains = selected_domains.filter(function(domain) {
                         if (domain.is_wildcard) {
                             return true;
                         }
                         return false;
                     });
-                    var nonWildcardDomains = selectedDomains.filter(function(domain) {
+                    var non_wildcard_domains = selected_domains.filter(function(domain) {
                         if (!domain.is_wildcard) {
                             return true;
                         }
@@ -855,7 +828,7 @@ define(
                     });
 
                     $scope.filteredProductList.forEach(function(product) {
-                        var price = _calculateProductPrice(product, nonWildcardDomains, wildcardDomains);
+                        var price = _calculate_product_price(product, non_wildcard_domains, wildcard_domains);
                         prices.push(price);
                     });
                     return _.sortBy(prices);
@@ -887,30 +860,24 @@ define(
                             return;
                         }
 
-                        var mainDomain = CertificatesService.get_domain_by_domain(domain.stripped_domain);
-                        if (!mainDomain.selected) {
-                            $scope.missing_base_domains.push(mainDomain);
+                        var main_domain = CertificatesService.get_domain_by_domain(domain.stripped_domain);
+                        if (!main_domain.selected) {
+                            $scope.missing_base_domains.push(main_domain);
                         }
 
                     });
 
                     if ($scope.missing_base_domains.length) {
-                        var flatDomains = $scope.missing_base_domains.map(function(domain) {
+                        var flat_domains = $scope.missing_base_domains.map(function(domain) {
                             return domain.domain;
                         });
-                        alertService.add({
-                            type: "info",
-                            message: LOCALE.maketext("Because wildcard certificates require their parent domains, the system added the following [numerate,_1,domain,domains] for you: [list_and_quoted,_2]", flatDomains.length, flatDomains),
-                            closeable: true,
-                            replace: false,
-                            group: "tlsWizard"
-                        });
+                        growl.info(LOCALE.maketext("Because wildcard certificates require their parent domains, the system added the following [numerate,_1,domain,domains] for you: [list_and_quoted,_2]", flat_domains.length, flat_domains));
                         $scope.select_baseless_wildcard_domains($scope.missing_base_domains);
                     }
                 };
 
-                $scope.select_baseless_wildcard_domains = function(missingDomains) {
-                    $scope.toggle_values(missingDomains, "selected", true);
+                $scope.select_baseless_wildcard_domains = function(missing_domains) {
+                    $scope.toggle_values(missing_domains, "selected", true);
                     $scope.update_selected_domains();
                 };
 
@@ -941,10 +908,10 @@ define(
 
                     var product = $scope.get_product_by_id($scope.get_product().provider, $scope.get_product().id);
 
-                    var totalPrice = $scope.calculate_product_price(product);
-                    $scope.current_certificate.set_price(totalPrice);
+                    var total_price = $scope.calculate_product_price(product);
+                    $scope.current_certificate.set_price(total_price);
 
-                    return totalPrice;
+                    return total_price;
                 };
 
                 $scope.get_cart_strings = function() {
@@ -953,21 +920,21 @@ define(
 
                 $scope.update_cart_strings = function() {
                     var product = $scope.get_product();
-                    var productPrices = $scope.get_product_prices();
-                    var selectedDomains = $scope.selected_domains;
+                    var product_prices = $scope.get_product_prices();
+                    var selected_domains = $scope.selected_domains;
 
-                    var cartPrice = {
+                    var cart_price = {
                         min: 0,
                         max: 0
                     };
-                    if (product && selectedDomains.length) {
-                        cartPrice.min = $scope.get_currency_string($scope.get_cart_price(), "USD");
-                    } else if (selectedDomains.length) {
+                    if (product && selected_domains.length) {
+                        cart_price.min = $scope.get_currency_string($scope.get_cart_price(), "USD");
+                    } else if (selected_domains.length) {
 
-                        cartPrice.min = $scope.get_currency_string($scope.get_min_price(), "USD");
+                        cart_price.min = $scope.get_currency_string($scope.get_min_price(), "USD");
 
-                        if (productPrices.length > 1) {
-                            cartPrice.max = $scope.get_currency_string($scope.get_max_price(), "USD");
+                        if (product_prices.length > 1) {
+                            cart_price.max = $scope.get_currency_string($scope.get_max_price(), "USD");
                         }
 
                     } else {
@@ -975,7 +942,7 @@ define(
                         // If no other value, ensure that it is not empty so it does not jump when a domain is selected
                         $scope.cart_price_strings = false;
                     }
-                    $scope.cart_price_strings = cartPrice;
+                    $scope.cart_price_strings = cart_price;
                 };
 
                 $scope.get_cart_items = function() {
@@ -998,11 +965,7 @@ define(
                         simple_identity_verification: $scope.identity_verification
                     });
                     if (!success) {
-                        alertService.add({
-                            type: "danger",
-                            message: LOCALE.maketext("Failed to save information to browser cache."),
-                            group: "tlsWizard"
-                        });
+                        growl.error(LOCALE.maketext("Failed to save information to browser cache."));
                     } else {
                         $location.path("/purchase");
                     }
@@ -1047,10 +1010,10 @@ define(
                             if (a.domain.length === b.domain.length) {
                                 return 0;
                             }
-                            var aPer = $scope.meta.filterValue.length / a.domain.length;
-                            var bPer = $scope.meta.filterValue.length / b.domain.length;
+                            var a_per = $scope.meta.filterValue.length / a.domain.length;
+                            var b_per = $scope.meta.filterValue.length / b.domain.length;
 
-                            return aPer < bPer ? -1 : 1;
+                            return a_per < b_per ? -1 : 1;
                         });
                     } else {
                         filteredList = filteredList.sort(function(a, b) {
@@ -1139,21 +1102,21 @@ define(
 
                     // if routeParam domains set it
                     if ($routeParams["domain"]) {
-                        var preselectDomains = $routeParams["domain"];
-                        if (_.isString(preselectDomains)) {
-                            preselectDomains = [preselectDomains];
+                        var preselect_domains = $routeParams["domain"];
+                        if (_.isString(preselect_domains)) {
+                            preselect_domains = [preselect_domains];
                         }
-                        angular.forEach(preselectDomains, function(domain) {
-                            var domainObject = CertificatesService.get_domain_by_domain(domain);
-                            if (domainObject) {
-                                domainObject.selected = true;
+                        angular.forEach(preselect_domains, function(domain) {
+                            var dom_obj = CertificatesService.get_domain_by_domain(domain);
+                            if (dom_obj) {
+                                dom_obj.selected = true;
                             }
                         });
                     }
 
-                    var productSearchOptions = CertificatesService.get_product_search_options();
+                    var product_search_options = CertificatesService.get_product_search_options();
 
-                    var defaultSearchValues = {
+                    var default_search_values = {
                         "certTerms": {
                             "1_year": true,
                             "2_year": false,
@@ -1162,27 +1125,27 @@ define(
                     };
 
                     if ($routeParams["certificate_type"]) {
-                        var preselectCertificateTypes = $routeParams["certificate_type"];
-                        if (_.isString(preselectCertificateTypes)) {
-                            preselectCertificateTypes = [preselectCertificateTypes];
+                        var preselect_certificate_types = $routeParams["certificate_type"];
+                        if (_.isString(preselect_certificate_types)) {
+                            preselect_certificate_types = [preselect_certificate_types];
                         }
 
                         var validationType = {};
 
                         // Assume that if these aren't set in any products (since they are optional, after all) that it is 'all' -- CPANEL-12128.
-                        if (typeof productSearchOptions.validationType === "undefined") {
+                        if (typeof product_search_options.validationType === "undefined") {
                             validationType["all"] = true;
                         } else {
-                            angular.forEach(productSearchOptions.validationType.options, function(option) {
-                                validationType[option.value] = preselectCertificateTypes.indexOf(option.value) !== -1;
+                            angular.forEach(product_search_options.validationType.options, function(option) {
+                                validationType[option.value] = preselect_certificate_types.indexOf(option.value) !== -1;
                             });
                         }
-                        defaultSearchValues["validationType"] = validationType;
+                        default_search_values["validationType"] = validationType;
 
                     }
 
                     $scope.searchFilterOptions = new SearchSettingsModel(CertificatesService.get_domain_search_options());
-                    $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), defaultSearchValues);
+                    $scope.productSearchFilterOptions = new SearchSettingsModel(CertificatesService.get_product_search_options(), default_search_values);
 
                     $scope.fetch();
                     $scope.fetch_products();

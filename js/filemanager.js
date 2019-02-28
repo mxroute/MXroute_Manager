@@ -2406,7 +2406,7 @@ function upgradeFm() {
             return a + b.width + window.COLUMN_PADDING_BORDER;
         }
         return a;
-    }, 1); // 1px scrollbar padding
+    }, 18); // 18px scrollbar padding
 
     var emptyDS = new YAHOO.util.DataSource();
     emptyDS.responseType = YAHOO.util.DataSource.TYPE_JSARRAY;

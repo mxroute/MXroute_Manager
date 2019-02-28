@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]":"系统在尝试检索结果时遇到错误，请刷新界面: [_1]"};
+    var newLex = {"The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]":"The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
+    var newLex = {"Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"Показано [numf,_1]–[numf,_2] из [quant,_3,элемента,элементов]","File restoration failure: [_1]":"File restoration failure: [_1]","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

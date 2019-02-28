@@ -10,12 +10,12 @@
     <div class="col-xs-12">
         <div class="hidden-sm hidden-md hidden-lg pull-right flip">
             <button type="button"
-                    id="title_register_application_btn"
+                    id="title_add_record_btn"
                     class="btn btn-primary add-record-btn"
                     ng-disabled="manage.is_loading || manage.change_in_progress || manage.show_quota_warning()"
                     ng-click="manage.configure_details()">
                     <span class="fas fa-plus"></span>
-                    [% locale.maketext('Register Application') %]</button>
+                    [% locale.maketext('Add Application') %]</button>
         </div>
     </div>
 </div>
@@ -37,12 +37,12 @@
         <div class="col-xs-12 col-sm-6 col-md-3 col-lg-3">
             <div class="hidden-xs">
                 <button type="button"
-                        id="search_register_application_btn"
+                        id="search_add_record_btn"
                         class="btn btn-primary add-record-btn"
                         ng-disabled="manage.is_loading || manage.change_in_progress || manage.show_quota_warning()"
                         ng-click="manage.configure_details()">
                         <span class="fas fa-plus"></span>
-                        [% locale.maketext('Register Application') %]</button>
+                        [% locale.maketext('Add Application') %]</button>
             </div>
         </div>
         <div class="col-xs-12 col-sm-12 col-md-5 col-lg-5">
@@ -138,11 +138,11 @@
                                 <span class="glyphicon glyphicon-pencil"></span>
                                 [% locale.maketext('Edit') %]
                             </button>
-                            <button type="button" id="unregister_btn_{{appl._id}}" class="btn btn-link"
+                            <button type="button" id="delete_btn_{{appl._id}}" class="btn btn-link"
                                 ng-click="manage.confirm_delete_record(appl.name)"
                                 ng-disabled="manage.change_in_progress">
                                 <span class="glyphicon glyphicon-trash"></span>
-                                [% locale.maketext('Unregister') %]
+                                [% locale.maketext('Delete') %]
                             </button>
                         </td>
                     </tr>
@@ -191,7 +191,7 @@
 </div>
 <script type="text/ng-template" id="confirm_delete.html">
     <div class="modal-header">
-        <h4>[% locale.maketext('Confirm') %]</h4>
+        <h4>[% locale.maketext('Confirm Deletion') %]</h4>
     </div>
     <div class="modal-body">
         {{ctrl.confirm_msg}}
@@ -200,7 +200,7 @@
         <button type="button"
             id="modalContinueBtn"
             cp-action="ctrl.confirm()"
-            button-class="btn btn-primary btn-sm">[% locale.maketext('Unregister') %]</button>
+            button-class="btn btn-primary btn-sm">[% locale.maketext('Continue') %]</button>
         <button type="button"
             id="modalCancelBtn"
             class="btn btn-link btn-sm"

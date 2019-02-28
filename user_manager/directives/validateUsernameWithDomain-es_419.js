@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"The combined length of the username, [asis,@] character, and domain cannot exceed [numf,_1] characters.":"La longitud combinada del nombre de usuario, carácter [asis,@] y su dominio no pueden superar los [numf,_1] caracteres."};
+    var newLex = {"The combined length of the username, [asis,@] character, and domain cannot exceed [numf,_1] characters.":"The combined length of the username, [asis,@] character, and domain cannot exceed [numf,_1] characters."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

@@ -1,7 +1,7 @@
 [% SET CPANEL.CPVAR.dprefix = "../../" %]
 [%
     Api2.pre_exec("SSH", "converttoppk");
-    SET convert_ppk =  Api2.exec("SSH", "converttoppk", {"pass"=>RAW_FORM.pass, "name"=>FORM.key} ).0;
+    SET convert_ppk =  Api2.exec("SSH", "converttoppk", {"pass"=>FORM.pass, "name"=>FORM.key} ).0;
     Api2.post_exec("SSH", "converttoppk");
 %]
 

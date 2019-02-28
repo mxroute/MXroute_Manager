@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Successfully disabled [asis,ModSecurity™] on all domains.":"Se deshabilitó correctamente [asis,ModSecurity™] en todos los dominios.","Successfully disabled [asis,ModSecurity™] on “[_1]”.":"Se deshabilitó correctamente [asis,ModSecurity™] en “[_1]”.","Successfully enabled [asis,ModSecurity™] on all domains.":"Se habilitó correctamente [asis,ModSecurity™] en todos los dominios.","Successfully enabled [asis,ModSecurity™] on “[_1]”.":"Se habilitó correctamente [asis,ModSecurity™] en “[_1]”."};
+    var newLex = {"Successfully disabled [asis,ModSecurity™] on all domains.":"Successfully disabled [asis,ModSecurity™] on all domains.","Successfully disabled [asis,ModSecurity™] on “[_1]”.":"Successfully disabled [asis,ModSecurity™] on “[_1]”.","Successfully enabled [asis,ModSecurity™] on all domains.":"Successfully enabled [asis,ModSecurity™] on all domains.","Successfully enabled [asis,ModSecurity™] on “[_1]”.":"Successfully enabled [asis,ModSecurity™] on “[_1]”."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"圧縮済み","Directory":"ディレクトリ","File":"ファイル","Incremental":"増分","Symlink":"Symlink","Uncompressed":"非圧縮"};
+    var newLex = {"Compressed":"圧縮済み","Incremental":"増分","Uncompressed":"非圧縮"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

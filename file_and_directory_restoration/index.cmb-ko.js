@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"압축","Directory":"디렉토리","Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","File":"파일","Incremental":"증분","Symlink":"Symlink","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"비압축","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
+    var newLex = {"Compressed":"압축","Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]","File restoration failure: [_1]":"File restoration failure: [_1]","Incremental":"증분","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"비압축"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

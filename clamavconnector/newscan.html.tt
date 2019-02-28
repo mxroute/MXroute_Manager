@@ -1,5 +1,4 @@
 [%
-    USE ExpVar;
     SET CPANEL.CPVAR.dprefix = "../";
     Api1.pre_exec("ClamScanner", "printScans");
     SET print_scan = Api1.exec("ClamScanner", "printScans", [undef]);
@@ -12,7 +11,7 @@
     page_js = js_code
 -%]
 <div class="body-content">
-    [% IF CPANEL.feature("clamavconnector_scan") && ExpVar.expand('$hasclamav') %]
+    [% IF CPANEL.feature("clamavconnector_scan") %]
         <div class="section">
             <h2 id="hdrNewScan">[% locale.maketext("Start a New Scan") %]</h2>
             <p>[% locale.maketext("Scans will automatically stop if they run for more than one day.") %]</p>

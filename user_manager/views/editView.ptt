@@ -114,7 +114,7 @@
                             <input  id="recovery-email"
                                     name="recovery-email"
                                     email="rfc"
-                                    email-not-reserved-include-sub-addresses="{{ ui.user.username + '@' + ui.user.domain }}"
+                                    restricted-email-domains="{{ ui.user.domain }}"
                                     class="form-control"
                                     placeholder="alt.email@another.domain.tld"
                                     title="[% locale.maketext('Enter an alternate email address for the user.') %]"

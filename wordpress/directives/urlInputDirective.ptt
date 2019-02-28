@@ -1,0 +1,33 @@
+<div class="input-group form-inline">
+    <span ng-if="protocol" class="input-group-addon">
+      {{::protocol}}
+    </span>
+    <input ng-if="domains.length <= 1"
+           id="{{::id || name}}-domain"
+           name="{{::name}}-domain"
+           class="form-control"
+           ng-disabled="{{::disabled}}"
+           ng-readonly="{{::readonly}}"
+           ng-model="domain" />
+    <select ng-if="domains.length > 1"
+            id="{{::id || name}}-domain"
+            name="{{::name}}-domain"
+            class="form-control"
+            ng-disabled="{{::disabled}}"
+            ng-readonly="{{::readonly}}"
+            ng-model="domain">
+            <option ng-repeat="_domain in domains"
+                    value="{{_domain}}"
+                    ng-selected="_domain === domain">
+                {{_domain}}
+            </option>
+    </select>
+    <span class="input-group-addon">/</span>
+    <input id="{{::id || name}}-path"
+       name="{{::name}}-path"
+       type="text"
+       class="form-control"
+       ng-model="path"
+       ng-disabled="{{::disabled}}"
+       ng-readonly="{{::readonly}}" />
+</div>

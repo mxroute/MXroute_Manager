@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Pakattu","Directory":"Hakemisto","File":"Tiedosto","Incremental":"Lisäävä","Symlink":"Symlink","Uncompressed":"Pakkaamaton"};
+    var newLex = {"Compressed":"Pakattu","Incremental":"Lisäävä","Uncompressed":"Pakkaamaton"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

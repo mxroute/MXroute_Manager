@@ -111,9 +111,6 @@
     SET include_cjt = 1 IF !include_cjt.defined;
     SET use_master_bootstrap = 1 IF !use_master_bootstrap.defined;
     SET focus_feature_search = 0 IF !focus_feature_search.defined;
-    SET show_breadcrumb = 0 IF !show_breadcrumb.defined;
-
-    SET analytics_page_identifier = "cPanel-" _ app_key;
 
     # hide page heading if app_key is not provided, AND hide_page_heading isn't explicity defined
     IF !hide_page_heading.defined;
@@ -133,7 +130,6 @@
         documentation_url = brand_information.documentation_url;
     END;
 
-
     SET applications = CPBranding.flatten_available_applications(varcache.available_applications);
 
     varcache.set('CacheBuster_id',CacheBuster.id);
@@ -146,8 +142,8 @@
       END;
     END;
 
-    applications.push({ name => 'Notifications', searchText => locale.maketext('Notifications'), url => "home/notifications.html.tt" });
-    applications.push({ name => 'Home', searchText => locale.maketext('Home Main'), url => "index.html"});
+    applications.push({ name => 'Notifications', searchText => locale.maketext('Notifications'), url => varcache.directory_prefix _ "home/notifications.html.tt" });
+    applications.push({ name => 'Home', searchText => locale.maketext('Home Main'), url => varcache.directory_prefix _ "index.html"});
 
     varcache.set('pwd_app_info',CPBranding.get_application_from_available_applications(varcache.available_applications, 'change_password'));
     varcache.set('lang_app_info',CPBranding.get_application_from_available_applications(varcache.available_applications, 'change_language'));
@@ -363,7 +359,7 @@
             [%- page_js_top -%]
         [%- END -%]
     </head>
-    <body id="[% app_key %]" class="cpanel yui-skin-sam cpanel_body" data-app-key="[% app_key %]">
+    <body id="[% app_key %]" class="cpanel yui-skin-sam cpanel_body">
 
         [%
             IF current_style == 'retro'; # Retro style markup
@@ -431,6 +427,7 @@
         <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/register-nvdata.js') %]"></script>
         <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/focus-feature-search.js') %]"></script>
         <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/powered-by-cpanel.js') %]"></script>
+        <script type="text/javascript" src="[% theme_magic_url('_assets/deferred/duplicate-id-warning.js') %]"></script>
         [% END %]
 
     </body>

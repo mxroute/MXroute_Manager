@@ -24,6 +24,7 @@ define(
         "app/services/CertificatesService",
         "app/services/LocationService",
         "cjt/directives/spinnerDirective",
+        "cjt/decorators/growlDecorator",
         "uiBootstrap",
     ],
     function(_, angular, $, LOCALE, QUERY) {
@@ -31,22 +32,7 @@ define(
 
         var app = angular.module("App");
 
-        function CheckoutController(
-            $scope,
-            $controller,
-            $location,
-            $filter,
-            $routeParams,
-            $window,
-            $timeout,
-            CertificatesService,
-            spinnerAPI,
-            $q,
-            $modal,
-            $log,
-            Certificate,
-            LocationService,
-            alertService) {
+        function CheckoutController($scope, $controller, $location, $filter, $routeParams, $window, $timeout, CertificatesService, spinnerAPI, growl, $q, $modal, $log, Certificate, LocationService) {
 
             var steps = {
                 "cPStore": ["login", "send_cart_items", "checkout", "payment_callback", "checkout_complete"],
@@ -65,15 +51,15 @@ define(
 
             $scope.get_step_classes = function(provider, step) {
                 var steps = $scope.get_steps(provider.name).length;
-                var stepIndex = $scope.get_step_index(provider.name, step);
+                var step_index = $scope.get_step_index(provider.name, step);
                 var cols = Math.floor(12 / steps);
                 var classes = ["col-xs-12", "col-sm-12", "col-md-" + cols, "col-lg-" + cols, "checkout-step"];
-                if ($scope.current_step_index === stepIndex) {
+                if ($scope.current_step_index === step_index) {
                     classes.push("checkout-step-current");
                     if ("checkout_complete" === step) {
                         classes.push("checkout-step-completed");
                     }
-                } else if ($scope.current_step_index > stepIndex) {
+                } else if ($scope.current_step_index > step_index) {
                     classes.push("checkout-step-completed");
                 }
 
@@ -104,9 +90,9 @@ define(
                 }
             };
 
-            $scope.get_steps = function(providerName) {
-                if (steps[providerName]) {
-                    return steps[providerName];
+            $scope.get_steps = function(provider_name) {
+                if (steps[provider_name]) {
+                    return steps[provider_name];
                 }
                 return steps["default"];
             };
@@ -115,9 +101,9 @@ define(
                 return $scope.steps[$scope.current_step_index];
             };
 
-            $scope.get_step_index = function(providerName, step) {
+            $scope.get_step_index = function(provider_name, step) {
                 for (var i = 0; i < $scope.steps.length; i++) {
-                    if ($scope.steps[i].provider === providerName && $scope.steps[i].step === step) {
+                    if ($scope.steps[i].provider === provider_name && $scope.steps[i].step === step) {
                         return i;
                     }
                 }
@@ -139,45 +125,37 @@ define(
             };
 
             $scope.require_params = function(keys) {
-                var badKeys = [];
-                var tooManyKeys = [];
+                var bad_keys = [];
+                var too_many_keys = [];
                 angular.forEach(keys, function(key) {
                     var value = $scope.get_param(key);
                     if (!value) {
-                        badKeys.push(key);
+                        bad_keys.push(key);
                     } else if (value instanceof Array) {
-                        tooManyKeys.push(key);
+                        too_many_keys.push(key);
                     }
                 });
 
-                if (badKeys.length) {
-                    alertService.add({
-                        type: "danger",
-                        message: LOCALE.maketext("The following [numerate,_1,parameter is,parameters are] required but [numerate,_1,does,do] not appear in the [asis,URL]: [list_and_quoted,_2]", badKeys.length, badKeys),
-                        group: "tlsWizard"
-                    });
+                if (bad_keys.length) {
+                    growl.error(LOCALE.maketext("The following [numerate,_1,parameter is,parameters are] required but [numerate,_1,does,do] not appear in the [asis,URL]: [list_and_quoted,_2]", bad_keys.length, bad_keys));
                 }
 
-                if (tooManyKeys.length) {
-                    alertService.add({
-                        type: "danger",
-                        message: LOCALE.maketext("The following [numerate,_1,parameter appears,parameters appear] more than once in the [asis,URL]: [list_and_quoted,_2]", tooManyKeys.length, tooManyKeys),
-                        group: "tlsWizard"
-                    });
+                if (too_many_keys.length) {
+                    growl.error(LOCALE.maketext("The following [numerate,_1,parameter appears,parameters appear] more than once in the [asis,URL]: [list_and_quoted,_2]", too_many_keys.length, too_many_keys));
                 }
 
-                return badKeys.length || tooManyKeys.length ? false : true;
+                return bad_keys.length || too_many_keys.length ? false : true;
             };
 
             $scope.in_debug_mode = false;
 
             $scope.get_route_url = function() {
-                var routeURL = "";
-                routeURL += $location.absUrl().replace(/tls_wizard\/.+/, "tls_wizard/#/purchase");
-                return routeURL;
+                var route_url = "";
+                route_url += $location.absUrl().replace(/tls_wizard\/.+/, "tls_wizard/#/purchase");
+                return route_url;
             };
 
-            function _pemToBase64(pem) {
+            function _pem_to_base64(pem) {
                 return pem
                     .replace(/^\s*-\S+/, "")
                     .replace(/-\S+\s*$/, "")
@@ -193,17 +171,22 @@ define(
             // arrays:   [ <promise_index>, <payload> ]
             //
             // So, if you do:
-            //  _qAllWithErrIndex( [ prA, prB, prC ] )
+            //  _q_all_with_err_index( [ prA, prB, prC ] )
             //
             // ...and “prB” fails with the string "hahaha", the
             // failure callback will receive [ 1, "hahaha" ].
             //
-            function _qAllWithErrIndex(promisesArray) {
-                if (!(promisesArray instanceof Array)) {
+            // TODO: Consider making this a reusable component, along with
+            // altered logic that, in the event of failure, will wait to see
+            // if more of the promises fail and actually indicate what each
+            // promise did.
+            //
+            function _q_all_with_err_index(promises_array) {
+                if (!(promises_array instanceof Array)) {
                     throw "Only arrays here!";
                 }
 
-                return $q.all(promisesArray.map(function(p, i) {
+                return $q.all(promises_array.map(function(p, i) {
                     return $q(function(resolve, reject) {
                         p.then(
                             resolve,
@@ -237,24 +220,24 @@ define(
                     return;
                 }
 
-                var nextStep = $scope.get_next_step();
-                var orderID = $scope.get_param("order_id");
-                var loginCode = $scope.get_param("code");
-                var order = CertificatesService.get_order_by_id(orderID);
-                var orderStatus = $scope.get_param("order_status");
+                var next_step = $scope.get_next_step();
+                var order_id = $scope.get_param("order_id");
+                var login_code = $scope.get_param("code");
+                var order = CertificatesService.get_order_by_id(order_id);
+                var order_status = $scope.get_param("order_status");
                 var provider = $scope.get_provider_by_name(step.provider);
-                var accessToken = $scope.get_param("access_token");
-                var returnURL;
+                var access_token = $scope.get_param("access_token");
+                var ret_url;
 
                 if (step.step === "login") {
-                    returnURL = $scope.get_route_url() + $scope.get_step_url(step);
+                    ret_url = $scope.get_route_url() + $scope.get_step_url(step);
                     if (order) {
-                        returnURL += "?order_id=" + order.order_id;
+                        ret_url += "?order_id=" + order.order_id;
                     }
-                    if (loginCode) {
+                    if (login_code) {
 
                         /* Back from Login, Verify It */
-                        CertificatesService.verify_login_token(step.provider, loginCode, returnURL).then(function(result) {
+                        CertificatesService.verify_login_token(step.provider, login_code, ret_url).then(function(result) {
                             if (order) {
 
                                 /* there's an order, so don't create another one */
@@ -269,30 +252,18 @@ define(
                                     access_token: result.data.access_token
                                 });
                             }
-                        }, function(errorHTML) {
+                        }, function(error_html) {
                             $scope.return_to_wizard();
-                            alertService.add({
-                                type: "danger",
-                                message: LOCALE.maketext("The system encountered an error as it attempted to verify the login token: [_1]", errorHTML) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                closeable: true,
-                                replace: false,
-                                group: "tlsWizard"
-                            });
+                            growl.error(LOCALE.maketext("The system encountered an error as it attempted to verify the login token: [_1]", error_html) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                         });
                     } else {
 
                         /* There's no login code */
-                        CertificatesService.get_store_login_url(step.provider, returnURL).then(function(result) {
+                        CertificatesService.get_store_login_url(step.provider, ret_url).then(function(result) {
                             $window.location.href = result.data;
-                        }, function(errorHTML) {
+                        }, function(error_html) {
                             $scope.return_to_wizard();
-                            alertService.add({
-                                type: "danger",
-                                message: LOCALE.maketext("The system encountered an error as it attempted to get the store login [output,abbr,URL,Uniform Resource Location]: [_1]", errorHTML) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                closeable: true,
-                                replace: false,
-                                group: "tlsWizard"
-                            });
+                            growl.error(LOCALE.maketext("The system encountered an error as it attempted to get the store login [output,abbr,URL,Uniform Resource Location]: [_1]", error_html) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                         });
                     }
                 } else if (step.step === "send_cart_items") {
@@ -301,8 +272,8 @@ define(
                     if (!$scope.require_params(["access_token"])) {
                         return;
                     }
-                    returnURL = $scope.get_route_url() + $scope.get_step_url(nextStep);
-                    return CertificatesService.request_certificates(step.provider, accessToken, provider.certificates).then(function(result) {
+                    ret_url = $scope.get_route_url() + $scope.get_step_url(next_step);
+                    return CertificatesService.request_certificates(step.provider, access_token, provider.certificates).then(function(result) {
                         var order = result.data;
                         order.order_id = order.order_id.toString();
 
@@ -311,29 +282,23 @@ define(
 
                         $scope.go_step(step.provider, "checkout", {
                             order_id: order.order_id,
-                            access_token: accessToken
+                            access_token: access_token
                         });
-                    }, function(errorHTML) {
+                    }, function(error_html) {
                         $scope.return_to_wizard();
-                        alertService.add({
-                            type: "danger",
-                            message: LOCALE.maketext("The system encountered an error as it attempted to request the [asis,SSL] [numerate,_2,certificate,certificates]: [_1]", errorHTML, $scope.get_provider_by_name(step.provider).certificates.length) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                            closeable: true,
-                            replace: false,
-                            group: "tlsWizard"
-                        });
+                        growl.error(LOCALE.maketext("The system encountered an error as it attempted to request the [asis,SSL] [numerate,_2,certificate,certificates]: [_1]", error_html, $scope.get_provider_by_name(step.provider).certificates.length) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                     });
                 } else if (step.step === "checkout") {
                     if (!$scope.require_params(["order_id"])) {
                         return;
                     }
-                    returnURL = $scope.get_route_url() + $scope.get_step_url(step);
-                    if (orderStatus) {
+                    ret_url = $scope.get_route_url() + $scope.get_step_url(step);
+                    if (order_status) {
 
                         /* are we back from checking out? */
                         $scope.go_step(step.provider, "payment_callback", {
                             order_id: order.order_id,
-                            order_status: orderStatus
+                            order_status: order_status
                         });
                     } else {
                         if (!$scope.require_params(["access_token"])) {
@@ -341,12 +306,12 @@ define(
                         }
 
                         /* no? let's update the checkout url and head to checkout */
-                        CertificatesService.set_url_after_checkout(step.provider, accessToken, order.order_id, returnURL).then(function() {
+                        CertificatesService.set_url_after_checkout(step.provider, access_token, order.order_id, ret_url).then(function() {
                             $window.location.href = order.checkout_url;
                         }, function(response) { // NB: the argument is *not* the error!
-                            var isOtherUser = response.data && response.data.error_type === "OrderNotFound";
+                            var is_other_user = response.data && response.data.error_type === "OrderNotFound";
 
-                            if (isOtherUser) {
+                            if (is_other_user) {
                                 $scope.order_id = order.order_id;
                                 $scope.provider = $scope.get_provider_by_name(step.provider);
 
@@ -359,13 +324,7 @@ define(
                                 });
                             } else {
                                 LocationService.go_to_last_create_route();
-                                alertService.add({
-                                    type: "danger",
-                                    message: LOCALE.maketext("The system encountered an error as it attempted to set the [asis,URL] after checkout: [_1]", _.escape(response.error)) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                    closeable: true,
-                                    replace: false,
-                                    group: "tlsWizard"
-                                });
+                                growl.error(LOCALE.maketext("The system encountered an error as it attempted to set the [asis,URL] after checkout: [_1]", _.escape(response.error)) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                             }
 
                         });
@@ -375,19 +334,13 @@ define(
                     /* post checkout processing */
                     CPANEL.PAGE.pending_certificates = null;
                     CPANEL.PAGE.installed_hosts = null;
-                    if (orderStatus === "success") {
-                        alertService.add({
-                            type: "success",
-                            message: LOCALE.maketext("You have successfully completed your certificate order (order ID “[_1]”). If you need help with this order, use the support [numerate,_2,link,links] below.", _.escape(orderID), order.certificates.length),
-                            closeable: true,
-                            replace: false,
-                            autoClose: 10000,
-                            group: "tlsWizard"
-                        });
+                    if (order_status === "success") {
+                        growl.success(LOCALE.maketext("You have successfully completed your certificate order (order ID “[_1]”). If you need help with this order, use the support [numerate,_2,link,links] below.", _.escape(order_id), order.certificates.length));
+
                         CertificatesService.set_confirmed_status_for_ssl_certificates(step.provider, order).then(function() {
 
                             // successful
-                            $scope.go_step(step.provider, nextStep.step);
+                            $scope.go_step(step.provider, next_step.step);
                         }, function(response) {
 
                             // This is here to accommodate cases where the certificate
@@ -399,81 +352,56 @@ define(
                             // is/are installed where it/they should be.
                             //
                             if (response.data && response.data.error_type === "EntryDoesNotExist") {
-                                var notFound = response.data.order_item_ids;
+                                var not_found = response.data.order_item_ids;
 
-                                var msg = LOCALE.maketext("There are no pending certificates from “[_1]” with the following order item [numerate,_2,ID,IDs]: [join,~, ,_3]. The system will now verify that the [numerate,_2,certificate has,certificates have] been issued and installed.", _.escape(step.provider), notFound.length, notFound.map(_.escape.bind(_)));
+                                var msg = LOCALE.maketext("There are no pending certificates from “[_1]” with the following order item [numerate,_2,ID,IDs]: [join,~, ,_3]. The system will now verify that the [numerate,_2,certificate has,certificates have] been issued and installed.", _.escape(step.provider), not_found.length, not_found.map(_.escape.bind(_)));
 
-                                alertService.add({
-                                    type: "info",
-                                    message: msg,
-                                    closeable: true,
-                                    replace: false,
-                                    autoClose: 10000,
-                                    group: "tlsWizard"
-                                });
+                                growl.info(msg);
 
                                 var certificates = provider.certificates;
 
-                                notFound.forEach(function(oiid) {
+                                not_found.forEach(function(oiid) {
 
                                     // Fetch the new SSL cert.
-                                    var providerPromise = CertificatesService.get_ssl_certificate_if_available(step.provider, oiid);
+                                    var provider_promise = CertificatesService.get_ssl_certificate_if_available(step.provider, oiid);
 
                                     // There will only be one vhost
                                     // per certificate for now, but with
                                     // wildcard support that could change.
                                     certificates.forEach(function(cert) {
 
-                                        cert.get_virtual_hosts().forEach(function(vhostName) {
+                                        cert.get_virtual_hosts().forEach(function(vhost_name) {
                                             var domain = cert.get_domains().filter(function(domain) {
-                                                return domain.virtual_host === vhostName;
+                                                return domain.virtual_host === vhost_name;
                                             }).pop().domain;
 
-                                            var bigP = _qAllWithErrIndex([
+                                            var big_p = _q_all_with_err_index([
                                                 CertificatesService.get_installed_ssl_for_domain(),
-                                                providerPromise
+                                                provider_promise
                                             ]);
 
-                                            bigP.then(function yay(responses) {
-                                                var installedPEM = responses[0].data.certificate.text;
-                                                var installedB64;
+                                            big_p.then(function yay(responses) {
+                                                var installed_pem = responses[0].data.certificate.text;
+                                                var installed_b64;
 
-                                                if (installedPEM) {
-                                                    installedB64 = _pemToBase64(installedPEM);
+                                                if (installed_pem) {
+                                                    installed_b64 = _pem_to_base64(installed_pem);
                                                 }
 
-                                                var providerPEM = responses[1].data.certificate_pem;
-                                                var providerB64;
-                                                if (providerPEM) {
-                                                    providerB64 = _pemToBase64(providerPEM);
+                                                var provider_pem = responses[1].data.certificate_pem;
+                                                var provider_b64;
+                                                if (provider_pem) {
+                                                    provider_b64 = _pem_to_base64(provider_pem);
                                                 } else {
-                                                    var statusCode = responses[1].data.status_code;
+                                                    var status_code = responses[1].data.status_code;
 
                                                     // There is ambiguity over the spelling of “canceled”.
-                                                    if (/OrderCancell?ed/.test(statusCode)) {
-                                                        alertService.add({
-                                                            type: "danger",
-                                                            message: LOCALE.maketext("“[_1]” indicated that the order with [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(orderID)),
-                                                            closeable: true,
-                                                            replace: false,
-                                                            group: "tlsWizard"
-                                                        });
-                                                    } else if (/OrderItemCancell?ed/.test(statusCode)) {
-                                                        alertService.add({
-                                                            type: "danger",
-                                                            message: LOCALE.maketext("“[_1]” indicated that the certificate with order item [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(oiid)),
-                                                            closeable: true,
-                                                            replace: false,
-                                                            group: "tlsWizard"
-                                                        });
+                                                    if (/OrderCancell?ed/.test(status_code)) {
+                                                        growl.error(LOCALE.maketext("“[_1]” indicated that the order with [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(order_id)));
+                                                    } else if (/OrderItemCancell?ed/.test(status_code)) {
+                                                        growl.error(LOCALE.maketext("“[_1]” indicated that the certificate with order item [asis,ID] “[_2]” has been canceled.", _.escape(step.provider), _.escape(oiid)));
                                                     } else {
-                                                        alertService.add({
-                                                            type: "danger",
-                                                            message: LOCALE.maketext("“[_1]” has not issued a certificate for order item [asis,ID] “[_2]”. Contact them for further assistance.", _.escape(step.provider), _.escape(oiid)),
-                                                            closeable: true,
-                                                            replace: false,
-                                                            group: "tlsWizard"
-                                                        });
+                                                        growl.error(LOCALE.maketext("“[_1]” has not issued a certificate for order item [asis,ID] “[_2]”. Contact them for further assistance.", _.escape(step.provider), _.escape(oiid)));
                                                     }
 
                                                     // Since there’s no new certificate,
@@ -482,163 +410,100 @@ define(
                                                     return;
                                                 }
 
-                                                if (providerB64 === installedB64) {
+                                                if (provider_b64 === installed_b64) {
 
                                                     // This is the most optimal outcome:
                                                     // we confirmed that the new cert is
                                                     // installed, as the user wanted.
 
-                                                    alertService.add({
-                                                        type: "success",
-                                                        message: LOCALE.maketext("The system confirmed that the certificate for the website “[_1]” is installed.", _.escape(vhostName)),
-                                                        closeable: true,
-                                                        replace: false,
-                                                        autoClose: 10000,
-                                                        group: "tlsWizard"
-                                                    });
-                                                    if (installedB64) {
-                                                        alertService.add({
-                                                            type: "info",
-                                                            message: LOCALE.maketext("“[_1]” has an [asis,SSL] certificate installed, but it is not the certificate that you just ordered (order item [asis,ID] “[_2]”). The system will now install this certificate.", _.escape(vhostName), _.escape(oiid)),
-                                                            closeable: true,
-                                                            replace: false,
-                                                            autoClose: 10000,
-                                                            group: "tlsWizard"
-                                                        });
+                                                    growl.success(LOCALE.maketext("The system confirmed that the certificate for the website “[_1]” is installed.", _.escape(vhost_name)));
+
+                                                    // We still want to reset and have them
+                                                    // re-evaluate the rest of the order
+                                                    // since we had something “unexpected” happen.
+                                                    // (...right??...?)
+                                                    LocationService.go_to_last_create_route();
+                                                } else {
+
+                                                    // We’re here because there’s a new
+                                                    // certificate, but it’s not installed.
+                                                    // The user has asked for that installation,
+                                                    // so let’s see if we can finish the job.
+
+                                                    if (installed_b64) {
+                                                        growl.info(LOCALE.maketext("“[_1]” has an [asis,SSL] certificate installed, but it is not the certificate that you just ordered (order item [asis,ID] “[_2]”). The system will now install this certificate.", _.escape(vhost_name), _.escape(oiid)));
                                                     } else {
-                                                        var noCertMessage;
-                                                        noCertMessage = LOCALE.maketext("You do not have an [asis,SSL] certificate installed for the website “[_1]”.", _.escape(vhostName));
+                                                        var no_cert_msg;
+                                                        no_cert_msg = LOCALE.maketext("You do not have an [asis,SSL] certificate installed for the website “[_1]”.", _.escape(vhost_name));
 
-                                                        noCertMessage += LOCALE.maketext("The system will now install the new certificate.");
+                                                        no_cert_msg += LOCALE.maketext("The system will now install the new certificate.");
 
-                                                        alertService.add({
-                                                            type: "info",
-                                                            message: noCertMessage,
-                                                            closeable: true,
-                                                            replace: false,
-                                                            autoClose: 10000,
-                                                            group: "tlsWizard"
-                                                        });
-                                                        CertificatesService.install_certificate(providerPEM, [domain]).then(
-                                                            function yay() {
-                                                                alertService.add({
-                                                                    type: "success",
-                                                                    message: LOCALE.maketext("The system installed the certificate onto the website “[_1]”.", _.escape(vhostName)),
-                                                                    closeable: true,
-                                                                    replace: false,
-                                                                    autoClose: 10000,
-                                                                    group: "tlsWizard"
-                                                                });
-                                                            },
-                                                            function nay(errorHTML) {
-                                                                alertService.add({
-                                                                    type: "danger",
-                                                                    message: LOCALE.maketext("The system failed to install the certificate onto the website “[_1]” because of the following error: [_2]", _.escape(vhostName), errorHTML),
-                                                                    closeable: true,
-                                                                    replace: false,
-                                                                    group: "tlsWizard"
-                                                                });
-                                                            }
-                                                        ).then(LocationService.go_to_last_create_route);
+                                                        growl.info(no_cert_msg);
                                                     }
+
+                                                    CertificatesService.install_certificate(provider_pem, [domain]).then(
+                                                        function yay() {
+                                                            growl.success(LOCALE.maketext("The system installed the certificate onto the website “[_1]”.", _.escape(vhost_name)));
+                                                        },
+                                                        function nay(error_html) {
+                                                            growl.error(LOCALE.maketext("The system failed to install the certificate onto the website “[_1]” because of the following error: [_2]", _.escape(vhost_name), error_html));
+                                                        }
+                                                    ).then(LocationService.go_to_last_create_route);
                                                 }
 
                                             },
-                                            function onerror(idxAndResponse) {
+                                            function onerror(idx_and_response) {
 
                                                 // We’re here because we failed either
                                                 // to fetch the new cert or to query
                                                 // the current SSL state.
 
-                                                var promiseI = idxAndResponse[0];
-                                                var errorHTML = idxAndResponse[1];
+                                                var promise_i = idx_and_response[0];
+                                                var error_html = idx_and_response[1];
 
-                                                if (promiseI === 0) {
-                                                    alertService.add({
-                                                        type: "danger",
-                                                        message: LOCALE.maketext("The system failed to locate the installed [asis,SSL] certificate for the website “[_1]” because of the following error: [_2]", _.escape(vhostName), errorHTML),
-                                                        closeable: true,
-                                                        replace: false,
-                                                        group: "tlsWizard"
-                                                    });
-                                                } else if (promiseI === 1) {
-                                                    alertService.add({
-                                                        type: "danger",
-                                                        message: LOCALE.maketext("The system failed to query “[_1]” for order item [asis,ID] “[_2]” ([_3]) because of the following error: [_4]", _.escape(step.provider), _.escape(oiid), _.escape(vhostName), errorHTML),
-                                                        closeable: true,
-                                                        replace: false,
-                                                        group: "tlsWizard"
-                                                    });
+                                                if (promise_i === 0) {
+                                                    growl.error(LOCALE.maketext("The system failed to locate the installed [asis,SSL] certificate for the website “[_1]” because of the following error: [_2]", _.escape(vhost_name), error_html));
+                                                } else if (promise_i === 1) {
+                                                    growl.error(LOCALE.maketext("The system failed to query “[_1]” for order item [asis,ID] “[_2]” ([_3]) because of the following error: [_4]", _.escape(step.provider), _.escape(oiid), _.escape(vhost_name), error_html));
                                                 } else {
 
                                                     // should never happen
-                                                    alertService.add({
-                                                        type: "danger",
-                                                        message: "Unknown index: " + promiseI,
-                                                        closeable: true,
-                                                        replace: false,
-                                                        group: "tlsWizard"
-                                                    });
+                                                    growl.error("Unknown index: " + promise_i);
                                                 }
 
                                                 LocationService.go_to_last_create_route();
-                                            }
-                                            );
+                                            });
                                         });
                                     });
                                 });
                             } else {
-                                var errorHTML = response.error;
-                                alertService.add({
-                                    type: "danger",
-                                    message: LOCALE.maketext("The system failed to begin polling for [quant,_2,new certificate,new certificates] because of an error: [_1]", errorHTML, $scope.certificates_count) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                    closeable: true,
-                                    replace: false,
-                                    group: "tlsWizard"
-                                });
+                                var error_html = response.error;
+                                growl.error(LOCALE.maketext("The system failed to begin polling for [quant,_2,new certificate,new certificates] because of an error: [_1]", error_html, $scope.certificates_count) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                             }
                         });
 
                         // get info from local storage
                     } else {
-                        if (orderStatus === "error") {
+                        if (order_status === "error") {
                             CertificatesService.reset();
                             CertificatesService.save();
                             $scope.return_to_wizard();
-                            alertService.add({
-                                type: "danger",
-                                message: LOCALE.maketext("The system encountered an error as it attempted to complete your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                closeable: true,
-                                replace: false,
-                                group: "tlsWizard"
-                            });
-                        } else if (/^cancel?led$/.test(orderStatus)) { // cPStore gives two l’s
-                            var orderItemIDs = [];
+                            growl.error(LOCALE.maketext("The system encountered an error as it attempted to complete your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
+                        } else if (/^cancel?led$/.test(order_status)) { // cPStore gives two l’s
+                            var order_item_ids = [];
                             angular.forEach(order.certificates, function(cert) {
-                                orderItemIDs.push(cert.order_item_id);
+                                order_item_ids.push(cert.order_item_id);
                             });
-                            alertService.add({
-                                type: "warn",
-                                message: LOCALE.maketext("You seem to have canceled your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                closeable: true,
-                                replace: false,
-                                group: "tlsWizard"
-                            });
+                            growl.warning(LOCALE.maketext("You seem to have canceled your transaction.") + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                             $location.url($location.path()); // clear out the params so we do not get a cancel on subsequent orders
-                            CertificatesService.cancel_pending_ssl_certificates(step.provider, orderItemIDs).then(function() {
+                            CertificatesService.cancel_pending_ssl_certificates(step.provider, order_item_ids).then(function() {
 
                                 /* need to clear old unused in page data to get a fresh load */
                                 CertificatesService.reset();
                                 CertificatesService.save();
                                 $scope.return_to_wizard();
-                            }, function(errorHTML) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", errorHTML) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."),
-                                    closeable: true,
-                                    replace: false,
-                                    group: "tlsWizard"
-                                });
+                            }, function(error_html) {
+                                growl.error(LOCALE.maketext("The system encountered an error as it attempted to cancel your transaction: [_1]", error_html) + " " + LOCALE.maketext("You will now return to the beginning of the wizard."));
                             });
                         }
                         return false;
@@ -646,40 +511,33 @@ define(
                 } else if (step.step === "checkout_complete") {
 
                     // go next step or to done page
-                    if (!nextStep) {
+                    if (!next_step) {
                         CertificatesService.reset();
                         CertificatesService.save();
 
                         // done
-                        alertService.add({
-                            type: "success",
-                            message: LOCALE.maketext("The system has completed the [numerate,_1,purchase,purchases] and will begin to poll for your [numerate,_2,certificate,certificates].", $scope.providers.length, $scope.certificates_count),
-                            closeable: true,
-                            replace: false,
-                            autoClose: 10000,
-                            group: "tlsWizard"
-                        });
+                        growl.success(LOCALE.maketext("The system has completed the [numerate,_1,purchase,purchases] and will begin to poll for your [numerate,_2,certificate,certificates].", $scope.providers.length, $scope.certificates_count));
                         $timeout($scope.go_to_pending, 1000);
                     }
                 }
             };
 
             $scope.return_to_wizard = function() {
-                var curURL = $location.absUrl();
+                var cur_url = $location.absUrl();
 
                 // force reset for specific cases, use path redirect otherwise;
                 // this allows us to not clear growl notifications if we don't have to.
                 // could be replaced with replaceState if we ever get to IE11
                 if ($scope.get_param("code")) {
-                    var newURL = curURL.replace(/([^#?]+\/).*/, "$1#" + LocationService.last_create_route());
-                    $window.location.href = newURL;
+                    var new_url = cur_url.replace(/([^#?]+\/).*/, "$1#" + LocationService.last_create_route());
+                    $window.location.href = new_url;
                 } else {
                     LocationService.go_to_last_create_route();
                 }
             };
 
-            $scope.check_step_success = function(stepIndex) {
-                if (stepIndex < $scope.current_step_index) {
+            $scope.check_step_success = function(step_index) {
+                if (step_index < $scope.current_step_index) {
                     return true;
                 }
             };
@@ -721,19 +579,19 @@ define(
                 return $scope.providers;
             };
 
-            $scope.go_to_pending = function(orderItemID) {
-                if (orderItemID) {
-                    $location.path("/pending-certificates/").search("orderItemID", orderItemID);
+            $scope.go_to_pending = function(order_item_id) {
+                if (order_item_id) {
+                    $location.path("/pending-certificates/" + order_item_id);
                 } else {
                     $location.path("/pending-certificates");
                 }
             };
 
-            $scope.pending_certificate = function(virtualHost) {
+            $scope.pending_certificate = function(virtual_host) {
                 var result = false;
                 angular.forEach($scope.pending_certificates, function(pcert) {
-                    angular.forEach(pcert.vhost_names, function(vhostName) {
-                        if (vhostName === virtualHost.display_name) {
+                    angular.forEach(pcert.vhost_names, function(vhost_name) {
+                        if (vhost_name === virtual_host.display_name) {
                             result = pcert.order_item_id;
                         }
                     });
@@ -741,9 +599,9 @@ define(
                 return result;
             };
 
-            $scope.view_pending_certificate = function(virtualHost) {
-                var orderItemID = $scope.pending_certificate(virtualHost);
-                $scope.go_to_pending(orderItemID);
+            $scope.view_pending_certificate = function(virtual_host) {
+                var order_item_id = $scope.pending_certificate(virtual_host);
+                $scope.go_to_pending(order_item_id);
             };
 
             $scope.begin = function() {
@@ -761,23 +619,23 @@ define(
                         var product = vhost.get_product();
                         if (!product) {
                             $log.warn("has selected, but no product?");
-                            return false;
+                            return;
                         }
                         if (!CertificatesService.get_product_by_id(product.provider, product.id)) {
                             $log.warn("Unknown product!", product);
-                            return false;
+                            return;
                         }
                         return true;
-                    }).forEach(function(virtualHost) {
-                        var product = virtualHost.get_product();
+                    }).forEach(function(virtual_host) {
+                        var product = virtual_host.get_product();
                         var cert = new Certificate();
                         cert.set_product(product);
-                        cert.set_price(virtualHost.get_price());
-                        cert.set_domains(virtualHost.get_selected_domains());
-                        cert.set_virtual_hosts([virtualHost.display_name]);
+                        cert.set_price(virtual_host.get_price());
+                        cert.set_domains(virtual_host.get_selected_domains());
+                        cert.set_virtual_hosts([virtual_host.display_name]);
 
                         if (product.x_identity_verification) {
-                            var idVer = virtualHost.get_identity_verification();
+                            var id_ver = virtual_host.get_identity_verification();
 
                             // It’s ok if we don’t have the idver because
                             // that means we’re resuming a checkout, which
@@ -785,8 +643,8 @@ define(
                             // the only reason we’re assembling cert/vhost/etc.
                             // is so that the controller can quantify the
                             // domains propertly in localization.
-                            if (idVer) {
-                                cert.set_identity_verification(idVer);
+                            if (id_ver) {
+                                cert.set_identity_verification(id_ver);
                             }
                         }
 
@@ -827,22 +685,6 @@ define(
             $scope.init();
         }
 
-        app.controller("CheckoutController", [
-            "$scope",
-            "$controller",
-            "$location",
-            "$filter",
-            "$routeParams",
-            "$window",
-            "$timeout",
-            "CertificatesService",
-            "spinnerAPI",
-            "$q",
-            "$uibModal",
-            "$log",
-            "Certificate",
-            "LocationService",
-            "alertService",
-            CheckoutController]);
+        app.controller("CheckoutController", ["$scope", "$controller", "$location", "$filter", "$routeParams", "$window", "$timeout", "CertificatesService", "spinnerAPI", "growl", "$q", "$uibModal", "$log", "Certificate", "LocationService", CheckoutController]);
     }
 );

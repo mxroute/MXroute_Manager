@@ -6,21 +6,21 @@ SET SSL_get_cn_name =  execute("SSL", "get_cn_name", {"domain"=>FORM.domain, "se
 SET SSL_data = SSL_get_cn_name.data;
 
 #
-# If they use service (formerly proxy) subdomains we need send them to default
+# If they use proxy subdomains we need send them to default
 # web ports.
 #
 # **********************************************************************
 # case CPANEL-10895: Webdisk setup shows the wrong ports when accessed
-# via service (formerly proxy) subdomains when webdisk.DOMAIN is self signed
+# via proxy subdomains when webdisk.DOMAIN is self signed
 #
 # As of version 64+, we ignore the FORM.port
 # and FORM.sslport as they were frequently wrong
-# when using service (formerly proxy) subdomains.
+# when using proxy subdomains.
 # **********************************************************************
 #
 SET webdisk_domain=RAW_FORM.domain;
 
-# If they are using the webdisk service (formerly proxy) subdomain
+# If they are using the webdisk proxy subdomain
 # we need to connect to the default webports
 IF SSL_data.ssldomain.index("webdisk.") == 0;
  SET webdisk_ssldomain = SSL_data.ssldomain;
@@ -29,10 +29,10 @@ IF SSL_data.ssldomain.index("webdisk.") == 0;
  SET webdisk_ssl_self_signed =  SSL_data.is_self_signed ? 'true' : 'false';
 #
 # case CPANEL-10895: Webdisk setup shows the wrong ports when accessed
-# via service (formerly proxy) subdomains when webdisk.DOMAIN is self signed
+# via proxy subdomains when webdisk.DOMAIN is self signed
 #
 # In this case we do not have a signed ssl cert
-# for the webdisk service (formerly proxy) subdomains we still
+# for the webdisk proxy subdomains we still
 # need to use the domain name so it connects to
 # webdisk but mark the cert as self signed so
 # they get the proper warnings
@@ -260,7 +260,7 @@ END;
                 </div>
                 <div id="ssl_not_available" style="display:none;">
                     <img id="ssl-unlock" src="[% theme_magic_url("images/unlock.gif") %]"> <span id="ssl-infor-inactive">[% locale.maketext('Secure Connection ([output,acronym,SSL,Secure Socket Layer]) Not Available.')  %]</span>
-                    <span class="glyphicon glyphicon-info-sign" id="ssl-info" onclick="CPANEL.ajax.toggleToolTip(this, LOCALE.maketext('SSL Availability Notice'));" title="[% locale.maketext('SSL is not available because this server uses a self-signed or invalid certificate and your operating system requires a certificate from a recognized certificate authority. Contact your system administrator for more information.') %]">
+                    <span class="glyphicon glyphicon-info-sign" id="ssl-info" onclick="CPANEL.ajax.toggleToolTip(this, LOCALE.maketext('SSL Availablity Notice'));" title="[% locale.maketext('SSL is not available because this server uses a self-signed or invalid certificate and your operating system requires a certificate from a recognized certificate authority. Contact your system administrator for more information.') %]">
                 </div>
                 <div id="cleartext_not_available" style="display:none;">
                     <span id="cleartext-infor-inactive">[% locale.maketext('Clear Text Availability Notice')  %]</span>

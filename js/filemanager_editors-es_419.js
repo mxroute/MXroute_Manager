@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"OK":"Aceptar"};
+    var newLex = {"OK":"OK"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

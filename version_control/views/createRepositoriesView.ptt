@@ -68,11 +68,6 @@
                                     class="form-control"
                                     ng-disabled="!repository.formData.clone"
                                     ng-model="repository.formData.cloneURL"
-                                    ng-model-options="{
-                                        updateOn: 'default change blur',
-                                        debounce: { 'default': 250, 'change': 0, 'blur': 0 },
-                                    }"
-                                    ng-change="repository.checkKnownHosts()"
                                     ng-required="repository.formData.clone"
                                     valid-clone-url
                                     ng-blur="repository.autoFillPathAndName()"

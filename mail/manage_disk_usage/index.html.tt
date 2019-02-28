@@ -56,8 +56,7 @@ SET page_data = {
     <div id="ng_content" class="body-content"
         ng-controller="BaseController"
     >
-        <!-- NOTE: leave the alert-group in single quotes -->
-        <cp-alert-list alert-group="'emailDiskUsage'"></cp-alert-list>
+        <div growl></div>
 
         <div ng-if="!mailbox_status" id="page_loading_box" class="view-loading-box">
             <i class="fas fa-spinner fa-spin fa-4x"></i>

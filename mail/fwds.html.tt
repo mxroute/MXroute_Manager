@@ -68,7 +68,7 @@ END;
                 </p>
             [% END %]
             <p class="description" id="txt_forwarders-description">
-                [% locale.maketext("Send a copy of any incoming email from one address to another. For example, forward [output,strong,joe@example.com] to [output,strong,joseph@example.com] so that you only have one inbox to check. For more information, read the [output,url,_1,documentation,target,_2,id,_3].", "//go.cpanel.net/Forwarders", "_blank", "lnkForwardersDocumentation") %]
+                [% locale.maketext("Send a copy of any incoming email from one address to another. For example, forward [output,strong,joe@example.com] to [output,strong,joseph@example.com] so that you only have one inbox to check. Please note that some third party services do not like being the recipient of forwarded email, and treat it more poorly than email sent directly to their service. This includes companies like Yahoo, Google, and Microsoft. To prevent them from blocking you and us, we heavily filter outbound email. For most people, this is fine. If missing one email could cost you a ton of money, you shouldn't be forwarding to external services.") %]
             </p>
 
             <div id="search-panel_forwarders">
@@ -108,10 +108,6 @@ END;
                             [% hashref.item('forward').html() %]
                         </td>
                         <td class="nobrd" data-title="[% locale.maketext('Actions') %]">
-                            <a class="btn btn-link" href="showroute.html?fwd=1&amp;domain=[% FORM.domain %]&amp;email=[% hashref.item('uri_dest') %]">
-                            <span class="glyphicon glyphicon-search"></span>
-                            [% locale.maketext("Trace") %]
-                            </a>
                             <a class="btn btn-link" href="dodelfwdconfirm.html?domain=[% FORM.item('domain') %]&amp;email=[% hashref.item('uri_dest') %]&amp;emaildest=[% hashref.item('uri_forward') %]">
                                 <span class="glyphicon glyphicon-trash"></span> [% locale.maketext("Delete") %]
                             </a>
@@ -183,4 +179,3 @@ END;
 [% END %]
 [% BLOCK js_block %]
 [% END %]
-

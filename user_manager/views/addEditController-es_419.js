@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Your [asis,cPanel] account exceeds its disk quota. You cannot add or edit users.":"Su cuenta de [asis,cPanel] superó a su cuota de disco. No puede agregar o editar usuarios."};
+    var newLex = {"Your [asis,cPanel] account exceeds its disk quota. You cannot add or edit users.":"Your [asis,cPanel] account exceeds its disk quota. You cannot add or edit users."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

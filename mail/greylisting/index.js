@@ -21,7 +21,7 @@ define(
         return function() {
 
             // First create the application
-            angular.module("App", ["ngRoute", "ui.bootstrap", "cjt2.cpanel"]);
+            angular.module("App", ["ngRoute", "ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
 
             // Then load the application dependencies
             var app = require(
@@ -30,8 +30,6 @@ define(
                     // Application Modules
                     "cjt/bootstrap",
                     "cjt/views/applicationController",
-                    "cjt/directives/alert",
-                    "cjt/directives/alertList",
                     "app/views/domains",
                 ], function(BOOTSTRAP) {
 
@@ -42,8 +40,8 @@ define(
                     };
 
                     // routing
-                    app.config(["$routeProvider",
-                        function($routeProvider) {
+                    app.config(["$routeProvider", "growlProvider",
+                        function($routeProvider, growlProvider) {
 
                             // Setup the routes
                             $routeProvider.when("/domains/", {

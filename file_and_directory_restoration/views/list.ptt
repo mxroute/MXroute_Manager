@@ -1,346 +1,134 @@
-<cp-alert-list alert-group="'backup-restoration'"></cp-alert-list>
-
-<p class="description" id="cpFileAndDirRestoreDescription">[% locale.maketext('Use this interface to restore individual file and directory files from their backups.') %]</p>
-
-
-<div id="uiLoadingSpinner">
-    <i class="fas fa-spinner fa-spin fa-3x" ng-show="!noMetadataMessage && actions.loadingUI" aria-hidden="true"></i>
+<!-- Documentation -->
+<div class="callout callout-info">
+    [% locale.maketext("Click a filename or directory to retrieve its backups. Click [output,em,Restore This Version] to use that backup to restore the file or directory.") %]
 </div>
 
-<!-- No metadata warning -->
-<div class="callout callout-danger" ng-show="noMetadataMessage">
-    {{noMetadataMessage}}
+<!-- Notification of initially loading backups data -->
+<div cp-loading-panel class="initial-loading-panel" ng-show="!initialDataLoaded">
+[% locale.maketext("Loading …") %]
 </div>
 
+<!-- Backup restoring indicator -->
+<div cp-loading-panel class="restore-loading-panel" ng-show="dataRestoring">
+[% locale.maketext("Restoring …") %]
+</div>
 
-<uib-accordion 
-    id="fileAndDirPanel"  
-    class="col-md-5 col-lg-6">
-    <uib-accordion-group
-        is-disabled="actions.loadingUI || noMetadataMessage"
-        is-open="dirContentsPanelOpen"
-        panel-class="{{getDirContentsPanelClass(dirContentsPanelOpen)}}">
-        <uib-accordion-heading id="directoryContentsPanelHeader" ng-click="toggleDirContentsPanel()">[% locale.maketext('Files and Directories') %]</uib-accordion-heading>
-        <p>[% locale.maketext('Enter a path or browse files and directories to restore backups.') %]</p>
-        <div class="radio" id="pathOptionContainer">
-            <label for="enterPathOption">
-                <input 
-                    type="radio" 
-                    name="navigateMethod"
-                    ng-disabled="actions.loadingUI || noMetadataMessage"
-                    id="enterPathOption" 
-                    ng-model="navigateMethod"
-                    value="input"
-                    ng-change="clearBackupList()" />
-                [% locale.maketext('[output,strong,Enter a path].') %]
-            </label>
-            <i class="fas fa-question-circle" tooltip-placement="top" uib-tooltip-html="findByPathInfo"></i>
+<div ng-if="noMetadataError" class="callout callout-danger">
+    <p>{{noMetadataError}}</p>
+</div>
+
+<div class="row col-xs-12" ng-show="initialDataLoaded && !noMetadataError">
+
+    <!-- Directory restore -->
+    <button class="btn btn-primary" id="restoreDirectory" ng-click="getBackupListForDirectory()">[% locale.maketext("Restore This Directory") %]</button>
+
+    <!-- Breadcrumb -->
+    <ol class="breadcrumb">
+        <a href="" id="rootDirectoryIcon" ng-click="goHome()"><i class="fa fa-home" aria-hidden="false"></i></a>
+        <li ng-repeat="item in directoryBreadcrumb" ng-class="{'active': $index === directoryBreadcrumb.length - 2}">
+            <a href="" ng-click="changeDirectory(item.path)" ng-if="$index !== directoryBreadcrumb.length - 1">{{ item.displayPath }}</a>
+            <span ng-if="$index === directoryBreadcrumb.length - 1">{{ item.displayPath }}</span>
+        </li>
+    </ol>
+</div>
+
+<div class="row" ng-if="!noMetadataError">
+    <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
+        <div class="pagination-container">
+            <page-size id="pageSize"
+                allowed-sizes="meta.pageSizes"
+                total-items="meta.totalItems"
+                ng-model="meta.pageSize"
+                show-all="false"
+                ng-change="changePageSize()">
+            </page-size>
+            <uib-pagination id="paginateItems"
+                total-items="meta.totalItems"
+                ng-model="meta.currentPage"
+                max-size="meta.maxPages"
+                boundary-links="true"
+                rotate="false"
+                previous-text="<"
+                next-text=">"
+                first-text="<<"
+                last-text=">>"
+                items-per-page="meta.pageSize"
+                ng-change="changeDirectory(currentPath)">
+            </uib-pagination>
         </div>
+    </div>
+    <div id="goToPageContainer" class="col-xs-12 col-sm-12 col-md-4 col-lg-4">
+        <p for="goToPage">
+            [% locale.maketext("Go to Page:") %]
+        </p>
+        <input
+            id="goToPage"
+            class="form-control"
+            positive-integer
+            type="number"
+            name="goToPage"
+            ng-change="goToPage(meta.currentPage, currentPath)"
+            ng-model="meta.currentPage"
+            ng-model-options="{debounce: 500}" />
+            <p>{{paginationMessage}}</p>
+    </div>
+    <!-- API loading indicator -->
+    <div class="pull-right" ng-show="loadingData">
+        <span><i class="fa fa-spin fa-spinner fa-3x"></i></span>
+    </div>
 
-        <div class="radio" id="browseOptionContainer">
-            <label for="browseOption">
-                <input
-                    type="radio"
-                    name="navigateMethod"
-                    id="browseOption"
-                    ng-model="navigateMethod"
-                    ng-disabled="actions.loadingUI || noMetadataMessage"
-                    ng-change="clearBackupList()"
-                    value="browse" />
-                [% locale.maketext('[output,strong,Browse files and directories].') %]
-            </label>
-        </div>
-        <hr />
+    <div class="col-xs-12 col-sm-12 col-md-6" ng-if="backupList.length > 0" ng-show="selectedItemName">
+        <h3>{{ selectedItemName }}</h3>
+        <p>[% locale.maketext("Backup Count: [_1]", "{{ backupList.length }}") %]</p>
+    </div>
+</div>
 
-        <form name="searchByPathForm" id="searchByPathForm">
-            <div id="pathInputContainer" class="input-group" ng-show="navigateMethod === 'input'">
-                <span id="userHomeDirDisplay" class="input-group-addon">{{userHomeDirDisplay}}</span>
-                <input
-                    id="pathInput"
-                    class="form-control"
-                    type="text"
-                    name="pathInput"
-                    ng-disabled="actions.loadingUI || noMetadataMessage"
-                    placeholder="[% locale.maketext('Enter a valid path.') %]"
-                    ng-change="checkForEmptyInput(pathInput)"
-                    ng-trim="false"
-                    ng-model="pathInput" />
-            </div>
-
-            <div id="pathInputButtons" ng-show="navigateMethod === 'input'">
-                <button
-                    id="pathInputButton"
-                    type="submit"
-                    class="btn btn-primary"
-                    ng-disabled="isPathInputEmpty"
-                    ng-keypress="checkForEmptyInput(pathInput, $event)"
-                    cp-action="findByPathInput(pathInput)">[% locale.maketext('Show Backups') %]
-                </button>
-                <button
-                    id="clearBackupListBtn"
-                    class="btn btn-link"
-                    ng-click="clearBackupList()"
-                    ng-disabled="!isBackupSelected && !getBackupsError">
-                    [% locale.maketext('Clear Backups') %]
-                </button>
-            </div>
-        </form>
-        <div class="navigationContainer">
-            <div id="goToPageContainer" class="page-size" ng-show="navigateMethod === 'browse'">
-                <div class="form-group">
-                    <label for="goToPage" class="title">
-                        [% locale.maketext("Go to Page:") %]
-                    </label>
-                    <select
-                        id="pageNumberSelector"
-                        class="form-control"
-                        name="goToPage"
-                        ng-model="directoryContentsMeta.pageNumber"
-                        ng-options="number for number in goToPages track by number"
-                        ng-change="setDirectoryContentsPage()"
-                        ng-disabled="emptyDirectory">
-                        {{directoryContentsMeta.pageNumber}}
-                    </select>
-                </div>
-            </div>
-            <div class="pagination-container pull-right" id="paginationContainer" ng-show="navigateMethod === 'browse'">
-                <page-size
-                    id="pageSize"
-                    allowed-sizes="directoryContentsMeta.pageSizes"
-                    total-items="directoryContentsMeta.totalItems"
-                    ng-model="directoryContentsMeta.pageSize"
-                    show-all="false"
-                    ng-change="setDirectoryContentsPage(true)">
-                </page-size>
-                <uib-pagination
-                    id="paginateItems"
-                    total-items="directoryContentsMeta.totalItems"
-                    ng-model="directoryContentsMeta.pageNumber"
-                    max-size="0"
-                    boundary-links="true"
-                    rotate="true"
-                    previous-text="<"
-                    next-text=">"
-                    first-text="<<"
-                    last-text=">>"
-                    items-per-page="directoryContentsMeta.pageSize"
-                    ng-change="setDirectoryContentsPage()">
-                </uib-pagination>
-            </div>
-        </div>
-        <div id="breadcrumbContainer">
-            <ol class="breadcrumb" ng-show="navigateMethod === 'browse'">
-                <li>
-                    <button
-                        class="btn btn-link"
-                        ng-click="goToDirectory(homeDir)">
-                        <span>[% locale.maketext('Home') %]</span>
+<!-- List of items in the current directory -->
+<div class="row">
+    <div class="col-xs-12 scrollContainer">
+        <div class="col-xs-12 col-sm-4 leftPanel">
+            <ul class="list-unstyled">
+                <li ng-if="directoryBreadcrumb.length > 1">
+                    <button id="parentDirectoryButton" class="btn btn-link" ng-click="changeDirectory()">..</button>
+                </li>
+                <li ng-repeat="item in currentDirectoryContent | orderBy:'parsedName'">
+                    <button class="btn btn-link selectItemButton" ng-click="selectItem(item)">
+                        <span ng-show="item.type === 'dir'"><i class="fas fa-folder"></i></span>
+                        <span ng-show="item.type === 'file'"><i class="far fa-file"></i></span>
+                        <span ng-show="item.type === 'symlink'"><i class="fas fa-link"></i></span>
+                        {{ item.parsedName }}
                     </button>
                 </li>
-                <li ng-repeat="content in breadCrumb track by $index">
-                    <button
-                        class="btn btn-link"
-                        ng-click="navigateBreadcrumb(content)">
-                        <span>{{content}}</span>
-                    </button>
-                </li>
-            </ol>
+            </ul>
         </div>
-
-        <table class="table table-condensed responsive-table" id="directoryContentsTable" ng-show="navigateMethod === 'browse'">
-            <thead>
-                <tr>
-                    <th>
-                        <span
-                            toggle-sort
-                            id="contentNameCol"
-                            title="[% locale.maketext('Name') %]"
-                            sort-meta="directoryContentsMeta"
-                            sort-field="name"
-                            onsort="sortDirectoryContentsTable">
-                            [% locale.maketext('Name') %]
-                        </span>
-                    </th>
-                    <th>
-                        {{directoryContentsPaginationMessage}}
-                    </th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr id="directoryContentsLoadingMsg" ng-show="actions.loadingData || actions.loadingUI || emptyDirectory">
-                    <td colspan="2">
-                        <i class="fas fa-spin fa-spinner" ng-show="actions.loadingData || actions.loadingUI"></i>
-                        <span ng-show="actions.loadingData || actions.loadingUI">[% locale.maketext("Loading directory contents …") %]</span>
-                        <span ng-show="emptyDirectory && !actions.loadingData && !actions.loadingUI" id="noContentsMsg">[% locale.maketext("Empty directory.") %]</span>
-                    </td>
-                </tr>
-                <tr ng-repeat="content in directoryContents track by $index" class="directoryContentsTableRow" ng-hide="actions.loadingData || actions.loadingUI" ng-class="{'selectedBackup': content.backupPath === selectedContent}">
-                    <td data-title="[% locale.maketext('Name') %]">
-                        <span class="directoryContentsIcon" ng-show="content.type === 'dir'"><i class="fa fa-folder"></i></span>
-                        <span class="directoryContentsIcon" ng-show="content.type === 'file'"><i class="far fa-file"></i></span>
-                        <span class="directoryContentsicon" ng-show="content.type === 'symlink'"><i class="fa fa-link"></i></span>
-                        <span data-title="[% locale.maketext('[_1]', '{{content.name}}') %]" ng-if="content.type !== 'dir'">{{content.name}}</span>
-                        <button
-                            ng-if="content.type === 'dir'"
-                            class="btn btn-link directoryLink"
-                            ng-click="goToDirectory(content.backupPath)"
-                            id="dirNameBtn_{{content.name}}">
-                            <span>{{content.name}}</span>
-                        </button>
-                    </td>
-                    <td>
-                        <button
-                            id="goToBackupListBtn"
-                            type="button"
-                            button-class="btn-link"
-                            spinner-id="{{content.backupPath}}_{{$index}}"
-                            cp-action="listBackups(content)">
-                            [% locale.maketext('Show Backups') %]
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </uib-accordion-group>
-</uib-accordion>
-
-<uib-accordion 
-    id="backupsPanel"  
-    class="col-md-7 col-lg-6">
-    <uib-accordion-group
-        is-disabled="actions.loadingUI || noMetadataMessage"
-        is-open="backupsPanelOpen"
-        panel-class="{{getBackupsPanelClass(backupsPanelOpen)}}">
-        <uib-accordion-heading id="backupsPanelHeader" ng-click="toggleBackupsPanel()">[% locale.maketext('Backups') %]</uib-accordion-heading>
-        <p>[% locale.maketext('Click [output,em,Restore] to restore an item from its backup.') %]</p>
-        <div id="selectedItemInfoContainer">
-            <h4 class="selectedItemInfo">[% locale.maketext('[output,strong,Name]:') %]</h4>
-            <p class="selectedItemInfo">{{selectedContent}}</p>
-            <hr /> 
-        </div>
-        <div ng-hide="isBackupSelected || getBackupsError" class="callout callout-info">
-            [% locale.maketext('Click [output,em,Show Backups] to list backups in this section.') %]
-        </div>
-
-        <div ng-hide="!getBackupsError" class="callout callout-warning">
-            {{getBackupsError}}
-        </div>
-
-        <div>
-            <div ng-show="isBackupSelected" id="itemExistsCheck" class="backupNavigation">
-                <h4 class="contentExistsInfo">[% locale.maketext('On local disk: [_1]', '{{doesContentExist ? "Yes" : "No"}}') %]</h4>
-                <i class="fas fa-question-circle contentExistsInfo" tooltip-placement="top" uib-tooltip-html="doesContentExistInfo"></i>
-            </div>
-
-            <div ng-show="isBackupSelected" class="backupNavigation pagination-container pull-right">
-                <page-size
-                    id="pageSize"
-                    allowed-sizes="backupsMeta.pageSizes"
-                    total-items="backupsMeta.totalItems"
-                    ng-model="backupsMeta.pageSize"
-                    show-all="false"
-                    ng-change="sortBackupsTable()">
-                </page-size>
-                <uib-pagination
-                    id="paginateItems"
-                    total-items="backupsMeta.totalItems"
-                    ng-model="backupsMeta.pageNumber"
-                    max-size="0"
-                    boundary-links="true"
-                    rotate="true"
-                    previous-text="<"
-                    next-text=">"
-                    first-text="<<"
-                    last-text=">>"
-                    items-per-page="backupsMeta.pageSize"
-                    ng-change="sortBackupsTable()">
-                </uib-pagination>
-                <div id="paginationMessage">
-                    <div class="page-stats pull-right">
-                        {{backupsPaginationMessage}}
-                    </div>
+        <!-- List of backups for a selected file -->
+        <div class="col-xs-12 col-sm-6 rightPanel" ng-if="backupList.length > 0" ng-show="selectedItemName">
+            <!-- Loop through the backup list -->
+            <h4 ng-repeat-start="backup in backupList | orderBy:'backupDate':true">{{ backup.backupPath }}</h4>
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <dl class="dl-horizontal">
+                        <dt>[% locale.maketext("Backup Date") %]</dt>
+                        <dd>{{ backup.backupDate }}</dd>
+                        <dt>[% locale.maketext("Type") %]</dt>
+                        <dd>{{ backup.type }}</dd>
+                        <dt>[% locale.maketext("Backup Type") %]</dt>
+                        <dd >{{ backup.backupType}}</dd>
+                        <dt class="ng-hide" ng-show="backup.type === 'file'">[% locale.maketext("Last Modified Time") %]</dt>
+                        <dd class="ng-hide" ng-show="backup.type === 'file'">{{backup.lastModifiedTime}}</dd>
+                        <dt class="ng-hide" ng-show="backup.type === 'file'">[% locale.maketext("File Size") %]</dt>
+                        <dd class="ng-hide" ng-show="backup.type === 'file'">{{ backup.fileSize }} bytes</dd>
+                    </dl>
+                    <p class="text-right">
+                        <button class="restoreButton btn btn-primary" ng-click="restore(backup)">[% locale.maketext("Restore This Version") %]</button>
+                    </p>
                 </div>
             </div>
+            <hr ng-repeat-end ng-show="$index < backupList.length - 1">
         </div>
+    </div>
+</div>
 
-        <table ng-show="isBackupSelected" id="backupsTable" class="table table-condensed responsive-table">
-            <thead>
-                <tr>
-                    <th><span
-                            toggle-sort
-                            id="backupsDateCol"
-                            sort-meta="backupsMeta"
-                            onsort="sortBackupsTable"
-                            sort-field="backupDate"
-                            title="[% locale.maketext('Backup Date') %]">[% locale.maketext('Backup Date') %]</span></th>
-                    <th><span
-                            toggle-sort
-                            id="backupsTypeCol"
-                            sort-meta="backupsMeta"
-                            onsort="sortBackupsTable"
-                            sort-field="backupType"
-                            title="[% locale.maketext('Backup Type') %]">[% locale.maketext('Backup Type') %]</span></th>
-                    <th ng-if="!isContentTypeDirectory"><span
-                            toggle-sort
-                            id="modifiedTimeCol"
-                            sort-meta="backupsMeta"
-                            onsort="sortBackupsTable"
-                            sort-field="lastModifiedTime"
-                            title="[% locale.maketext('Last Modified Date') %]">[% locale.maketext('Last Modified Date') %]</span></th>
-                    <th ng-if="!isContentTypeDirectory"><span
-                            toggle-sort
-                            id="sizeCol"
-                            sort-meta="backupsMeta"
-                            onsort="sortBackupsTable"
-                            sort-field="fileSize"
-                            title="[% locale.maketext('Size') %]">[% locale.maketext('Size') %]</span></th>
-                    <th></th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr ng-repeat-start="backup in backupList track by $index">
-                    <td>{{backup.backupDate}}</td>
-                    <td>{{backup.backupType}}</td>
-                    <td ng-if="!isContentTypeDirectory">{{backup.lastModifiedTime}}</td>
-                    <td ng-if="!isContentTypeDirectory">{{backup.fileSize | convertedSize}}</td>
-                    <td>
-                        <button
-                            id="restoreConfirmationBtn"
-                            class="btn btn-link"
-                            ng-click="toggleRestoreConfirmation(backup)">
-                            [% locale.maketext('Restore') %]        
-                        </button>
-                    </td>
-                </tr>
-                <tr ng-show="isConfirmingRestoration && backup.backupDate === confirmSelected" class="confirmationRow" ng-repeat-end>
-                    <td ng-if="doesContentExist" colspan="{{isContentTypeDirectory ? 1 : 3}}">[% locale.maketext('[output,strong,Restore Confirmation:] Overwrite and restore?') %]</td>
-                    <td ng-if="!doesContentExist" colspan="{{isContentTypeDirectory ? 1 : 3}}">[% locale.maketext('[output,strong,Restore Confirmation:] Add to local disk and restore?') %]</td>
-                    <td>
-                        <button
-                            id="restoreBackupBtn"
-                            class="btn btn-primary"
-                            cp-action="restoreSelectedBackup(backup)"
-                            spinner-id="{{backup.backupDate}}_{{$index}}">
-                            [% locale.maketext('Restore') %]
-                        </button>
-                    </td>
-                    <td>
-                        <button
-                            id="cancelRestorationBtn"
-                            class="btn btn-link"
-                            ng-click="toggleRestoreConfirmation()">
-                            [% locale.maketext('Cancel') %]        
-                        </button>
-                    </td>
-                </tr>
-            </tbody>
-        </table>  
-    </uib-accordion-group>
-</uib-accordion>
-<button 
-    id="scrollToBackupListBtn"
-    type="button"
-    class="btn btn-link pull-right footerNavBtns"
-    ng-click="scrollToBackupList()">
-    <i class="fas fa-arrow-up" aria-hidden="true"></i>[% locale.maketext('Back To Top') %]
-</button>
+<script type="text/ng-template" id="restoreModalContent.tmpl">
+    [% PROCESS "file_and_directory_restoration/views/restoreConfirmation.ptt" %]
+</script>

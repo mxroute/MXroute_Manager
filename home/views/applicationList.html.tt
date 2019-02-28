@@ -5,7 +5,7 @@ USE Master;
 
 <div ng-controller="applicationListController">
     <div id="jump-search">
-        <input id="quickjump" aria-label="[% locale.maketext("Quick Jump") %]" type="text" class="form-control"
+        <input id="quickjump" type="text" class="form-control"
             ng-model="searchText" ng-keyup="clearSearch($event)"
             placeholder="[% locale.maketext("Find functions quickly by typing here.") %]"/>
     </div>
@@ -17,7 +17,7 @@ USE Master;
             varcache.set('this_app_group_hidden', collapsed_groups.index(varcache.this_app_group.group) > -1 ? 1 : 0);
         %]
         <div id="[%- varcache.this_app_group.group -%]-container">
-            <div id="[%- varcache.this_app_group.group -%]-group" data-group-name="[% varcache.this_app_group.group %]" draggable drag="handleDrag" drag-end="handleDragEnd" class="panel panel-widget icon-menu-section" role="group">
+            <div id="[%- varcache.this_app_group.group -%]-group" data-group-name="[% varcache.this_app_group.group %]" draggable drag="handleDrag" drag-end="handleDragEnd" class="panel panel-widget icon-menu-section" role="category">
                 <div class="panel-heading widget-heading widget-draggable" ng-dblclick="toggleGroup([%- varcache.this_app_group.group -%])">
                     <span id="[%- varcache.this_app_group.group -%]-header" class="group-header">[%- varcache.this_app_group.desc -%]</span>
                     <span id="[%- varcache.this_app_group.group -%]-collapsed-indicator" class="ng-cloak group-header-indicator pull-right fas [% varcache.this_app_group_hidden ? 'fa-plus' : 'fa-minus' %]"
@@ -27,7 +27,7 @@ USE Master;
                     <div class="icon-container-body">
                         [% FOREACH this_item IN varcache.this_app_group.items; varcache.set('this_item', this_item); %]
                         <div class="item" data-item-search-text="[% varcache.this_item.searchtext %] [% varcache.this_item.itemdesc %]" data-item-group="[% varcache.this_item.group %]">
-                            <a id="icon-[%- varcache.this_item.file -%]" aria-label="[%- varcache.this_item.file -%]" class="itemImageWrapper integrations_icon spriteicon_img icon-[%- varcache.this_item.file -%]"
+                            <a id="icon-[%- varcache.this_item.file -%]" class="itemImageWrapper integrations_icon spriteicon_img icon-[%- varcache.this_item.file -%]"
                                 href="[%- varcache.this_item.url -%]"
                                     [% IF varcache.this_item.base64_png_image %]
                                         style="background-image: url(data:image/png;base64,[% varcache.this_item.base64_png_image %]);"

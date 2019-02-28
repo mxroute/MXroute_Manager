@@ -276,15 +276,15 @@
     </div>
     <div class="form-group">
         <button type="submit"
-            id="deploy_application"
+            id="save_application"
             name="save_application"
             cp-action="details.save_application()"
             button-class="btn btn-primary"
             ng-disabled="details.is_saving_disabled()">
-            [% locale.maketext('Deploy') %]
+            [% locale.maketext('Save Application') %]
         </button>
         <button type="button"
-            id="cancel_deploy_application"
+            id="cancel_save_application"
             name="cancel_save_application"
             class="btn btn-link"
             ng-click="details.goToView('manage')"

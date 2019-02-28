@@ -1,145 +1,39 @@
 /*
-# file_and_directory_restoration/index.less
+# file_and_directory_restoration/index.less                        
 #                                                    Copyright 2018 cPanel, Inc.
 #                                                           All rights Reserved.
 # copyright@cpanel.net                                         http://cpanel.net
 # This code is subject to the cPanel license. Unauthorized copying is prohibited
 */
 
-@import (reference) "../libraries/bootstrap/source/less/variables.less";
-
-@screen-sm: @screen-md - 1;
-@screen-md: 992px;
-@screen-md-min: @screen-md;
-
-@media (max-width: @screen-sm) {
-    #scrollToBackupListBtn {
-        display: none;
-    }
-}
-
-@media (min-width: @screen-md-min) {
-    #scrollToBackupListBtn {
-        position: fixed;
-        right: 8%;
-        bottom: 8%;
-        z-index: 9;
-    }
-
-    #backupsPanel {
-        position: relative;
-        z-index: 10;
-    }
-}
-
-#scrollToBackupListBtn {
-    padding: 0;
-    margin-bottom: 2em;
-
-    i {
-        margin-right: 0.5em;
-    }
-}
-
-#directoryContentsTable {
-    table-layout: fixed;
-}
-
-#directoryContentsTable td {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-#uiLoadingSpinner {
-    text-align: right;
-    margin-bottom: 1em;
-    min-height: 3em;
-}
-
 .breadcrumb {
     display: inline-block;
-    padding: 0;
-
-    .btn {
-        padding-left: 0.25em;
-        padding-right: 0.25em;
-    }
 }
 
-.radio {
-    margin-right: 5%;
-    display: inline-block;
-}
-
-.selectedItemInfo {
-    display: inline-block;
-}
-
-.selectedBackup {
-    background-color: #d7edf9;
-}
-
-.restorationPanel {
-    min-height: 20em;
-    cursor: default;
-}
-
-.directoryLink {
-    padding: 0;
-}
-
-.directoryContentsIcon {
-    margin-right: 1em;
-}
-
-td {
-    white-space: nowrap;
+.scrollContainer {
+    display: flex;
     overflow: hidden;
-    text-overflow: ellipsis;
+    max-height: calc(~"100vh - 290px");
+    will-change: overflow;
+    position: relative;
+    margin-top: 30px;
 }
 
-#clearBackupListBtn {
-    vertical-align: bottom;
+.pagination-container {
+    text-align: inherit;
 }
 
-#goToPageContainer {
-    display: inline-block;
-    vertical-align: top;
+.leftPanel,
+.rightPanel {
+    overflow: auto;
+    height: auto;
 }
 
-#paginationContainer {
-    display: inline-block;
-}
-
-#pathInputButtons {
-    margin-top: 1em;
-}
-
-#selectedItemInfoContainer > hr {
-    margin-top: 0;
-}
-
-#directoryContentsLoadingMsg {
-    background-color: #d7edf9;
-}
-
-#noContentsMsg {
-    background-color: #d7edf9;
-}
-
-#backupsTable {
-    margin-top: 4em;
-}
-
-.contentExistsInfo {
+#goToPageContainer > :first-child {
     display: inline-block;
 }
 
-.backupNavigation {
+#goToPage {
     display: inline-block;
-}
-
-.confirmationRow {
-    background-color: #faebcc;
+    width: initial;
 }

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"AJAX Error":"Error AJAX","PostgreSQL grants have been synchronized.":"Se sincronizaron los permisos de PostgreSQL."};
+    var newLex = {"AJAX Error":"AJAX Error","PostgreSQL grants have been synchronized.":"PostgreSQL grants have been synchronized."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

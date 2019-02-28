@@ -230,16 +230,6 @@ define(
                 * @return {String} Returns a human readable DateTime string.
                 */
                 function getHumanReadableTime(epochTime) {
-                    if (!epochTime) {
-                        return LOCALE.maketext("Not available.");
-                    } else if (typeof epochTime !== "number") {
-                        epochTime = Number(epochTime);
-                        if ( isNaN(epochTime) ) {
-                            return LOCALE.maketext("Not available.");
-                        }
-                    }
-
-                    epochTime = Math.floor(epochTime);
                     return LOCALE.local_datetime(epochTime, "datetime_format_medium");
                 }
 
@@ -381,7 +371,7 @@ define(
                                     if (repository && repository.length > 0) {
                                         return $q.resolve(repository[0]);
                                     } else {
-                                        return $q.reject(LOCALE.maketext("The system could not find the “[_1]” repository.", repositoryPath));
+                                        throw new Error(LOCALE.maketext("Repository “[_1]” could not be found.", repositoryPath));
                                     }
 
                                 } catch (err) {

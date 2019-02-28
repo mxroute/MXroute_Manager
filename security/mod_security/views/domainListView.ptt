@@ -34,8 +34,8 @@
             [% locale.maketext('[asis,ModSecurity] is enabled for some domains.') %]
             [% locale.maketext('You can [output,url,_1,Enable,_2] [asis,ModSecurity] for all your domains, or [output,url,_1,Disable,_3] [asis,ModSecurity] for all your domains.',
                 'javascript:void(0);',
-                { 'id' => 'btnEnableAll_2',  'class' => 'btn btn-default', 'ng-click' => 'enableAllDomains($event)' },
-                { 'id' => 'btnDisableAll_2', 'class' => 'btn btn-default', 'ng-click' => 'confirm(\'disableAll\')'},
+                { 'id' => 'btnEnableAll',  'class' => 'btn btn-default', 'ng-click' => 'enableAllDomains($event)' },
+                { 'id' => 'btnDisableAll', 'class' => 'btn btn-default', 'ng-click' => 'confirm(\'disableAll\')'},
             ) %]
         </div>
     </div>

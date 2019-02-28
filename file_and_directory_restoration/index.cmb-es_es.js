@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Comprimido","Directory":"Directorio","Enter the exact path to the file or directory that you wish to restore.":"Enter the exact path to the file or directory that you wish to restore.","File":"Archivo","Incremental":"Incremental","Symlink":"Symlink","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"Sin comprimir","When you restore a backup, the system will overwrite existing files and restore deleted files.":"When you restore a backup, the system will overwrite existing files and restore deleted files."};
+    var newLex = {"Compressed":"Comprimido","Directory restoration failure: [_1]":"Directory restoration failure: [_1]","Displaying [numf,_1] to [numf,_2] out of [quant,_3,item,items]":"Mostrando [numf,_1] a [numf,_2] de [quant,_3,elemento,elementos]","File restoration failure: [_1]":"File restoration failure: [_1]","Incremental":"Incremental","The system successfully restored the “[_1]” backup directory from the date “[_2]”.":"The system successfully restored the “[_1]” backup directory from the date “[_2]”.","The system successfully restored the “[_1]” backup file from the date “[_2]”.":"The system successfully restored the “[_1]” backup file from the date “[_2]”.","Uncompressed":"Sin comprimir"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

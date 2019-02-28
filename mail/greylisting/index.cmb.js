@@ -266,14 +266,12 @@ define(
         "cjt/directives/validationItemDirective",
         "cjt/directives/spinnerDirective",
         "cjt/directives/autoFocus",
-        "cjt/directives/alertList",
-        "cjt/services/alertService",
         "cjt/filters/wrapFilter",
         "cjt/filters/breakFilter",
-        "app/services/domainService"
+        "app/services/domainService",
+        "cjt/decorators/growlDecorator"
     ],
-    function(angular, _, LOCALE) {
-        "use strict";
+    function(angular, _, LOCALE, growl) {
 
         // Retrieve the current application
         var app = angular.module("App");
@@ -331,14 +329,14 @@ define(
                 "$q",
                 "DomainService",
                 "spinnerAPI",
-                "alertService",
+                "growl",
                 function(
                     $scope,
                     $routeParams,
                     $q,
                     DomainService,
                     spinnerAPI,
-                    alertService
+                    growl
                 ) {
 
                     /**
@@ -594,13 +592,7 @@ define(
                                     $scope.meta.start = 0;
                                 }
                             }, function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "greylisting"
-                                });
+                                growl.error(error);
                             })
                             .then(function() {
                                 spinnerAPI.stop("loadingSpinner");
@@ -622,22 +614,9 @@ define(
                                 .then(function(result) {
                                     $scope.totalEnabled++;
                                     $scope.totalDisabled--;
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "greylisting"
-                                    });
+                                    growl.success(LOCALE.maketext("Successfully enabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain));
                                 }, function(results) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: results.error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "greylisting"
-                                    });
+                                    growl.error(results.error);
                                 })
                                 .then(function() {
                                     spinnerAPI.stop("loadingSpinner");
@@ -648,22 +627,9 @@ define(
                                 .then(function(result) {
                                     $scope.totalDisabled++;
                                     $scope.totalEnabled--;
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "greylisting"
-                                    });
+                                    growl.success(LOCALE.maketext("Successfully disabled [asis,Greylisting] on “[output,class,_1,nobreak]”.", result.items[0].domain));
                                 }, function(results) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: results.error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "greylisting"
-                                    });
+                                    growl.error(results.error);
                                 })
                                 .then(function() {
                                     spinnerAPI.stop("loadingSpinner");
@@ -692,22 +658,9 @@ define(
                                 $scope.totalPages = results.totalPages;
                                 $scope.totalEnabled = results.totalItems;
                                 $scope.totalDisabled = 0;
-                                alertService.add({
-                                    type: "success",
-                                    message: LOCALE.maketext("Successfully enabled [asis,Greylisting] on all domains."),
-                                    closeable: true,
-                                    replace: false,
-                                    autoClose: 10000,
-                                    group: "greylisting"
-                                });
+                                growl.success(LOCALE.maketext("Successfully enabled [asis,Greylisting] on all domains."));
                             }, function(results) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: results.error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "greylisting"
-                                });
+                                growl.error(results.error);
                             })
                             .then(function() {
                                 spinnerAPI.stop("loadingSpinner");
@@ -735,22 +688,9 @@ define(
                                 $scope.totalPages = results.totalPages;
                                 $scope.totalDisabled = results.totalItems;
                                 $scope.totalEnabled = 0;
-                                alertService.add({
-                                    type: "success",
-                                    message: LOCALE.maketext("Successfully disabled [asis,Greylisting] on all domains."),
-                                    closeable: true,
-                                    replace: false,
-                                    autoClose: 10000,
-                                    group: "greylisting"
-                                });
+                                growl.success(LOCALE.maketext("Successfully disabled [asis,Greylisting] on all domains."));
                             }, function(results) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: results.error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "greylisting"
-                                });
+                                growl.error(results.error);
                             })
                             .finally(function() {
                                 spinnerAPI.stop("loadingSpinner");
@@ -847,7 +787,7 @@ define(
         return function() {
 
             // First create the application
-            angular.module("App", ["ngRoute", "ui.bootstrap", "cjt2.cpanel"]);
+            angular.module("App", ["ngRoute", "ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
 
             // Then load the application dependencies
             var app = require(
@@ -856,8 +796,6 @@ define(
                     // Application Modules
                     "cjt/bootstrap",
                     "cjt/views/applicationController",
-                    "cjt/directives/alert",
-                    "cjt/directives/alertList",
                     "app/views/domains",
                 ], function(BOOTSTRAP) {
 
@@ -868,8 +806,8 @@ define(
                     };
 
                     // routing
-                    app.config(["$routeProvider",
-                        function($routeProvider) {
+                    app.config(["$routeProvider", "growlProvider",
+                        function($routeProvider, growlProvider) {
 
                             // Setup the routes
                             $routeProvider.when("/domains/", {

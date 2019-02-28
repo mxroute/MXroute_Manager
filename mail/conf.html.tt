@@ -133,13 +133,17 @@
                     <div id="autoWhitelistToFrom" class="checkbox">
                         <label id="chkWhiteListByAssoc">
                             <input id="chkAutoWhitelistToandFrom" type="checkbox" name="whitelist_by_assoc" value="1" [% whitelisting %] >
-                            [% locale.maketext('Automatically whitelist the [output,em,To] and [output,em,From] lines from whitelisted senders (whitelist by association).') %]
+                            [% locale.maketext('Automatically whitelist the [output,em,To] and [output,em,From] lines from whitelisted senders (whitelist by association):') %]
                         </label>
                     </div>
                 </div>
                 <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
                 </div>
             </div>
+        </div>
+
+        <div id="descBoxtrapperHelpText" class="help-block">
+            [% locale.maketext("[output,strong,NOTE:] It is important to understand that even if BoxTrapper is enabled and automatic white-listing is disabled, ANY e-mail address you send mail to will automatically be added to the white-list without your interaction. Since you are in effect interacting with the e-mail address, BoxTrapper assumes you welcome interaction with them and automatically white-lists the e-mail in question.") %]
         </div>
 
         <input id="hidAccountName" type="hidden" name="account" value="[% FORM.item('account') %]">

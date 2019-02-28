@@ -90,8 +90,7 @@
         </table>
     </div>
 </div>
-<!-- NOTE: leave the alert-group in single quotes -->
-<cp-alert-list alert-group="'passwdExternalAuth'"></cp-alert-list>
+<div growl></div>
 
 [% # END USER EXTERNAL AUTH CONTROL %]
 

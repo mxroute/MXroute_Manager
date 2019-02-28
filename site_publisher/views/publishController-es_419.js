@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"A problem has occurred: [_1]":"Ocurrió un problema: [_1]","The form has returned [quant,_1,error,errors]":"El formulario devolvió [quant,_1,error,errores]:"};
+    var newLex = {"A problem has occurred: [_1]":"A problem has occurred: [_1]","The form has returned [quant,_1,error,errors]":"The form has returned [quant,_1,error,errors]"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

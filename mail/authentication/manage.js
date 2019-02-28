@@ -17,17 +17,12 @@ define(
         "ngRoute",
     ],
     function(angular, CJT) {
-        "use strict";
         return function() {
-
-            angular.module("App", ["ui.bootstrap", "cjt2.cpanel"]);
+            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
 
             var app = require(
                 [
                     "uiBootstrap",
-                    "cjt/directives/alert",
-                    "cjt/directives/alertList",
-                    "cjt/services/alertService",
                     "app/services/manageService",
                     "app/views/manageController",
                 ], function() {
@@ -35,20 +30,8 @@ define(
                     var app = angular.module("App");
 
                     // If using views
-                    app.controller("BaseController", [
-                        "$rootScope",
-                        "$scope",
-                        "$route",
-                        "$location",
-                        "manageService",
-                        "alertService",
-                        function(
-                            $rootScope,
-                            $scope,
-                            $route,
-                            $location,
-                            manageService,
-                            alertService) {
+                    app.controller("BaseController", ["$rootScope", "$scope", "$route", "$location", "manageService", "growl",
+                        function($rootScope, $scope, $route, $location, manageService, growl) {
 
                             $scope.loading = false;
 
@@ -77,18 +60,12 @@ define(
 
                     app.config(["$routeProvider", "$locationProvider",
                         function($routeProvider, $locationProvider) {
-                            function _fetchLinks(IndexService, $route, alertService) {
+                            function _fetch_links(IndexService, $route, growl) {
                                 return IndexService.fetch_links($route.current.params.username).then(function(result) {
 
                                     // providers Loaded
                                 }, function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error),
-                                        closeable: true,
-                                        replace: false,
-                                        group: "emailExternalAuth"
-                                    });
+                                    growl.error(LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error));
                                 });
                             }
 
@@ -97,7 +74,7 @@ define(
                                 controller: "manageController",
                                 templateUrl: CJT.buildFullPath("mail/authentication/views/manageView.ptt"),
                                 resolve: {
-                                    providers: ["manageService", "$route", "alertService", _fetchLinks]
+                                    providers: ["manageService", "$route", "growl", _fetch_links]
                                 }
                             });
 

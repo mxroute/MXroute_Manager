@@ -27,7 +27,7 @@ SET LANG = {
     db_unavailable => locale.maketext('Database usage data is not available at this time. Please check later; if the problem persists, contact your system administrator.'),
 };
 LANG.mailaccounts_usage_blurb = locale.maketext("Email account storage may occupy less space on the disk if you use compression or hard-link optimizations designed to save space. Email account storage does not include the metadata that the system uses to store email.");
-LANG.other_usage_blurb = locale.maketext ("The files outside of your home directory, the metadata that the system uses to store email in the mail directory, the email in Trash folders, or the files that you do not have permission to access.");
+LANG.other_usage_blurb = locale.maketext ("The files outside of your home directory, the metadata that the system uses to store email in the mail directory, or the files that you do not have permission to access.");
 
 SET plus_glyph = "fas fa-chevron-right expander ";
 SET minus_glyph = "fas fa-chevron-down expander ";

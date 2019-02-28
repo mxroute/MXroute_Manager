@@ -1,0 +1,413 @@
+@import (reference) "../../libraries/bootstrap/source/less/variables.less";
+@import (reference) "../../libraries/bootstrap/source/less/mixins.less";
+@import (reference) "../../libraries/bootstrap/source/less/grid.less";
+@import (reference) "variables.less";
+
+.disappearing-table-row {
+    &.ng-move,
+    &.ng-enter,
+    &.ng-leave,
+    &.ng-hide-add,
+    &.ng-hide-remove {
+        transition: all linear 0.25s;
+    }
+
+    &.ng-hide,
+    &.ng-enter,
+    &.ng-move,
+    &.ng-leave.ng-leave-active {
+        opacity: 0;
+    }
+
+    &.ng-leave,
+    &.ng-move.ng-move-active,
+    &.ng-enter.ng-enter-active {
+        opacity: 1;
+    }
+}
+
+.animated-view {
+    &.ng-enter {
+        transition: all linear 0.25s;
+        opacity: 0;
+    }
+
+    &.ng-enter.ng-enter-active {
+        opacity: 1;
+    }
+}
+
+.tab-content {
+    display: none;
+}
+
+table#accounts_table > tbody > tr {
+    > td.actions-cell {
+        padding: 0;
+        border: 0;
+        > div {
+            margin: 8px;
+        }
+    }
+}
+
+/* "odd" rows */
+.table-striped-child > tbody > tr {
+    &:nth-child(4n + 1),
+    &:nth-child(4n + 2) {
+        > td,
+        > th {
+            background-color: #f1f1f1;
+        }
+    }
+}
+
+/* "even" rows */
+.table-striped-child > tbody > tr {
+    &:nth-child(4n + 0),
+    &:nth-child(4n + 3) {
+        > td,
+        > th {
+            background-color: #f8f8f8;
+        }
+    }
+}
+
+html[data-style="dark"] {
+    /* "odd" rows */
+    .table-striped-child > tbody > tr {
+        &:nth-child(4n + 1),
+        &:nth-child(4n + 2) {
+            > td,
+            > th {
+                background-color: #2c2c2c;
+            }
+        }
+    }
+
+    /* "even" rows */
+    .table-striped-child > tbody > tr {
+        &:nth-child(4n + 0),
+        &:nth-child(4n + 3) {
+            > td,
+            > th {
+                background-color: #333;
+            }
+        }
+    }
+}
+
+html[data-style="light"] {
+    /* "odd" rows */
+    .table-striped-child > tbody > tr {
+        &:nth-child(4n + 1),
+        &:nth-child(4n + 2) {
+            > td,
+            > th {
+                background-color: #f5f5f5;
+            }
+        }
+    }
+
+    /* "even" rows */
+    .table-striped-child > tbody > tr {
+        &:nth-child(4n + 0),
+        &:nth-child(4n + 3) {
+            > td,
+            > th {
+                background-color: #fcfcfc;
+            }
+        }
+    }
+}
+
+html[data-style="retro"] {
+    /* "odd" rows */
+    .table-striped-child > tbody > tr {
+        &:nth-child(4n + 1),
+        &:nth-child(4n + 2) {
+            > td,
+            > th {
+                background-color: #f9f9f9;
+            }
+        }
+    }
+
+    /* "even" rows */
+    .table-striped-child > tbody > tr {
+        &:nth-child(4n + 0),
+        &:nth-child(4n + 3) {
+            > td,
+            > th {
+                background-color: #fff;
+            }
+        }
+    }
+}
+
+@media (min-width: @screen-md-min) {
+    .action-module {
+        padding-left: 16px;
+    }
+}
+
+.action-module {
+    &.ng-leave-active,
+    &.ng-enter-active {
+        overflow: hidden;
+    }
+
+    overflow: visible;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.quota-input {
+    display: table;
+
+    & > span:first-child {
+        display: table-cell;
+        vertical-align: middle;
+        padding-right: 4px;
+    }
+}
+
+.form-control.quota-radio {
+    width: auto;
+    display: inline-block;
+}
+
+.status-bar {
+    transition: all linear 0.25s;
+
+    &.ng-leave.ng-leave-active {
+        opacity: 0;
+    }
+
+    &.ng-leave {
+        opacity: 1;
+    }
+}
+
+.alert-message {
+    display: initial;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+@bottom-spacing: 10px;
+
+.add-spacing-after {
+    margin-bottom: @bottom-spacing;
+}
+
+.addressbook-row {
+    min-height: 61px;
+}
+
+#spanAddEmailAccountDomains {
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    // Anything smaller than @screen-xs-max, just cap @ 100px
+    @media (max-width: @screen-xs-max) {
+        max-width: 100px;
+    }
+
+    // Anything over @screen-xs-max, calculate to be 1/3 of half the min-width of the screen for the responsive break
+    // Which should be roughly 1/3 of the size for the account name input. It'd be nice to just use max-width: 33%,
+    // but that doesn't seem to be respected because of how Bootstrap does the input-group layout.
+    @media (min-width: @screen-sm-min) {
+        max-width: (@screen-sm-min / 2 / 3);
+    }
+
+    @media (min-width: @screen-md-min) {
+        max-width: (@screen-md-min / 2 / 3);
+    }
+
+    @media (min-width: @screen-lg-min) {
+        max-width: (@screen-lg-min / 2 / 3);
+    }
+
+    // Special handling for anything > 1500px, since that's what we restrict the <body> element to
+    @media (min-width: 1500px) {
+        max-width: 250px;
+    }
+}
+
+@media (max-width: @screen-sm-max) {
+    #submitButtonDiv {
+        margin-bottom: @bottom-spacing;
+    }
+}
+
+#accounts_table {
+    table-layout: fixed;
+}
+
+#accountCell {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    & > span {
+        float: none;
+        padding: 0;
+        margin: 0;
+    }
+}
+
+.search-page-container {
+    &.success,
+    &.danger {
+        input#email_table_search_input,
+        span.input-group-btn button {
+            border-top-width: 1px;
+            border-bottom-width: 1px;
+        }
+
+        input#email_table_search_input {
+            border-left-width: 1px;
+        }
+
+        span.input-group-btn button {
+            border-right-width: 1px;
+        }
+    }
+
+    &.success {
+        input#email_table_search_input,
+        span.input-group-btn button {
+            border-top-color: @success-border;
+            border-bottom-color: @success-border;
+        }
+
+        input#email_table_search_input {
+            border-left-color: @success-border;
+            background-color: @success-bg;
+        }
+
+        span.input-group-btn button {
+            border-right-color: @success-border;
+        }
+    }
+
+    &.danger {
+        input#email_table_search_input,
+        span.input-group-btn button {
+            border-top-color: @danger-border;
+            border-bottom-color: @danger-border;
+        }
+
+        input#email_table_search_input {
+            border-left-color: @danger-border;
+            background-color: @danger-bg;
+        }
+
+        span.input-group-btn button {
+            border-right-color: @danger-border;
+        }
+    }
+}
+
+html[data-style="dark"] {
+    .search-page-container {
+        &.success {
+            input#email_table_search_input {
+                background-color: #454;
+            }
+        }
+
+        &.danger {
+            input#email_table_search_input {
+                background-color: #544;
+            }
+        }
+    }
+}
+
+input[type="number"][id^="quota"][disabled="disabled"].form-control {
+    cursor: default;
+}
+
+table#accounts_table th {
+    white-space: nowrap;
+    padding-left: 0;
+}
+
+td.actions a.btn.btn-link {
+    white-space: normal;
+    text-align: left;
+}
+
+table#accounts_table > tbody > tr > td[class*="col24-"],
+table#accounts_table > thead > tr > th[class*="col24-"] {
+    position: static;
+    float: none;
+    display: table-cell;
+}
+
+@grid-columns: 24;
+
+html[data-style="retro"] {
+    .gencols(@col-num: @grid-columns) when (@col-num > 0) {
+        .gencols((@col-num - 1));
+        .retro-col24-@{col-num} {
+            .make-xs-column(@col-num);
+        }
+    }
+
+    .gencols();
+}
+
+@media (max-width: @screen-xs-max) {
+    html:not([data-style="retro"]) {
+        .gencols(@col-num: @grid-columns) when (@col-num > 0) {
+            .gencols((@col-num - 1));
+            .col24-xs-@{col-num} {
+                .make-xs-column(@col-num);
+            }
+        }
+
+        .gencols();
+    }
+}
+
+@media (max-width: @screen-sm-max) {
+    html:not([data-style="retro"]) {
+        .gencols(@col-num: @grid-columns) when (@col-num > 0) {
+            .gencols((@col-num - 1));
+            .col24-sm-@{col-num} {
+                .make-sm-column(@col-num);
+            }
+        }
+
+        .gencols();
+    }
+}
+
+@media (max-width: @screen-md-max) {
+    html:not([data-style="retro"]) {
+        .gencols(@col-num: @grid-columns) when (@col-num > 0) {
+            .gencols((@col-num - 1));
+            .col24-md-@{col-num} {
+                .make-md-column(@col-num);
+            }
+        }
+
+        .gencols();
+    }
+}
+
+@media (min-width: @screen-lg-min) {
+    html:not([data-style="retro"]) {
+        .gencols(@col-num: @grid-columns) when (@col-num > 0) {
+            .gencols((@col-num - 1));
+            .col24-lg-@{col-num} {
+                .make-lg-column(@col-num);
+            }
+        }
+
+        .gencols();
+    }
+}

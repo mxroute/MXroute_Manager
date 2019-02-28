@@ -1094,6 +1094,7 @@ define(
         "lodash",
         "cjt/util/locale",
         "app/models/dynamic_table",
+        "cjt/decorators/growlDecorator",
         "cjt/directives/actionButtonDirective",
         "cjt/decorators/paginationDecorator",
         "cjt/directives/toggleSortDirective",
@@ -1106,8 +1107,6 @@ define(
         "cjt/validator/domain-validators",
         "cjt/services/viewNavigationApi",
         "cjt/services/cpanel/nvDataService",
-        "cjt/directives/alertList",
-        "cjt/services/alertService",
         "app/directives/convert_to_full_record_name",
         "uiBootstrap"
     ],
@@ -1122,6 +1121,7 @@ define(
                 "$q",
                 "$location",
                 "$routeParams",
+                "growl",
                 "Domains",
                 "Zones",
                 "$uibModal",
@@ -1129,19 +1129,18 @@ define(
                 "Features",
                 "defaultInfo",
                 "nvDataService",
-                "alertService",
                 function(
                     $q,
                     $location,
                     $routeParams,
+                    growl,
                     Domains,
                     Zones,
                     $uibModal,
                     viewNavigationApi,
                     Features,
                     defaultInfo,
-                    nvDataService,
-                    alertService) {
+                    nvDataService) {
 
                     var list = this;
 
@@ -1199,13 +1198,7 @@ define(
                                     defaultInfo.domains_per_page = list.meta.pageSize;
                                 })
                                 .catch(function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 });
                         }
                     };
@@ -1238,22 +1231,9 @@ define(
                         ar.save = function() {
                             return Zones.add_record(ar.domain, ar.resource)
                                 .then( function(results) {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "A", ar.domain, _.escape(ar.resource.name)),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "A", ar.domain, _.escape(ar.resource.name)));
                                 }, function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close({ $value: ar.resource });
@@ -1284,22 +1264,9 @@ define(
                         cr.save = function() {
                             return Zones.add_record(cr.domain, cr.resource)
                                 .then( function(results) {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "CNAME", cr.domain, _.escape(cr.resource.name)),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", "CNAME", cr.domain, _.escape(cr.resource.name)));
                                 }, function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close({ $value: cr.resource });
@@ -1332,22 +1299,9 @@ define(
                         mxr.save = function() {
                             return Zones.add_record(mxr.domain, mxr.resource)
                                 .then( function(results) {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully added the [asis,_1] record for “[_2]”.", "MX", mxr.domain),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully added the [asis,_1] record for “[_2]”.", "MX", mxr.domain));
                                 }, function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close({ $value: mxr.resource });
@@ -1927,6 +1881,7 @@ define(
         "cjt/util/locale",
         "app/models/dynamic_table",
         "app/models/dmarc_record",
+        "cjt/decorators/growlDecorator",
         "cjt/directives/actionButtonDirective",
         "cjt/decorators/paginationDecorator",
         "cjt/directives/toggleSortDirective",
@@ -1942,8 +1897,6 @@ define(
         "cjt/services/viewNavigationApi",
         "cjt/services/cpanel/nvDataService",
         "cjt/directives/quickFiltersDirective",
-        "cjt/directives/alertList",
-        "cjt/services/alertService",
         "app/directives/convert_to_full_record_name",
         "app/directives/dmarc_validators",
         "app/directives/caa_validators",
@@ -1957,23 +1910,23 @@ define(
             "ManageZoneRecordsController", [
                 "$scope",
                 "$routeParams",
+                "growl",
                 "Zones",
                 "viewNavigationApi",
                 "$uibModal",
                 "Features",
                 "defaultInfo",
                 "nvDataService",
-                "alertService",
                 function(
                     $scope,
                     $routeParams,
+                    growl,
                     Zones,
                     viewNavigationApi,
                     $uibModal,
                     Features,
                     defaultInfo,
-                    nvDataService,
-                    alertService) {
+                    nvDataService) {
                     var manage = this;
 
                     manage.is_loading = false;
@@ -2107,13 +2060,7 @@ define(
                                     defaultInfo.zones_per_page = table.meta.pageSize;
                                 })
                                 .catch(function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 });
                         }
                     };
@@ -2158,34 +2105,14 @@ define(
                             return Zones.remove_zone_record(manage.domain, record)
                                 .then(function() {
                                     if (record.type === "MX" && record.name === manage.domain + ".") {
-                                        alertService.add({
-                                            type: "success",
-                                            message: LOCALE.maketext("You successfully deleted the [asis,_1] record.", record.type),
-                                            closeable: true,
-                                            replace: false,
-                                            autoClose: 10000,
-                                            group: "zoneEditor"
-                                        });
+                                        growl.success(LOCALE.maketext("You successfully deleted the [asis,_1] record.", record.type));
                                     } else {
-                                        alertService.add({
-                                            type: "success",
-                                            message: LOCALE.maketext("You successfully deleted the [asis,_1] record: [_2]", record.type, _.escape(record.name)),
-                                            closeable: true,
-                                            replace: false,
-                                            autoClose: 10000,
-                                            group: "zoneEditor"
-                                        });
+                                        growl.success(LOCALE.maketext("You successfully deleted the [asis,_1] record: [_2]", record.type, _.escape(record.name)));
                                     }
                                     manage.refresh();
                                 })
                                 .catch(function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close();
@@ -2204,24 +2131,11 @@ define(
                         ctrl.confirm = function() {
                             return Zones.reset_zone(manage.domain)
                                 .then(function() {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully reset the zone for “[_1]”.", manage.domain),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully reset the zone for “[_1]”.", manage.domain));
                                     manage.refresh();
                                 })
                                 .catch(function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.error(error);
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close();
@@ -2283,23 +2197,9 @@ define(
                         return Zones.update_record(manage.domain, update_candidate)
                             .then(function() {
                                 if (manage.new_record.type === "MX" && manage.new_record.name === manage.domain + ".") {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully updated the [asis,_1] record for “[_2]”.", manage.new_record.type, manage.domain),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully updated the [asis,_1] record for “[_2]”.", manage.new_record.type, manage.domain));
                                 } else {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully updated the following [asis,_1] record for “[_2]”: [_3]", manage.new_record.type, manage.domain, _.escape(manage.new_record.name)),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully updated the following [asis,_1] record for “[_2]”: [_3]", manage.new_record.type, manage.domain, _.escape(manage.new_record.name)));
                                 }
 
 
@@ -2328,13 +2228,7 @@ define(
                                 manage.editing_dmarc = false;
                             })
                             .catch(function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "zoneEditor"
-                                });
+                                growl.error(error);
                             })
                             .finally(function() {
                                 manage.save_in_progress = false;
@@ -2351,36 +2245,16 @@ define(
                         return Zones.add_record(manage.domain, update_candidate)
                             .then(function() {
                                 if (manage.new_record.type === "MX" && manage.new_record.name === manage.domain + ".") {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully added the [asis,_1] record for “[_2]”.", manage.new_record.type, manage.domain),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully added the [asis,_1] record for “[_2]”.", manage.new_record.type, manage.domain));
                                 } else {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", manage.new_record.type, manage.domain, _.escape(manage.new_record.name)),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "zoneEditor"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully added the following [asis,_1] record for “[_2]”: [_3]", manage.new_record.type, manage.domain, _.escape(manage.new_record.name)));
                                 }
                                 manage.resetNewRecord();
                                 manage.adding_record = false;
                                 manage.refresh();
                             })
                             .catch(function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "zoneEditor"
-                                });
+                                growl.error(error);
                             })
                             .finally(function() {
                                 manage.save_in_progress = false;
@@ -2661,10 +2535,9 @@ define(
         "angular",
         "cjt/util/locale",
         "cjt/util/parse",
+        "cjt/decorators/growlDecorator",
         "cjt/directives/toggleSwitchDirective",
         "cjt/directives/actionButtonDirective",
-        "cjt/directives/alertList",
-        "cjt/services/alertService",
         "cjt/services/viewNavigationApi",
         "uiBootstrap"
     ],
@@ -2674,8 +2547,8 @@ define(
 
         var controller = app.controller(
             "DnsSecController",
-            ["$scope", "$q", "$routeParams", "viewNavigationApi", "DNSSEC", "Features", "alertService",
-                function($scope, $q, $routeParams, viewNavigationApi, DNSSEC, Features, alertService) {
+            ["$scope", "$q", "$routeParams", "growl", "viewNavigationApi", "DNSSEC", "Features",
+                function($scope, $q, $routeParams, growl, viewNavigationApi, DNSSEC, Features) {
                     var dnssec = this;
                     dnssec.domain = $routeParams.domain;
 
@@ -2734,23 +2607,11 @@ define(
                                         }
                                     })
                                     .catch(function(error) {
-                                        alertService.add({
-                                            type: "danger",
-                                            message: error,
-                                            closeable: true,
-                                            replace: false,
-                                            group: "zoneEditor"
-                                        });
+                                        growl.error(error);
                                     });
                             })
                             .catch(function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "zoneEditor"
-                                });
+                                growl.error(error);
                             });
                     };
 
@@ -2760,13 +2621,7 @@ define(
                                 dnssec.enabled = false;
                             })
                             .catch(function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "zoneEditor"
-                                });
+                                growl.error(error);
                             })
                             .finally(function() {
                                 dnssec.show_disable_warning = false;
@@ -2790,13 +2645,7 @@ define(
                                 }
                             })
                             .catch(function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "zoneEditor"
-                                });
+                                growl.error(error);
                             })
                             .finally(function() {
                                 dnssec.is_loading = false;
@@ -2845,15 +2694,12 @@ define(
         return function() {
 
             // First create the application
-            angular.module("cpanel.zoneEditor", ["ngRoute", "ui.bootstrap", "cjt2.cpanel"]);
+            angular.module("cpanel.zoneEditor", ["ngRoute", "ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
 
             // Then load the application dependencies
             var app = require(
                 [
                     "cjt/bootstrap",
-                    "cjt/services/alertService",
-                    "cjt/directives/alert",
-                    "cjt/directives/alertList",
                     "app/services/page_data_service",
                     "app/services/domains",
                     "app/services/zones",

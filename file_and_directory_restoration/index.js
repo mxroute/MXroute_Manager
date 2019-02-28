@@ -13,8 +13,8 @@ define(
         "angular",
         "cjt/core",
         "cjt/modules",
-        "uiBootstrap",
         "ngRoute",
+        "uiBootstrap"
     ],
     function(angular, CJT) {
         "use strict";
@@ -22,8 +22,9 @@ define(
 
             // First create the application
             angular.module("App", [
+                "ngRoute",
                 "ui.bootstrap",
-                "cjt2.cpanel",
+                "cjt2.cpanel"
             ]);
 
             // Then load the application dependencies

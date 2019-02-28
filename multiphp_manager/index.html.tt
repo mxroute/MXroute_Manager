@@ -37,9 +37,6 @@ SET ea_version = EasyApache.get_ea_version();
 [% IF ea_version >= 4 -%]
 <div class="body-content">
     <div ng-controller="applicationController">
-        <!-- NOTE: leave the alert-group in single quotes -->
-        <cp-alert-list alert-group="'multiphpManager'"></cp-alert-list>
-
         <div id="viewContent"
              class="ng-cloak"
              ng-view

@@ -7,7 +7,7 @@
 
 /* global define: false */
 
-/* eslint-disable camelcase */
+/* jshint -W100 */
 
 define(
     [
@@ -16,13 +16,12 @@ define(
         "cjt/util/locale",
         "cjt/util/table",
         "cjt/util/parse",
+        "cjt/decorators/growlDecorator",
         "cjt/directives/actionButtonDirective",
         "cjt/decorators/paginationDecorator",
         "cjt/directives/toggleSortDirective",
         "cjt/directives/searchDirective",
         "cjt/directives/pageSizeDirective",
-        "cjt/directives/alertList",
-        "cjt/services/alertService",
         "cjt/services/viewNavigationApi",
         "cjt/directives/quickFiltersDirective",
         "uiBootstrap"
@@ -33,22 +32,8 @@ define(
 
         var controller = app.controller(
             "ManageApplicationsController",
-            [
-                "$scope",
-                "$routeParams",
-                "viewNavigationApi",
-                "$uibModal",
-                "Apps",
-                "defaultInfo",
-                "alertService",
-                function(
-                    $scope,
-                    $routeParams,
-                    viewNavigationApi,
-                    $uibModal,
-                    Apps,
-                    defaultInfo,
-                    alertService) {
+            ["$scope", "$routeParams", "growl", "viewNavigationApi", "$uibModal", "Apps", "defaultInfo",
+                function($scope, $routeParams, growl, viewNavigationApi, $uibModal, Apps, defaultInfo) {
                     var manage = this;
 
                     manage.is_loading = false;
@@ -111,34 +96,14 @@ define(
                         return Apps.toggle_application_status(app)
                             .then(function(application_data) {
                                 if (application_data.enabled) {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("The application, “[_1]”, is now enabled.", application_data.name),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "passenger"
-                                    });
+                                    growl.success(LOCALE.maketext("The application, “[_1]”, is now enabled.", application_data.name));
                                 } else {
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("The application, “[_1]”, is now disabled.", application_data.name),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "passenger"
-                                    });
+                                    growl.success(LOCALE.maketext("The application, “[_1]”, is now disabled.", application_data.name));
                                 }
                                 app.enabled = PARSE.parsePerlBoolean(application_data.enabled);
                             })
                             .catch(function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: error,
-                                    closeable: true,
-                                    replace: false,
-                                    group: "passenger"
-                                });
+                                growl.error(error);
                             })
                             .finally(function() {
                                 manage.change_in_progress = false;
@@ -148,7 +113,7 @@ define(
                     function RemoveRecordModalController($uibModalInstance, appl_name) {
                         var ctrl = this;
 
-                        ctrl.confirm_msg = LOCALE.maketext("Are you certain that you want to unregister the application “[_1]”?", appl_name);
+                        ctrl.confirm_msg = LOCALE.maketext("Are you certain that you want to delete the application configuration for “[_1]”?", appl_name);
 
                         ctrl.cancel = function() {
                             $uibModalInstance.dismiss("cancel");
@@ -161,23 +126,10 @@ define(
                                         return app.name === appl_name;
                                     });
                                     manage.render();
-                                    alertService.add({
-                                        type: "success",
-                                        message: LOCALE.maketext("You successfully unregistered the application “[_1]”.", appl_name),
-                                        closeable: true,
-                                        replace: false,
-                                        autoClose: 10000,
-                                        group: "passenger"
-                                    });
+                                    growl.success(LOCALE.maketext("You successfully deleted the application configuration for “[_1]”.", appl_name));
                                 })
                                 .catch(function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: error,
-                                        closeable: true,
-                                        replace: false,
-                                        group: "passenger"
-                                    });
+                                    growl.error(error);
                                 })
                                 .finally(function() {
                                     $uibModalInstance.close();

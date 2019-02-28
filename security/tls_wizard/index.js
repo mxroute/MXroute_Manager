@@ -17,21 +17,17 @@ define(
         "uiBootstrap",
         "ngRoute",
         "ngSanitize",
-        "ngAnimate",
     ],
     function(angular, CJT, _) {
         "use strict";
 
         return function() {
 
-            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel", "ngAnimate"]);
+            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
 
             var app = require(
                 [
                     "cjt/bootstrap",
-                    "cjt/services/alertService",
-                    "cjt/directives/alert",
-                    "cjt/directives/alertList",
                     "app/services/CertificatesService",
                     "app/services/LocationService",
                     "app/views/VirtualHostsController",
@@ -115,6 +111,10 @@ define(
 
                     app.config(["$routeProvider", "growlProvider",
                         function($routeProvider, growlProvider) {
+
+                            // $locationProvider.html5Mode(true);
+                            // $locationProvider.hashPrefix("!");
+
                             growlProvider.globalPosition("top-right");
 
                             // Setup a route - copy this to add additional routes as necessary
@@ -174,9 +174,8 @@ define(
                             });
 
                             // Setup a route - copy this to add additional routes as necessary
-                            $routeProvider.when("/pending-certificates/", {
+                            $routeProvider.when("/pending-certificates/:orderitemid?", {
                                 controller: "PendingCertificatesController",
-                                reloadOnSearch: false,
                                 templateUrl: CJT.buildFullPath("security/tls_wizard/views/pending_certificates.html.tt"),
                                 resolve: {
                                     installed_hosts: ["CertificatesService",

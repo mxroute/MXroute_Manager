@@ -430,7 +430,7 @@ var uploadService = (function(PAGE, $, LOCALE, YAHOO, sprintf, toHumanSize) {
         };
         self.request.onerror = function(event) {
             self.success = false;
-            self.reason = "An error occurred. Your account may be over its quota or you attempted to upload a folder.";
+            self.reason = "An unknown error occurred.  Are you over quota?";
             self.complete();
         };
         self.request.upload.onprogress = self.checkStatus.bind(self);

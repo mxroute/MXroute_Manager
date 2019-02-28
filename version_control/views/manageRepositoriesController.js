@@ -20,8 +20,7 @@ define(
         "cjt/directives/alertList",
         "cjt/directives/actionButtonDirective",
         "jquery-chosen",
-        "angular-chosen",
-        "cjt/decorators/angularChosenDecorator",
+        "angular-chosen"
     ],
     function(angular, _, LOCALE) {
         "use strict";
@@ -31,8 +30,8 @@ define(
 
         var controller = app.controller(
             "ManageRepositoriesController",
-            ["$scope", "$window", "$location", "$timeout", "versionControlService", "sseAPIService", "PAGE", "$routeParams", "alertService", "sshKeyVerification", "$q",
-                function($scope, $window, $location, $timeout, versionControlService, sseAPIService, PAGE, $routeParams, alertService, sshKeyVerification, $q) {
+            ["$scope", "$window", "$location", "$timeout", "versionControlService", "sseAPIService", "PAGE", "$routeParams", "alertService",
+                function($scope, $window, $location, $timeout, versionControlService, sseAPIService, PAGE, $routeParams, alertService) {
 
                     var repository = this;
 
@@ -120,30 +119,36 @@ define(
                     */
                     function retrieveRepositoryInfo(requestedRepoPath) {
 
-                        var repoInfo;
                         return versionControlService.getRepositoryInformation(requestedRepoPath, "name,tasks,clone_urls,branch,last_update,source_repository,last_deployment,deployable")
                             .then(function(response) {
-                                repoInfo = response;
-                                var branchPromise = _retrieveAvailableBranches(requestedRepoPath);
+                                var repoInfo = response;
 
-                                /**
-                                 * If we fail to retrieve the available branches, we will let the UI
-                                 * go ahead and display in its mostly broken state, while performing
-                                 * this SSH key check in the background for later use with the Try
-                                 * Again button.
-                                 */
-                                branchPromise.catch(function() {
-                                    var sshServer = sshKeyVerification.getHostnameAndPort(response && response.source_repository && response.source_repository.url);
-                                    if (sshServer) {
-                                        repository.ssh = {};
-                                        repository.ssh.hostname = sshServer.hostname;
-                                        repository.ssh.port = sshServer.port;
-                                        repository.ssh.promise = sshKeyVerification.verify(sshServer.hostname, sshServer.port);
-                                    }
-                                });
+                                return versionControlService.getRepositoryInformation(requestedRepoPath, "available_branches")
+                                    .then(function(response) {
+                                        repoInfo.available_branches = response.available_branches;
 
-                                return branchPromise;
+                                        if (typeof repoInfo.available_branches === "undefined" || repoInfo.available_branches === null) {
+                                            repository.unableToRetrieveAvailableBranches = true;
+                                        } else {
+                                            repository.unableToRetrieveAvailableBranches = repoInfo.available_branches.length === 0;
+                                        }
+                                    }, function(error) {
+                                        repoInfo.available_branches = [];
+                                        repository.unableToRetrieveAvailableBranches = true;
+
+                                        alertService.add({
+                                            type: "danger",
+                                            message: LOCALE.maketext("The system cannot update information for the repository at ‘[_1]’ because it cannot access the remote repository.", repoInfo.repository_root),
+                                            closeable: true,
+                                            replace: false,
+                                            group: "versionControl"
+                                        });
+
+                                    }).finally(function() {
+                                        setFormData(repoInfo);
+                                    });
                             }, function(error) {
+
                                 alertService.add({
                                     type: "danger",
                                     message: error,
@@ -155,133 +160,8 @@ define(
 
                             })
                             .finally(function() {
-                                setFormData(repoInfo);
                                 repository.isLoading = false;
                             });
-                    }
-
-                    function _retrieveAvailableBranches(requestedRepoPath) {
-                        return versionControlService.getRepositoryInformation(requestedRepoPath, "available_branches")
-                            .then(function(response) {
-                                repository.branchList = response && response.available_branches || [];
-                            }, function(error) {
-                                repository.unableToRetrieveAvailableBranches = true;
-                                return $q.reject(error);
-                            });
-                    }
-
-                    /**
-                     * We don't want to show an alert if there are issues fetching the branches during the
-                     * initial page load, but if it's in response to a user action it's good to have feedback.
-                     */
-                    function _retrieveAvailableBranchesTryAgain() {
-                        return _retrieveAvailableBranches( repository.repoPath ).catch(function() {
-                            alertService.add({
-                                type: "danger",
-                                id: "retrieve-branches-again-error",
-                                message: LOCALE.maketext("The system cannot update information for the repository at “[_1]” because it cannot access the remote repository.", repository.repoPath),
-                                closeable: true,
-                                replace: true,
-                                group: "versionControl"
-                            });
-                        });
-                    }
-
-                    /**
-                     * Changes the text for the callout that's used when unableToRetrieveAvailableBranches = true.
-                     *
-                     * @param  {Boolean} hasRemote   True when the repository was cloned from a remote repo.
-                     */
-                    $scope.$watch("repository.hasRemote", function(hasRemote) {
-                        if (hasRemote) {
-                            repository._noConnectionText = LOCALE.maketext("The system could not contact the remote repository.");
-                            repository._tryAgainTooltipText = LOCALE.maketext("Attempt to contact the remote repository again.");
-                        } else {
-                            repository._noConnectionText = LOCALE.maketext("The system could not read from the repository.");
-                            repository._tryAgainTooltipText = LOCALE.maketext("Attempt to read from the repository again.");
-                        }
-                    });
-
-                    /**
-                     * Try to fetch the list of available_branches again.
-                     *
-                     * @return {Promise}                    Resolves if it successfully retrieves the available branches.
-                     *                                      Rejects otherwise.
-                     */
-                    repository.tryAgain = function tryAgain() {
-                        alertService.removeById("retrieve-branches-again-error", "versionControl");
-                        if (!repository.ssh.promise) {
-                            return _retrieveAvailableBranchesTryAgain();
-                        }
-
-                        return repository.ssh.promise.then(
-                            function success() {
-
-                                // SSH host key verification is not the problem, so just try again
-                                return _retrieveAvailableBranchesTryAgain();
-                            },
-                            function failure(data) {
-                                repository.ssh.status = data.status;
-                                repository.ssh.keys = data.keys;
-
-                                _showKeyVerificationModal();
-                            }
-                        );
-                    };
-
-                    /**
-                     * Opens up the modal for SSH key verification.
-                     */
-                    function _showKeyVerificationModal() {
-                        alertService.clear(null, "versionControl");
-
-                        repository.ssh.modal = sshKeyVerification.openModal({
-                            hostname: repository.ssh.hostname,
-                            port: repository.ssh.port,
-                            type: repository.ssh.status,
-                            keys: repository.ssh.keys,
-                            onAccept: _onAcceptKey,
-                        });
-
-                        /**
-                         * Handle the case where the modal is dismissed, rather than closed.
-                         * Dismissal is when the user clicks the cancel button or if they click
-                         * outside of the modal, causing it to disappear.
-                         */
-                        repository.ssh.modal.result.catch(function() {
-                            alertService.add({
-                                type: "danger",
-                                message: LOCALE.maketext("The system [output,strong,cannot] connect to the remote repository if you do not accept the host key for “[output,strong,_1].”", repository.ssh.hostname),
-                                closeable: true,
-                                replace: true,
-                                group: "versionControl",
-                                id: "known-hosts-verification-cancelled",
-                            });
-                        });
-
-                        return repository.ssh.modal;
-                    }
-
-                    function _onAcceptKey(promise) {
-                        return promise.then(
-                            function success(newStatus) {
-                                repository.ssh.status = newStatus;
-                                return _retrieveAvailableBranchesTryAgain();
-                            },
-                            function failure(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: LOCALE.maketext("The system failed to add the fingerprints from “[_1]” to the [asis,known_hosts] file: [_2]", repository.ssh.hostname, error),
-                                    closeable: true,
-                                    replace: true,
-                                    group: "versionControl",
-                                    id: "known-hosts-verification-failure",
-                                });
-                            }
-                        ).finally(function() {
-                            repository.ssh.modal.close();
-                            delete repository.ssh.modal;
-                        });
                     }
 
                     /**
@@ -306,9 +186,7 @@ define(
                         repository.commitMessage = data.commitMessage;
                         repository.author = data.author;
 
-                        if (data.available_branches) {
-                            repository.branchList = data.available_branches;
-                        }
+                        repository.branchList = data.available_branches;
 
                         repository.hasRemote = data.hasRemote;
                         repository.remoteInformation = data.source_repository;
@@ -688,30 +566,29 @@ define(
                         return versionControlService.deployRepository(
                             repository.repoPath
                         ).then(function(response) {
-                            var data = response.data || {};
 
-                            /**
-                             * We have to fake the task object, since the task data returned from the
-                             * VersionControlDeployment::create and VersionControlDeployment::retrieveAPI calls don't match.
-                             */
-                            repository.deployTasks = getDeployTasks([
-                                {
-                                    action: "deploy",
-                                    task_id: data.task_id,
-                                    sse_url: data.sse_url,
-                                    args: {
-                                        log_file: data.log_path,
-                                    },
-                                }
-                            ]);
+                            return versionControlService.getRepositoryInformation(repository.repoPath, "tasks")
+                                .then(function(data) {
+                                    repository.deployTasks = getDeployTasks(data.tasks);
 
-                            if (repository.deployTasks && repository.deployTasks.length > 0) {
-                                repository.deployInProgress = true;
-                                initializeSSE();
-                            } else {
-                                repository.deployInProgress = false;
-                            }
+                                    if (repository.deployTasks && repository.deployTasks.length > 0) {
+                                        repository.deployInProgress = true;
+                                        initializeSSE();
+                                    } else {
+                                        repository.deployInProgress = false;
+                                    }
 
+                                }, function(error) {
+
+                                    // display error
+                                    alertService.add({
+                                        type: "danger",
+                                        message: error.message,
+                                        closeable: true,
+                                        replace: false,
+                                        group: "versionControl"
+                                    });
+                                });
                         }, function(error) {
                             repository.deployInProgress = false;
                             alertService.add({
@@ -778,7 +655,7 @@ define(
                     };
 
                     /**
-                     * Copies the repo's clone link to your machine's clipboard
+                     * Copies the repo's clone link to you machine's clipboard
                      * @method cloneToClipboard
                      * @param {String} cloneUrl The URL to be used to clone repos.
                      */
@@ -812,7 +689,10 @@ define(
                      *  @return {Boolean} Returns if there are any branches in the branchList.
                      */
                     repository.hasAvailableBranches = function() {
-                        return Boolean(repository.branchList && repository.branchList.length !== 0);
+                        if (typeof repository.branchList !== "undefined" && repository.branchList) {
+                            return (repository.branchList.length !== 0);
+                        }
+                        return false;
                     };
 
 

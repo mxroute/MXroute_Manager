@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Compressed":"Συμπιεσμένο","Directory":"Κατάλογος","File":"Αρχείο","Incremental":"Επαυξητικό","Symlink":"Symlink","Uncompressed":"Μη συμπιεσμένο"};
+    var newLex = {"Compressed":"Συμπιεσμένο","Incremental":"Επαυξητικό","Uncompressed":"Μη συμπιεσμένο"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

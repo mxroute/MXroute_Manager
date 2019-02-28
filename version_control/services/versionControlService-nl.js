@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Not available.":"Not available.","Repository path cannot be empty.":"Repository path cannot be empty.","The system could not find the “[_1]” repository.":"The system could not find the “[_1]” repository.","You cannot copy the “[_1]” clone [output,acronym,URL,Uniform Resource Locator] to the clipboard.":"You cannot copy the “[_1]” clone [output,acronym,URL,Uniform Resource Locator] to the clipboard.","“[_1]” is not a valid clone [output,acronym,URL,Universal Resource Locator].":"“[_1]” is not a valid clone [output,acronym,URL,Universal Resource Locator]."};
+    var newLex = {"Not available.":"Not available.","Repository path cannot be empty.":"Repository path cannot be empty.","Repository “[_1]” could not be found.":"Repository “[_1]” could not be found.","You cannot copy the “[_1]” clone [output,acronym,URL,Uniform Resource Locator] to the clipboard.":"You cannot copy the “[_1]” clone [output,acronym,URL,Uniform Resource Locator] to the clipboard.","“[_1]” is not a valid clone [output,acronym,URL,Universal Resource Locator].":"“[_1]” is not a valid clone [output,acronym,URL,Universal Resource Locator]."};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

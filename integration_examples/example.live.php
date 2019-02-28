@@ -16,7 +16,7 @@ print $cpanel->header( "Some Example Page" );
 
 <div class="container">
 	<div class="row">
-		Here's a list of environment variables!<br />
+		<span class="glyphicon glyphicon-trash"></span> This page is worthless! here's a list of environment variables!<br />
 	</div>
 	<div class="row">
 		<table class="table">

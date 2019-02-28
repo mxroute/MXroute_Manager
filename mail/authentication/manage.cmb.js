@@ -114,58 +114,28 @@ define(
         "angular",
         "cjt/util/locale",
         "uiBootstrap",
-        "cjt/directives/alertList",
-        "cjt/services/alertService"
     ],
     function(angular, LOCALE) {
-        "use strict";
 
         // Retrieve the current application
         var app = angular.module("App");
 
         // Setup the controller
         var controller = app.controller(
-            "manageController", [
-                "$scope",
-                "$routeParams",
-                "manageService",
-                "alertService",
-                function(
-                    $scope,
-                    $routeParams,
-                    manageService,
-                    alertService) {
+            "manageController", [ "$scope", "$routeParams", "manageService", "growl",
+                function($scope, $routeParams, manageService, growl) {
 
-                    $scope.unlink = function(provider, displayName) {
+                    $scope.unlink = function(provider, display_name) {
                         var promise = manageService.unlink(provider.provider_id, provider.subject_unique_identifier, $routeParams.username).then(function() {
                             manageService.fetch_links($routeParams.username).then(function() {
                                 $scope.providers = manageService.get_links();
                             }, function(error) {
-                                alertService.add({
-                                    type: "danger",
-                                    message: LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error),
-                                    closeable: true,
-                                    replace: false,
-                                    group: "emailExternalAuth"
-                                });
+                                growl.error(LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error));
                                 provider.disabled = 0;
                             });
-                            alertService.add({
-                                type: "success",
-                                message: LOCALE.maketext("Successfully unlinked the “[_1]” account “[_2]”", displayName, provider.preferred_username),
-                                closeable: true,
-                                replace: false,
-                                autoClose: 10000,
-                                group: "emailExternalAuth"
-                            });
+                            growl.success(LOCALE.maketext("Successfully unlinked the “[_1]” account “[_2]”", display_name, provider.preferred_username));
                         }, function(error) {
-                            alertService.add({
-                                type: "danger",
-                                message: LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error),
-                                closeable: true,
-                                replace: false,
-                                group: "emailExternalAuth"
-                            });
+                            growl.error(LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error));
                             provider.disabled = 0;
                         });
 
@@ -206,17 +176,12 @@ define(
         "ngRoute",
     ],
     function(angular, CJT) {
-        "use strict";
         return function() {
-
-            angular.module("App", ["ui.bootstrap", "cjt2.cpanel"]);
+            angular.module("App", ["ui.bootstrap", "angular-growl", "cjt2.cpanel"]);
 
             var app = require(
                 [
                     "uiBootstrap",
-                    "cjt/directives/alert",
-                    "cjt/directives/alertList",
-                    "cjt/services/alertService",
                     "app/services/manageService",
                     "app/views/manageController",
                 ], function() {
@@ -224,20 +189,8 @@ define(
                     var app = angular.module("App");
 
                     // If using views
-                    app.controller("BaseController", [
-                        "$rootScope",
-                        "$scope",
-                        "$route",
-                        "$location",
-                        "manageService",
-                        "alertService",
-                        function(
-                            $rootScope,
-                            $scope,
-                            $route,
-                            $location,
-                            manageService,
-                            alertService) {
+                    app.controller("BaseController", ["$rootScope", "$scope", "$route", "$location", "manageService", "growl",
+                        function($rootScope, $scope, $route, $location, manageService, growl) {
 
                             $scope.loading = false;
 
@@ -266,18 +219,12 @@ define(
 
                     app.config(["$routeProvider", "$locationProvider",
                         function($routeProvider, $locationProvider) {
-                            function _fetchLinks(IndexService, $route, alertService) {
+                            function _fetch_links(IndexService, $route, growl) {
                                 return IndexService.fetch_links($route.current.params.username).then(function(result) {
 
                                     // providers Loaded
                                 }, function(error) {
-                                    alertService.add({
-                                        type: "danger",
-                                        message: LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error),
-                                        closeable: true,
-                                        replace: false,
-                                        group: "emailExternalAuth"
-                                    });
+                                    growl.error(LOCALE.maketext("The system encountered an error while it tried to retrieve results, please refresh the interface: [_1]", error));
                                 });
                             }
 
@@ -286,7 +233,7 @@ define(
                                 controller: "manageController",
                                 templateUrl: CJT.buildFullPath("mail/authentication/views/manageView.ptt"),
                                 resolve: {
-                                    providers: ["manageService", "$route", "alertService", _fetchLinks]
+                                    providers: ["manageService", "$route", "growl", _fetch_links]
                                 }
                             });
 

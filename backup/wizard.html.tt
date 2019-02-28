@@ -1,7 +1,6 @@
 [%
 SET CPANEL.CPVAR.headerimg = "../images/tools.gif";
 SET CPANEL.CPVAR.dprefix = "../";
-SET user_under_quota = execute( 'Quota', 'get_quota_info' ).data.under_quota_overall;
 %]
 
 [% WRAPPER '_assets/master.html.tt'
@@ -43,7 +42,6 @@ SET user_under_quota = execute( 'Quota', 'get_quota_info' ).data.under_quota_ove
 
                 <div id="br-content-sec" class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
                     <h4 id="hdrRestore">[% locale.maketext("Restore") %]</h4>
-                    [% IF !user_under_quota %]<div class="alert alert-warning">[% locale.maketext("Restore is disabled because you are currently exceeding your disk quota.") %]</div>[% END %]
                     <p>[% locale.maketext("This feature allows you to upload an existing partial backup file in order to restore parts of your website.") %]</p>
                     <p>[% locale.maketext("The system will restore the following items if they exist in the backup file:") %]</p>
                     <ul>
@@ -52,7 +50,7 @@ SET user_under_quota = execute( 'Quota', 'get_quota_info' ).data.under_quota_ove
                         [% IF CPANEL.feature("forwarders") %]<li>[% locale.maketext("Email forwarder configurations.") %]</li>[% END %]
                         [% IF CPANEL.feature("blockers") %]<li>[% locale.maketext("Email filter configurations.") %]</li>[% END %]
                     </ul>
-                    <p><a [% IF user_under_quota %]href="wizard-restore.html"[% ELSE %]disabled[% END %] id="wizard-restore" class="btn btn-primary">[% locale.maketext("Restore") %]</a></p>
+                    <p><a href="wizard-restore.html" id="wizard-restore" class="btn btn-primary">[% locale.maketext("Restore") %]</a></p>
                 </div>
             </div>
         </div>

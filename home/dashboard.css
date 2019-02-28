@@ -279,9 +279,10 @@ html[dir="rtl"] .itemTextWrapper {
     background-color: #d9534f;
 }
 
-#statsSection tr.success.app-stat-row > td,
-#statsSection tr.info.app-stat-row > td {
-    box-shadow: none;
+#statsSection tr.success.app-stat-row,
+#statsSection tr.info.app-stat-row {
+    border-left: none;
+    border-right: none;
 }
 
 #statsSection tr.success td,

@@ -11,7 +11,7 @@
 //-------------------------------------------------------------
 (function() {
     // The raw lexicon.
-    var newLex = {"Enabled":"Habilitado"};
+    var newLex = {"Enabled":"Enabled"};
 
     if (!this.LEXICON) {
         this.LEXICON = {};

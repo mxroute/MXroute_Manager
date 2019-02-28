@@ -10,14 +10,13 @@
 define(
     [
         "angular",
-        "app/utils/cloneUrlParser",
         "cjt/util/locale",
         "cjt/validator/validator-utils",
         "cjt/validator/ip-validators",
         "cjt/validator/domain-validators",
-        "cjt/validator/validateDirectiveFactory",
+        "cjt/validator/validateDirectiveFactory"
     ],
-    function(angular, cloneUrlParser, LOCALE, validationUtils, IP_VALIDATOR, DOMAIN_VALIDATOR) {
+    function(angular, LOCALE, validationUtils, IP_VALIDATOR, DOMAIN_VALIDATOR) {
         "use strict";
 
         var cloneURLValidator = {
@@ -37,17 +36,28 @@ define(
                 // Check for blank string.
                 if (typeof cloneUrl === "undefined" || cloneUrl === null) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("You must specify a valid clone URL."));
+                    result.add("cloneURLValidator", LOCALE.maketext("You must specify a valid clone [asis,URL]."));
                     return result;
                 }
 
-                var parts = cloneUrlParser.parse(cloneUrl);
-                var scheme = parts.scheme;
-                var userInfo = parts.userInfo;
-                var ipv6Authority = parts.ipv6Authority;
-                var authority = parts.authority;
-                var path = parts.path;
-                var unparsed = parts.unparsed;
+                // Split out all parts of the URL:
+                var storedParts = [];
+
+                var scheme = parseUrlParts(cloneUrl.match(/^\S+:\/\//i));
+                var userInfo = parseUrlParts(cloneUrl.match(/^\S+@/i));
+                var ipv6Authority = parseUrlParts(cloneUrl.match(/^\[\S+\]/i));
+                var authority = ( ipv6Authority === null ) ? parseUrlParts(cloneUrl.split(/((:\d+\/)|(\/|:))/i)) : null;
+                parseUrlParts(cloneUrl.match(/^:\d+/i)); // Parse out the port if it exists.
+                var path = parseUrlParts(cloneUrl.match(/^\S+/i));
+
+                function parseUrlParts(section) {
+                    if ( section !== null && section.length > 0 ) {
+                        cloneUrl = cloneUrl.replace(section[0], "");
+                        storedParts.push(section[0]);
+                        return section[0];
+                    }
+                    return null;
+                }
 
                 // Check for valid protocols (http:// | https:// | ssh:// | git://)
                 var protocolPattern = /^(?:git|ssh|https?)(?::\/\/)$/i;
@@ -57,7 +67,7 @@ define(
                 var userAndPassPattern = /^\S+:\S+@/i;
                 if ( userAndPassPattern.test(userInfo) ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,cannot] include a password."));
+                    result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,cannot] include a password."));
                     return result;
                 }
 
@@ -75,7 +85,7 @@ define(
                     // Prevents invalid non-required protocol.
                     if ( !hasValidProtocol && scheme !== null ) {
                         result.isValid = false;
-                        result.add("cloneURLValidator", LOCALE.maketext("The provided clone URL [output,strong,must] include a valid protocol."));
+                        result.add("cloneURLValidator", LOCALE.maketext("The provided clone [asis,URL] [output,strong,must] include a valid protocol."));
                         return result;
                     }
 
@@ -83,13 +93,14 @@ define(
                 }
                 if ( !preDomainValid ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("Clone URLs [output,strong,must] include a valid protocol or username."));
+                    result.add("cloneURLValidator", LOCALE.maketext("Clone [asis,URL] [output,strong,must] include a valid protocol or username."));
                     return result;
                 }
 
                 // Check for valid ipv6
                 if ( ipv6Authority !== null ) {
-                    var validIPV6 = IP_VALIDATOR.methods.ipv6(ipv6Authority);
+                    var ipv6AuthorityWithoutBrackets = ipv6Authority.replace(/(\[|\])/gi, "");
+                    var validIPV6 = IP_VALIDATOR.methods.ipv6(ipv6AuthorityWithoutBrackets);
 
                     if ( !validIPV6.isValid ) {
                         var errorMsg = combineErrorMessages(validIPV6.messages);
@@ -108,14 +119,14 @@ define(
 
                     if ( !validIPV4.isValid && !validFQDN.isValid ) {
                         result.isValid = false;
-                        result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,must] include a valid IP address or a fully-qualified domain name."));
+                        result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,must] include a valid [asis,IP] address or a fully-qualified domain name."));
                         return result;
                     }
 
                 // If there is no valid ipv4, ipv6, or domain name
                 } else if ( ipv6Authority === null ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,must] include a valid IP address or a fully-qualified domain name."));
+                    result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,must] include a valid [asis,IP] address or a fully-qualified domain name."));
                     return result;
                 }
 
@@ -140,9 +151,9 @@ define(
                 }
 
                 // Check for any left over cloneUrl parts that indicates spaces were used in the URL construction.
-                if ( unparsed !== "" ) {
+                if ( cloneUrl !== "" ) {
                     result.isValid = false;
-                    result.add("cloneURLValidator", LOCALE.maketext("The clone URL [output,strong,cannot] include whitespace characters."));
+                    result.add("cloneURLValidator", LOCALE.maketext("The clone [asis,URL] [output,strong,cannot] include whitespace characters."));
                     return result;
                 }
 
