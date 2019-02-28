@@ -74,14 +74,6 @@
         </div>
     </div>
 
-    <script id="directives/multiFieldEditor.ptt" type="text/ng-template">
-    [% PROCESS "mail/spam/directives/multiFieldEditor.ptt" %]
-    </script>
-
-    <script id="directives/multiFieldEditorItem.ptt" type="text/ng-template">
-    [% PROCESS "mail/spam/directives/multiFieldEditorItem.ptt" %]
-    </script>
-
     <script id="directives/scoreField.ptt" type="text/ng-template">
     [% PROCESS "mail/spam/directives/scoreField.ptt" %]
     </script>
@@ -122,4 +114,3 @@
 [% END ##<feature_spam_assassin> -%]
 
 [% END #wrapper -%]
-
