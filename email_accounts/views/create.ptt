@@ -1,0 +1,439 @@
+<section>
+    <p id="descEmailAccountsCreate" class="description">
+    [% locale.maketext("Use this page to create new email addresses for any of the domains on your [asis,cPanel] account.") %]
+    [% locale.maketext("Want to learn more? Read our [output,url,_1,documentation,class,externalLink,target,_2,id,_3].", "//go.cpanel.net/Accounts", "_blank", "lnkEmailAccountsDocumentation") %]
+    </p>
+</section>
+
+<cp-loading-panel id="createLoadingPanel" ng-show="emailAccount.isLoading">
+    <span>[% locale.maketext('Loading …') %]</span>
+</cp-loading-panel>
+<callout ng-if="accountStats.available==0" callout-type="warning" callout-heading="[% locale.maketext('Warning: Cannot create additional email accounts') %]">
+    <p>[% locale.maketext("You have reached the maximum number of accounts and can’t create any more. We’re redirecting you to [output,url,_1,the list of email accounts,id,_2] …", "#/list/","lnkListEmailView") %]</p>
+</callout>
+<section ng-show="!emailAccount.isLoading && accountStats.available != 0">
+    <div class="row">
+        <div class="col-xs-12 col-sm-8 col-md-6">
+            <form name="emailAccount.frmCreateEmail" novalidate>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="widget-title pull-left flip">
+                            [% locale.maketext('Create an Email Account')%]
+                        </div>
+                        <div class="pull-right flip">
+                            <a id="lnkshowHideHelp" ng-click="emailAccount.toggleHelp()">
+                                [% locale.maketext("Show/Hide Help") %]
+                                <i class="far fa-question-circle form-info-sign"></i>
+                            </a>
+                        </div>
+                        <div class="clearfix"></div>
+                    </div>
+                    <div class="panel-body">
+                            <!-- Domain -->
+                            <div class="form-group" ng-if="mailDomains.length > 1">
+                                <toggle-label-info
+                                    id="lblDomain"
+                                    for="ddlDomain"
+                                    label-text="[% locale.maketext('Domain') %]"
+                                    show-info-block="{{showAllHelp}}"
+                                    >
+                                    [% locale.maketext('Choose the domain that you want to use. Your email address will end with this domain ([asis,username@domain.com]).') %]
+                                </toggle-label-info>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                    [% IF !CPANEL.ua_is_mobile %]
+                                        <select
+                                            id="ddlDomain"
+                                            name="ddlDomain"
+                                            class="form-control"
+                                            search_contains="true"
+                                            chosen
+                                            width="'100%'"
+                                            ng-class="::{ 'chosen-rtl': emailAccount.isRTL }"
+                                            ng-model="emailAccount.details.domain"
+                                            ng-options="domain for domain in mailDomains"
+                                            auto-focus="mailDomains.length > 1">
+                                            <option value=""></option>
+                                        </select>
+                                    [% ELSE %]
+                                        <select
+                                            id="ddlDomain"
+                                            name="ddlDomain"
+                                            class="form-control"
+                                            ng-model="emailAccount.details.domain"
+                                            ng-options="domain for domain in mailDomains"
+                                            auto-focus="mailDomains.length > 1">
+                                        </select>
+                                    [% END %]
+                                    [% IF has_sub_domain_access || has_alias_access %]
+                                        <span class="help-block">
+                                            [% locale.maketext("Missing a domain? Check the [output,em,Missing a domain?] section to find out how you can create one.") %]
+                                        </span>
+                                    [% END %]
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <div id="ddlDomain_error"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- user name -->
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <toggle-label-info
+                                            for="txtUserName"
+                                            label-text="[% locale.maketext('Username') %]"
+                                            show-info-block="{{showAllHelp}}"
+                                            >
+                                            [% locale.maketext('Enter the username that you want to use. Your email address will start with this username ([asis,username@domain.com]).') %]
+                                        </toggle-label-info>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="input-group">
+                                            <input id="txtUserName" name="txtUserName"
+                                                type="text"
+                                                class="form-control"
+                                                size="64"
+                                                ng-model="emailAccount.details.userName"
+                                                ng-required="true"
+                                                username="cpanel"
+                                                maxlength="64"
+                                                placeholder="[% locale.maketext("Enter your email address’s username here.") %]"
+                                                email-full-length="254"
+                                                email-other-value="emailAccount.details.domain"
+                                                auto-focus="mailDomains.length == 1"
+                                                autocomplete="off"
+                                                />
+                                            <span id="spanAddEmailAccountDomains" class="input-group-addon" title="@{{ emailAccount.details.domain }}">
+                                                <span class="text-truncate domain-text">
+                                                @{{ emailAccount.details.domain }}
+                                                <input type="hidden" name="domain" ng-model="emailAccount.details.domain" ng-if="::mailDomains.length === 1"/>
+                                                </span>
+                                            </span>
+                                        </div>
+                                        <span class="help-block">
+                                            <div class="user-name-help">
+                                                [% locale.maketext("You can use letters, numbers, periods, hyphens, and underscores. Usernames can’t have more than 64 characters.") %]
+                                            </div>
+                                            [% IF has_sub_domain_access || has_alias_access %]
+                                            <div class="missing-domain-link">
+                                                <a ng-click="emailAccount.scrollToMissingDomains()">
+                                                    [% locale.maketext("Missing a domain?") %]
+                                                </a>
+                                            </div>
+                                            [% END %]
+                                        </span>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <ul validation-container field-name="txtUserName" role="alert" id="txtUserNameErrorPanel">
+                                            <li validation-item field-name="txtUserName" validation-name="required" id="valUsernameRequired">
+                                                [% locale.maketext('Enter a username.') %]
+                                            </li>
+                                            <li validation-item field-name="txtUserName" validation-name="maxlength" id="valUsernameMaxLength">
+                                                [% locale.maketext("Your username cannot contain more than [numf,_1] characters.", 64) %]
+                                            </li>
+                                            <li validation-item field-name="txtUserName" validation-name="emailFulllength" id="valUsernameFullLength">
+                                                [% locale.maketext("Your email address cannot contain more than [numf,_1] characters.", 254) %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Set password or email -->
+                            <div class="form-group invite-password-section" ng-if="isInviteSubEnabled">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <label
+                                            for="setPasswordNow">
+                                            [% locale.maketext('Security') %]
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <div class="radio-inline">
+                                            <label for="setPasswordNow">
+                                                <input type="radio" name="incomingRadio" id="setPasswordNow"
+                                                    ng-model="emailAccount.details.setPassword"
+                                                    ng-value="true" value="true">
+                                                [% locale.maketext("Set password now.") %]
+                                            </label>
+                                        </div>
+                                        <div class="radio-inline">
+                                            <label for="setPasswordLater">
+                                                <input type="radio" name="incomingRadio" id="setPasswordLater"
+                                                    ng-model="emailAccount.details.setPassword"
+                                                    ng-value="false" value="false">
+                                                [% locale.maketext("Provide alternate email.") %]
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- additional contact email -->
+                            <div class="form-group" ng-if="!emailAccount.details.setPassword">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <toggle-label-info
+                                            for="txtRecoveryEmail"
+                                            label-text="[% locale.maketext('Alternate Email') %]"
+                                            label-id="lblRecoveryEmail"
+                                            info-icon-id="icoRecoveryEmail"
+                                            info-block-id="txtRecoverEmailInfo"
+                                            show-info-block="{{showAllHelp}}"
+                                            >
+                                            [% locale.maketext('We will send notifications and password reset emails to this address.') %]
+                                        </toggle-label-info>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <div class="row">
+                                            <div class="col-xs-12">
+                                                <input id="txtRecoveryEmail"
+                                                    name="txtRecoveryEmail"
+                                                    required
+                                                    email="rfc"
+                                                    email-not-reserved-include-sub-addresses="{{ emailAccount.details.userName + '@' + emailAccount.details.domain }}"
+                                                    class="form-control"
+                                                    placeholder="alt.email@another.domain.tld"
+                                                    title="[% locale.maketext('Enter your alternate email address.') %]"
+                                                    ng-model="emailAccount.details.recoveryEmail"
+                                                    auto-focus="!emailAccount.details.setPassword">
+                                                <span class="help-block">
+                                                    [% locale.maketext("The system will send an email with a password configuration link.") %]
+                                                </span>
+                                            </div>
+                                            <div class="col-xs-12">
+                                            <ul validation-container field-name="txtRecoveryEmail" id="txtRecoveryEmailErrorPanel">
+                                                <li validation-item field-name="txtRecoveryEmail" validation-name="required" id="valTxtRecoveryEmailRequired">
+                                                    [% locale.maketext('Provide a valid alternate email address that we can send the password link to.') %]
+                                                </li>
+                                            </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Password -->
+                            <div class="form-group" ng-if="emailAccount.details.setPassword">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <label id="lblAddEmailPassword"
+                                            for="txtEmailPassword">
+                                        [% locale.maketext("Password") %]
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <!-- prevent password autofill -->
+                                        <input type="text" style="display:none">
+                                        <input type="password" autocomplete='off' style="display:none">
+                                        <!-- prevent Firefox from displaying the "Save Password" dialog -->
+                                        <input type="password" autocomplete='off' style="display:none;" value="fakepassword1">
+                                        <input type="password" autocomplete='off' style="display:none;" value="fakepassword2">
+                                        <password name="txtEmailPassword"
+                                            password="emailAccount.details.password"
+                                            minimum-length="5"
+                                            generate-minimum-length="5"
+                                            generate-maximum-length="18"
+                                            minimum-strength="{{::requiredPasswordStrength}}"
+                                            show-meter="true"
+                                            show-strength="false"
+                                            show-generator="true"
+                                            generate-button-tab-index="-1"
+                                            toggle-view-button-tab-index="-1"
+                                            generate-settings-tab-index="-1"
+                                            required
+                                            auto-focus="emailAccount.details.setPassword"></password>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <ul validation-container id="txtEmailPasswordErrorPanel" field-name="txtEmailPassword">
+                                            <li validation-item field-name="txtEmailPassword" validation-name="minlength" id="val-password-minlength">
+                                                [% locale.maketext('Your password must contain at least [quant,_1,character,characters].', 5) %]
+                                            </li>
+                                            <li validation-item field-name="txtEmailPassword" validation-name="required" id="val-password-required">
+                                                [% locale.maketext('Enter a password.') %]
+                                            </li>
+                                            <li validation-item field-name="txtEmailPassword" validation-name="minimumPasswordStrength" id="val-password-minimum-strength">
+                                                [%- locale.maketext('Enter a [output,strong,stronger] password.') -%]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Set quota -->
+                            <div class="form-group" id="storageSection">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <toggle-label-info
+                                            for="quota"
+                                            label-text="[% locale.maketext('Storage Space') %]"
+                                            label-id="lblDiskSpace"
+                                            info-icon-id="icoDiskSpace"
+                                            info-block-id="txtDiskSpace"
+                                            show-info-block="{{showAllHelp}}">
+                                            [% locale.maketext('The amount of space that your email account can use to store emails.') %]
+                                        </toggle-label-info>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-4">
+                                        <div class="radio">
+                                            <label>
+                                                <input type="radio" name="limitOptions"
+                                                    id="limitedQuota"
+                                                    ng-model="emailAccount.details.quotaType"
+                                                    value="userdefined">
+                                                <bytes-input
+                                                    name="quota"
+                                                    ng-model="emailAccount.details.quota"
+                                                    display-format="si"
+                                                    value-format="binary"
+                                                    value-unit="MiB"
+                                                    selected-unit="emailAccount.details.quotaUnit"
+                                                    ng-required="emailAccount.details.quotaType === 'userdefined'"
+                                                    is-disabled="emailAccount.details.quotaType !== 'userdefined'"
+                                                    size="11"
+                                                    bytes-input-min="1"
+                                                    bytes-input-max="{{::maxQuota}}"/>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <div class="radio">
+                                            <label>
+                                                <input type="radio" name="limitOptions"
+                                                    id="unlimitedQuota"
+                                                    ng-model="emailAccount.details.quotaType"
+                                                    value="unlimited">
+                                                {{maxEmailQuotaText}}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <ul validation-container field-name="quota" id="valQuotaErrorPanel">
+                                            <li validation-item field-name="quota" validation-name="max" id="val-quota-max-quota">
+                                                {{maxQuotaHelpText}}
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="required" id="val-quota-required">
+                                                [% locale.maketext("Enter a number.") %]
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="number" id="val-quota-number">
+                                                [% locale.maketext("Enter a number.") %]
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="min" id="val-quota-min-quota">
+                                                [% locale.maketext("Enter a number that is larger than zero.") %]
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="integer" id="val-quota-positive-integer">
+                                                [% locale.maketext("Enter a positive number.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Send email to set mail box -->
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <div class="checkbox create-email-checkbox send-email-checkbox">
+                                        <label>
+                                            <input type="checkbox" name="send_welcome_email" id="send_welcome_email" value="1" ng-model="emailAccount.details.sendWelcomeEmail">
+                                            [% locale.maketext("Send a welcome email with instructions to set up a mail client.") %]
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                    </div>
+                    <div class="panel-footer">
+                        <div class="checkbox create-email-checkbox">
+                            <label>
+                                <input type="checkbox" name="stay" id="stay" ng-model="emailAccount.details.stayOnView" ng-change="emailAccount.stayOnPageChanged()">
+                                [% locale.maketext("Stay on this page after I click [output,em,Create].") %]
+                            </label>
+                        </div>
+                        <hr class="separator"/>
+                        <button id="btnCreateEmailAccount"
+                                type="submit"
+                                spinner-id="spinnerCreateEmail"
+                                cp-action="emailAccount.create(emailAccount.details)"
+                                title="[% locale.maketext('Click here to create your new email account.') %]">
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                                [% locale.maketext("Create") %]
+                        </button>
+                        <button id="btnCancelEmailAccount"
+                            type="button"
+                            class="btn btn-link pull-right flip"
+                            ng-click="emailAccount.backToListView()"
+                            title="[% locale.maketext('Go back to the list of email accounts.') %]">
+                            <i class="fas" ng-class="{ 'fa-arrow-left': !emailAccount.RTL, 'fa-arrow-right': emailAccount.isRTL }" aria-hidden="true"></i>
+                            [% locale.maketext('Go Back') %]
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-xs-12 col-sm-4 col-md-3">
+            <div class="margin-bottom-20" ng-class="emailAccount.statsCssClass">
+                <stats
+                    used-id="lblUsed"
+                    ng-model="accountStats.used"
+                    available-id="lblAvailable"
+                    max="accountStats.maximum"
+                    upgrade-link-id="lblUpgradeLink"
+                    upgrade-link="{{upgradeURL}}"
+                    upgrade-link-text="[% locale.maketext('Buy More') %]"
+                    show-upgrade-link="true"
+                    upgrade-link-target="emailUpgrade"
+                    >
+                </stats>
+            </div>
+            [% IF has_sub_domain_access || has_alias_access %]
+            <section class="widget" id="missingDomainSection">
+                <h3 class="widget-title">[% locale.maketext('Missing a domain?')%]</h3>
+                <ul>
+                    [% IF has_sub_domain_access %]
+                    <li>
+                        <p class="widget-item-description">
+                            [% locale.maketext('Subdomains let you create subsections of your domains.') %]
+                        </p>
+                        <a href="[% CPANEL.CPVAR.dprefix _ 'subdomain/index.html' %]"
+                            title="[% locale.maketext('Manage your account’s subdomains.') %]"
+                            target="subdomain">
+                            <i class="fas fa-wrench"></i>
+                            [% locale.maketext("Manage Subdomains") %]
+                        </a>
+                    </li>
+                    [% END %]
+                    [% IF has_alias_access %]
+                    <li>
+                        <p class="widget-item-description">
+                            [% locale.maketext('Aliases let you point a domain towards another of your domains’ content.') %]
+                        </p>
+                        <a href="[% CPANEL.CPVAR.dprefix _ 'park/index.html' %]"
+                            title="[% locale.maketext('Manage your account’s aliases/parked domains.') %]"
+                            target="Alias">
+                            <i class="fas fa-wrench"></i>
+                            [% locale.maketext("Manage Aliases") %]
+                        </a>
+                    </li>
+                    [% END %]
+                </ul>
+            </section>
+            [% END %]
+            <section class="widget">
+                <h3 class="widget-title">[% locale.maketext('Need Help?')%]</h3>
+                <ul>
+                    <li>
+                        <a href="https://go.cpanel.net/Accounts"
+                            title="[% locale.maketext('Need help? Click here to read more about how to create and manage email addresses.') %]"
+                            target="email_documentation">
+                            <i class="fas fa-fw fa-external-link-alt" aria-hidden="true"></i>
+                            [% locale.maketext("About This Interface") %]
+                        </a>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</section>

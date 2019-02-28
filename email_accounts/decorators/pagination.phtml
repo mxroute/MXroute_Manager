@@ -1,0 +1,54 @@
+<ul class="pagination" aria-label="{{::ariaLabels.title}}">
+    <li ng-if="boundaryLinks" ng-class="{disabled: noPrevious()}">
+        <a id="{{::parentId}}_first" href
+            ng-click="selectPage(1)"
+            aria-label="{{::ariaLabels.firstPage}}">
+            {{getText('first')}}
+        </a>
+    </li>
+    <li ng-if="directionLinks" ng-class="{disabled: noPrevious()}">
+        <a id="{{::parentId}}_previous" href
+            ng-click="selectPage(page - 1)"
+            aria-label="{{::ariaLabels.previousPage}}">
+            {{getText('previous')}}
+        </a>
+    </li>
+    <li ng-class="{disabled: pages.length==1}">
+        <span uib-dropdown>
+            <a href id="{{::parentId}}_simpleDropdown" uib-dropdown-toggle ng-disabled="pages.length<=1">
+                {{updateCurrentSelectedText(page, totalPages)}}<span class="caret"></span>
+            </a>
+            <ul id="{{::parentId}}_dropdownMenu" uib-dropdown-menu role="menu" aria-labelledby="single-button">
+                <li ng-repeat="page in pages track by $index" ng-class="{active: page.active}" ng-switch="page.active">
+                    <a id="{{parentId + '_' + page.id}}" href
+                        ng-click="selectPage(page.number)"
+                        aria-label="{{page.ariaLabel}}"
+                        aria-current="page"
+                        ng-switch-when="true">
+                        {{page.text}}
+                    </a>
+                    <a id="{{parentId + '_' + page.id}}" href
+                        ng-click="selectPage(page.number)"
+                        aria-label="{{page.ariaLabel}}"
+                        ng-switch-default>
+                        {{page.text}}
+                    </a>
+                </li>
+            </ul>
+        </span>
+    </li>
+    <li ng-if="directionLinks" ng-class="{disabled: noNext()}">
+        <a id="{{::parentId}}_next" href
+            ng-click="selectPage(page + 1)"
+            aria-label="{{::ariaLabels.nextPage}}">
+            {{getText('next')}}
+        </a>
+    </li>
+    <li ng-if="boundaryLinks" ng-class="{disabled: noNext()}">
+        <a id="{{::parentId}}_last" href
+            ng-click="selectPage(totalPages)"
+            aria-label="{{::ariaLabels.lastPage}}">
+            {{getText('last')}}
+        </a>
+    </li>
+</ul>

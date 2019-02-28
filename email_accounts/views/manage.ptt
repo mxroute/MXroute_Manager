@@ -1,0 +1,460 @@
+<section>
+    <p id="descEmailAccountsManage" class="description">
+    [% locale.maketext("Use this page to manage your email accounts.") %]
+    [% locale.maketext("Want to learn more? Read our [output,url,_1,documentation,class,externalLink,target,_2,id,_3].", "//go.cpanel.net/Accounts", "_blank", "lnkEmailAccountsDocumentation") %]
+    </p>
+</section>
+
+<cp-loading-panel id="manageLoadingPanel" ng-if="emailAccount.isLoading">
+    <span>[% locale.maketext('Loading …') %]</span>
+</cp-loading-panel>
+
+<section ng-if="!emailAccount.isLoading">
+    <div class="row">
+        <div class="col-xs-12 col-sm-8 col-md-6">
+            <form name="emailAccount.frmManageAccount" novalidate>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <div class="widget-title pull-left flip">
+                            [% locale.maketext('Manage An Email Account')%]
+                        </div>
+                        <div class="pull-right flip">
+                            <a id="lnkshowHideHelp" ng-click="emailAccount.toggleHelp()">
+                                [% locale.maketext("Show/Hide Help") %]
+                                <i class="far fa-question-circle form-info-sign"></i>
+                            </a>
+                        </div>
+                        <div class="clearfix"></div>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-group">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <label id="lblEmail" for="lblEmailAccount">
+                                        [% locale.maketext('Email Account') %]
+                                    </label>
+                                </div>
+                                <div class="col-xs-12">
+                                    <span id="lblEmailAccount" class="wordbreak">
+                                        {{emailAccount.details.email}}
+                                    </span>
+                                </div>
+                                <div class="col-xs-12">
+                                    <a id="lnkCheckEmail"
+                                        class="btn btn-link form-link"
+                                        ng-if="::emailAccount.webmailEnabled"
+                                        title="[% locale.maketext('Check email for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                                        ng-href="{{::emailAccount.dprefix}}/mail/webmailform.html?user={{emailAccount.details.email | encodeURIComponent}}&amp;domain={{ emailAccount.details.domain | encodeURIComponent }}"
+                                        target="_blank">
+                                        <span class="fas fa-fw fa-external-link-alt" aria-hidden="true"></span>
+                                        [% locale.maketext("Check Email") %]
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        <section class="form-section" id="securitySection">
+                            <h4 class="widget-title">[% locale.maketext("Security") %]</h4>
+
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <label id="lblAddEmailPassword"
+                                            for="txtEmailPassword">
+                                        [% locale.maketext("New Password") %]
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <!-- prevent password autofill -->
+                                        <input type="text" style="display:none">
+                                        <input type="password" autocomplete='off' style="display:none">
+                                        <!-- prevent Firefox from displaying the "Save Password" dialog -->
+                                        <input type="password" autocomplete='off' style="display:none;" value="fakepassword1">
+                                        <input type="password" autocomplete='off' style="display:none;" value="fakepassword2">
+                                        <password name="txtEmailPassword"
+                                            class="form-control"
+                                            password="emailAccount.details.password"
+                                            class="form-control"
+                                            minimum-length="5"
+                                            generate-minimum-length="5"
+                                            generate-maximum-length="18"
+                                            minimum-strength="{{::emailAccount.requiredPasswordStrength}}"
+                                            show-meter="true"
+                                            show-strength="false"
+                                            show-generator="true"
+                                            generate-button-tab-index="-1"
+                                            toggle-view-button-tab-index="-1"
+                                            generate-settings-tab-index="-1"
+                                            ></password>
+                                        </span>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <ul validation-container id="txtEmailPasswordErrorPanel" field-name="txtEmailPassword">
+                                            <li validation-item field-name="txtEmailPassword" validation-name="minlength" id="val-password-minlength">
+                                                [% locale.maketext('Enter a password that contains at least [quant,_1,character,characters].', 5) %]
+                                            </li>
+                                            <li validation-item field-name="txtEmailPassword" validation-name="minimumPasswordStrength" id="val-password-minimum-strength">
+                                                [%- locale.maketext('Enter a [output,strong,stronger] password.') -%]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="form-section form-section-last" id="storageSection">
+                            <h4 class="widget-title">[% locale.maketext("Storage") %]</h4>
+                            <div class="form-group">
+                                <div class="row">
+                                    <label class="col-xs-12" id="lblCurrentStorage">
+                                        [% locale.maketext("Current Storage Usage") %]
+                                    </label>
+                                    <div class="col-xs-12">
+                                        <div class="storage-details">
+                                            <div>
+                                                <span id="currentStorage" ng-bind-html="emailAccount.details.humandiskused"></span>
+                                                <span>/</span>
+                                                <span id="quotaUsed" ng-bind-html="emailAccount.details.humandiskquota"></span>
+                                                <span id="percentageUsed" ng-bind-html="emailAccount.details.humandiskusedpercent"></span>
+                                            </div>
+                                            <div>
+                                                <uib-progressbar ng-if="emailAccount.details.diskquota !== 0 && emailAccount.details.diskquota !== 'unlimited'"
+                                                    type="{{ emailAccount.details.quotaProgressType }}"
+                                                    max="emailAccount.details._diskquota"
+                                                    value="emailAccount.details._diskused"
+                                                    title="{{ emailAccount.details.humandiskusedpercent }}">
+                                                    <span class="sr-only">{{ emailAccount.details.humandiskusedpercent }}</span>
+                                                </uib-progressbar>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <div class="col-xs-12">
+                                        <toggle-label-info
+                                            for="quota"
+                                            label-text="[% locale.maketext('Allocated Storage Space') %]"
+                                            label-id="lblDiskSpace"
+                                            info-icon-id="icoDiskSpace"
+                                            info-block-id="txtDiskSpace"
+                                            show-info-block="{{showAllHelp}}"
+                                            >
+                                            [% locale.maketext('The amount of space that your email account can use to store emails.') %]
+                                        </toggle-label-info>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-xs-4">
+                                        <div class="radio">
+                                            <label>
+                                                <input type="radio" name="limitOptions"
+                                                    id="limitedQuota"
+                                                    ng-model="emailAccount.details.quotaType"
+                                                    value="userdefined">
+                                                <bytes-input
+                                                    name="quota"
+                                                    ng-model="emailAccount.details.quota"
+                                                    display-format="si"
+                                                    value-format="binary"
+                                                    value-unit="MiB"
+                                                    ng-required="emailAccount.details.quotaType === 'userdefined'"
+                                                    is-disabled="emailAccount.details.quotaType !== 'userdefined'"
+                                                    size="11"
+                                                    bytes-input-min="1"
+                                                    bytes-input-max="{{::maxQuota}}"/>
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <div class="radio">
+                                            <label>
+                                                <input type="radio" name="limitOptions"
+                                                    id="unlimitedQuota"
+                                                    ng-model="emailAccount.details.quotaType"
+                                                    value="unlimited">
+                                                {{maxEmailQuotaText}}
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <div class="col-xs-12">
+                                        <ul validation-container field-name="quota" id="valQuotaErrorPanel">
+                                            <li validation-item field-name="quota" validation-name="max" id="val-quota-max-quota">
+                                                {{maxQuotaHelpText}}
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="required" id="val-quota-required">
+                                                [% locale.maketext("Enter a number.") %]
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="number" id="val-quota-number">
+                                                [% locale.maketext("Enter a number.") %]
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="min" id="val-quota-min-quota">
+                                                [% locale.maketext("Enter a number that is larger than zero.") %]
+                                            </li>
+                                            <li validation-item field-name="quota" validation-name="integer" id="val-quota-positive-integer">
+                                                [% locale.maketext("Enter a positive number.") %]
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <section class="form-section" id="restrictions">
+                            <h4 class="widget-title">[% locale.maketext("Restrictions") %]</h4>
+                            <div class="form-group">
+                                <div class="row">
+                                    <label class="col-xs-12">[% locale.maketext('Receiving Incoming Mail') %]</label>
+                                    <div class="col-xs-12">
+                                        <div class="radio-inline">
+                                            <label for="incomingAllowed">
+                                                <input type="radio" name="incomingRadio" id="incomingAllowed" ng-model="emailAccount.suspendOptions.incoming" ng-value="false"  value="false">
+                                                [% locale.maketext('Allow') %]
+                                            </label>
+                                        </div>
+                                        <div class="radio-inline">
+                                            <label for="incomingSuspended">
+                                                <input type="radio" name="incomingRadio" id="incomingSuspended" ng-model="emailAccount.suspendOptions.incoming" ng-value="true"  value="true">
+                                                [% locale.maketext('Suspend') %]
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <label class="col-xs-12">[% locale.maketext('Sending Outgoing Email') %]</label>
+                                    <div class="col-xs-12">
+                                        <div class="radio-inline">
+                                            <label for="outgoingAllowed">
+                                                <input type="radio" name="outgoingRadio" id="outgoingAllowed" ng-model="emailAccount.suspendOptions.outgoing" value="allow">
+                                                [% locale.maketext('Allow') %]
+                                            </label>
+                                        </div>
+                                        <div class="radio-inline">
+                                            <label for="outgoingSuspended">
+                                                <input type="radio" name="outgoingRadio" id="outgoingSuspended" ng-model="emailAccount.suspendOptions.outgoing" value="suspend">
+                                                [% locale.maketext('Suspend') %]
+                                            </label>
+                                        </div>
+                                        <div class="radio-inline">
+                                            <label for="outgoingHeld">
+                                                <input type="radio" name="outgoingRadio" id="outgoingHeld" ng-model="emailAccount.suspendOptions.outgoing" value="hold">
+                                                [% locale.maketext('Hold') %]
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="row" ng-show="emailAccount.currentSuspendedState.outgoing === 'hold'">
+                                    <div class="radio">
+                                        <label class="col-xs-12">
+                                            <span ng-if="emailAccount.suspendOptions.currentlyHeld > 0">
+                                                <input type="checkbox" ng-model="emailAccount.suspendOptions.deleteHeldMessages">
+                                                <span ng-bind="emailAccount.currentlyHeldMessageText(emailAccount.suspendOptions.currentlyHeld)"></span>
+                                            </span>
+                                            <i ng-if="emailAccount.suspendOptions.currentlyHeld === 0">[% locale.maketext("The mail queue does not contain any messages on hold.") %]</i>
+                                        </label>
+                                    </div>
+                                </div>
+                                <cp-alert type="warning" ng-if="emailAccount.suspendOptions.hold_outgoing && emailAccount.suspendOptions.currentlyHeld > 0 && emailAccount.suspendOptions.outgoing === 'hold' && emailAccount.suspendOptions.deleteHeldMessages">
+                                    <span>[% locale.maketext('If you allow outgoing mail for “[_1]” while the delete is in progress, messages held in the queue may be delivered instead of deleted.', '{{ emailAccount.details.email }}') %]</span>
+                                </cp-alert>
+                                <cp-alert type="info" ng-if="emailAccount.suspendOptions.hold_outgoing && emailAccount.suspendOptions.currentlyHeld > 0 && emailAccount.suspendOptions.outgoing === 'allow' && emailAccount.suspendOptions.deleteHeldMessages">
+                                    <span>[% locale.maketext('Outgoing mail for “[_1]” will be released after the held messages are deleted.', '{{ emailAccount.details.email }}') %]</span>
+                                </cp-alert>
+                            </div>
+                            <div class="form-group">
+                                <div class="row">
+                                    <label class="col-xs-12">
+                                        [% locale.maketext("Logging In") %]
+                                    </label>
+                                    <div class="col-xs-12">
+                                        <div class="radio-inline">
+                                            <label for="loginAllowed">
+                                                <input type="radio" name="loginRadio" id="loginAllowed" ng-model="emailAccount.suspendOptions.login" ng-value="false"  value="false">
+                                                [% locale.maketext('Allow') %]
+                                            </label>
+                                        </div>
+                                        <div class="radio-inline">
+                                            <label for="loginSuspended">
+                                                <input type="radio" name="loginRadio" id="loginSuspended" ng-model="emailAccount.suspendOptions.login" ng-value="true"  value="true">
+                                                [% locale.maketext('Suspend') %]
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    </div>
+                    <div class="panel-footer">
+                        <div class="checkbox create-email-checkbox">
+                            <label>
+                                <input type="checkbox" name="stay" id="stay" ng-model="emailAccount.stayOnView" ng-change="emailAccount.stayOnPageChanged()">
+                                [% locale.maketext("Stay on this page after I click [output,em,Update Email Settings].") %]
+                            </label>
+                        </div>
+                        <hr class="separator"/>
+                        <button id="btnUpdateEmailEmailAccount"
+                                type="submit"
+                                spinner-id="spinnerUpdateEmail"
+                                cp-action="emailAccount.update(emailAccount.details)"
+                                title="[% locale.maketext('Click here to update email settings.') %]">
+                                <i class="fas fa-pencil-alt" aria-hidden="true"></i>
+                                [% locale.maketext("Update Email Settings") %]
+                        </button>
+                        <button id="btnCancelEmailAccount"
+                            type="button"
+                            class="btn btn-link pull-right flip"
+                            ng-click="emailAccount.backToListView()"
+                            title="[% locale.maketext('Go back to the list of email accounts.') %]">
+                            <i class="fas" ng-class="{ 'fa-arrow-left': !emailAccount.RTL, 'fa-arrow-right': emailAccount.isRTL }" aria-hidden="true"></i>
+                            [% locale.maketext('Go Back') %]
+                        </button>
+                    </div>
+                </div>
+            </form>
+            <div class="row">
+                <div class="col-xs-12">
+                    <section class="panel panel-danger">
+                        <div class="panel-heading">
+                            <span class="widget-title">
+                                [% locale.maketext('Delete Email Account')%]
+                            </span>
+                        </div>
+                        <div class="panel-body">
+                            <div>[% locale.maketext("Are you sure? When you delete an email account, we permanently delete [output,strong,all] of the account’s data.") %]</div>
+                            <div class="margin-top-20 margin-bottom-20">
+                                <button id="btnEmailDelete"
+                                        type="button"
+                                        class="btn btn-outline-primary"
+                                        ng-click="emailAccount.delete_requested=true"
+                                        title="[% locale.maketext('Delete Email Account') %]"
+                                        ng-disabled="emailAccount.delete_requested">
+                                        <i class="fas fa-trash-alt" aria-hidden="true"></i>
+                                        [% locale.maketext("Delete Email Account") %]
+                                </button>
+                                <callout callout-type="warning" ng-if="emailAccount.delete_requested">
+                                    <div class="delete-warning">
+                                        <div class="display-table">
+                                            <div class="display-table-cell">
+                                                <span class="delete-question-mark">?</span>
+                                            </div>
+                                            <div class="display-table-cell">
+                                                <div class="box">
+                                                    <span class="delete-message wordbreak">[% locale.maketext('You’re about to delete “[_1]”.', '{{ ::emailAccount.details.email }}') %]</span>
+                                                    <p>
+                                                        [% locale.maketext("When you delete an email account, we permanently delete [output,strong,all] of the account’s data.") %]
+                                                    </p>
+                                                </div>
+                                                <div class="box">
+                                                    <button type="button" id="emailDeleteConfirmation"
+                                                        class="btn btn-primary btn-sm"
+                                                        title="[% locale.maketext('Delete') %]"
+                                                        spinner-id="spinnerDelete"
+                                                        cp-action="emailAccount.delete(emailAccount.details.email)">
+                                                        <i class="fas fa-trash" aria-hidden="true"></i>
+                                                        [% locale.maketext("Delete") %]
+                                                    </button>
+                                                    <button type="button" id="emailCancelDelete"
+                                                        class="btn btn-link"
+                                                        title="[% locale.maketext('Cancel.') %]"
+                                                        ng-click="emailAccount.delete_requested=false"
+                                                        ng-disabled="emailAccount.removing">
+                                                        [% locale.maketext("Cancel") %]
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </callout>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-12 col-sm-4 col-md-3">
+            <section class="widget" ng-if="emailAccount.emailDiskUsageEnabled || emailAccount.emailFiltersEnabled || emailAccount.autoResponderEnabled">
+                <h3 class="widget-title">[% locale.maketext('I want to …')%]</h3>
+                <ul ng-if="emailAccount.details.email">
+                    <li>
+                        <a id="lnkManageDiskUsage"
+                            ng-if="emailAccount.emailDiskUsageEnabled"
+                            title="[% locale.maketext('Manage storage space for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                            ng-href="{{::emailAccount.dprefix}}/mail/manage_disk_usage/?account={{ emailAccount.details.email | encodeURIComponent }}">
+                            <i class="fas fa-fw fa-eraser" aria-hidden="true"></i>
+                            [% locale.maketext("Free up Email Storage") %]
+                        </a>
+                    </li>
+                    <li>
+                        <a id="lnkMailFilter"
+                            ng-if="emailAccount.emailFiltersEnabled"
+                            title="[% locale.maketext('Manage email filters for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                            ng-href="{{::emailAccount.dprefix}}/mail/filters/userfilters.html?account={{ emailAccount.details.email | encodeURIComponent }}"
+                            >
+                            <i class="fas fa-fw fa-filter" aria-hidden="true"></i>
+                            [% locale.maketext("Manage Email Filters") %]
+                        </a>
+                    </li>
+                    <li>
+                        <a id="lnkMailAutoResponder"
+                            title="[% locale.maketext('Set up autoresponders for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                            ng-href="{{::emailAccount.dprefix}}/mail/autores.html"
+                            ng-if="emailAccount.autoResponderEnabled">
+                            <i class="fas fa-fw fa-magic" aria-hidden="true"></i>
+                            [% locale.maketext("Send Automated Responses") %]
+                        </a>
+                    </li>
+                </ul>
+            </section>
+            <section class="widget">
+                <h3 class="widget-title">[% locale.maketext('Configure')%]</h3>
+                <ul>
+                    <li>
+                        <a id="lnkSetupEmailClient"
+                            title="[% locale.maketext('Set Up a Mail Client for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                            ng-href="{{::emailAccount.dprefix}}/mail/clientconf.html?acct={{emailAccount.details.email | encodeURIComponent}}">
+                            <i class="fas fa-fw fa-mobile-alt" aria-hidden="true"></i>
+                            [% locale.maketext("Connect Devices") %]
+                        </a>
+                    </li>
+                    <li>
+                        <a id="lnkConfigCalContacts"
+                            ng-if="emailAccount.showCalAndContacts"
+                            title="[% locale.maketext('Configure calendars and contacts for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                            ng-href="{{::emailAccount.dprefix}}/mail/calendars_and_contacts/index.html.tt?user={{emailAccount.details.email | encodeURIComponent}}">
+                            <i class="fas fa-fw fa-address-book" aria-hidden="true"></i>
+                            [% locale.maketext("Configure Calendars and Contacts") %]
+                        </a>
+                    </li>
+                </ul>
+            </section>
+            <section class="widget" ng-if="emailAccount.externalAuthConfig">
+                <h3 class="widget-title">[% locale.maketext('Authentication')%]</h3>
+                <ul>
+                    <li>
+                        <a id="lnkExternalAuthConfig"
+                            title="[% locale.maketext('Manage external authentication for “[_1]”.', '{{ ::emailAccount.details.email }}') %]"
+                            ng-href="{{::emailAccount.dprefix}}/mail/authentication/manage.html#/{{ ::emailAccount.details.email | encodeURIComponent }}">
+                            <i class="fas fa-fw fa-lock" aria-hidden="true"></i>
+                            [% locale.maketext("Manage External Authentication") %]
+                        </a>
+                    </li>
+                </ul>
+            </section>
+            <section class="widget">
+                <h3 class="widget-title">[% locale.maketext('Need Help?')%]</h3>
+                <ul>
+                    <li>
+                        <a href="https://go.cpanel.net/Accounts"
+                            title="[% locale.maketext('Need help? Click here to read more about how to create and manage email addresses.') %]"
+                            target="email_documentation">
+                            <i class="fas fa-fw fa-external-link-alt" aria-hidden="true"></i>
+                            [% locale.maketext("About This Interface") %]
+                        </a>
+                    </li>
+                </ul>
+            </section>
+        </div>
+    </div>
+</section>
