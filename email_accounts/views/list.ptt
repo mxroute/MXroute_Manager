@@ -242,7 +242,7 @@
                                 ng-click="emailAccounts.manageAccount(emailAccount, 'restrictions')"
                                 title="[% locale.maketext("Manage “[_1]”.", '{{ ::emailAccount.email }}') %]">
                                 <i class="fas fa-exclamation-triangle text-warning"></i>
-                                [% locale.maketext("Restricted") %]
+                                [% locale.maketext("Restricted for sending spam") %]
                             </a>
                         </div>
                         <div ng-if="::!emailAccount.has_suspended">
