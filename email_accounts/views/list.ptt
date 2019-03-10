@@ -6,7 +6,7 @@
             [% locale.maketext("See an email account restricted for sending spam? Read our [output,url,_1,documentation,class,externalLink,target,_2,id,_3].", "//community.mxroute.com/t/restricted-for-sending-spam", "_blank", "lnkEmailAccountsDocumentation") %]
             </p>
         </div>
-        <div class="col-sm-4 col-md-3" ng-class="emailAccounts.statsCssClass">
+        <!-- <div class="col-sm-4 col-md-3" ng-class="emailAccounts.statsCssClass">
             <stats
                 used-id="lblUsed"
                 ng-model="accountStats.used"
@@ -19,7 +19,7 @@
                 upgrade-link-target="emailUpgrade"
                 on-show-warning-details="emailAccounts.showNoAvailableAccountsWarning()">
             </stats>
-        </div>
+        </div> -->
     </div>
 
     <callout ng-if="showNoAvailableAccounts" callout-type="warning"
