@@ -3,7 +3,7 @@
         <div class="col-sm-8 col-md-9">
             <p id="descEmailAccounts" class="description">
             [% locale.maketext("This feature lets you create and manage email accounts.") %]
-            [% locale.maketext("Want to learn more? Read our [output,url,_1,documentation,class,externalLink,target,_2,id,_3].", "//go.cpanel.net/Accounts", "_blank", "lnkEmailAccountsDocumentation") %]
+            [% locale.maketext("See an email account restricted for sending spam? Read our [output,url,_1,documentation,class,externalLink,target,_2,id,_3].", "//community.mxroute.com/t/restricted-for-sending-spam", "_blank", "lnkEmailAccountsDocumentation") %]
             </p>
         </div>
         <div class="col-sm-4 col-md-3" ng-class="emailAccounts.statsCssClass">
