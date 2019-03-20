@@ -390,23 +390,23 @@
             </div>
             [% IF has_sub_domain_access || has_alias_access %]
             <section class="widget" id="missingDomainSection">
-                <h3 class="widget-title">[% locale.maketext('Missing a domain?')%]</h3>
+                <h3 class="widget-title">[% locale.maketext('Seeing random subdomains?')%]</h3>
                 <ul>
                     [% IF has_sub_domain_access %]
                     <li>
                         <p class="widget-item-description">
-                            [% locale.maketext('Subdomains let you create subsections of your domains.') %]
+                            [% locale.maketext('This is to be fixed in a later update.') %]
                         </p>
-                        <a href="[% CPANEL.CPVAR.dprefix _ 'subdomain/index.html' %]"
+                        <!--<a href="[% CPANEL.CPVAR.dprefix _ 'subdomain/index.html' %]"
                             title="[% locale.maketext('Manage your account’s subdomains.') %]"
                             target="subdomain">
                             <i class="fas fa-wrench"></i>
                             [% locale.maketext("Manage Subdomains") %]
-                        </a>
+                        </a>-->
                     </li>
                     [% END %]
                     [% IF has_alias_access %]
-                    <li>
+                    <!--<li>
                         <p class="widget-item-description">
                             [% locale.maketext('Aliases let you point a domain towards another of your domains’ content.') %]
                         </p>
@@ -416,7 +416,7 @@
                             <i class="fas fa-wrench"></i>
                             [% locale.maketext("Manage Aliases") %]
                         </a>
-                    </li>
+                    </li>-->
                     [% END %]
                 </ul>
             </section>
