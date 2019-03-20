@@ -65,11 +65,11 @@ END; %]
         <h3><a href="dkimtutorial.html">Click here for the tutorial.</a></h3>
         </p>
         <p>&nbsp;</p>
-        <!--<div id="cjt_pagenotice_container"></div>
+        <div id="cjt_pagenotice_container"></div>
 
         [% IF (CPANEL.CPVAR.dkim_keys_installed == "1" && CPANEL.CPVAR.mta_dkim_active == "0") ||
             (CPANEL.CPVAR.spf_installed == "1" && CPANEL.CPVAR.spf_active == "0") %]
-        <div class="alert alert-warning" id="auth_ns_warning">
+        <!--<div class="alert alert-warning" id="auth_ns_warning">
             <span class="glyphicon glyphicon-exclamation-sign"></span>
             <div class="alert-message">
             [% locale.maketext("") %]
