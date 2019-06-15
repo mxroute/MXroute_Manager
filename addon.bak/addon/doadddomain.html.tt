@@ -1,11 +1,6 @@
 [%
     SET CPANEL.CPVAR.dprefix="../";
-    SET docroot = RAW_FORM.dir;
-    IF CPANEL.CPCONF.publichtmlsubsonly && !docroot.match('^\/?public_html\/');
-        docroot = 'public_html/' _ docroot;
-    END;
-
-    SET url = "../filemanager/index.html?dir=" _ CPANEL.homedir.uri() _ "/" _ docroot.uri();
+    SET url = "../filemanager/index.html?dir=" _ CPANEL.homedir.uri() _ "/" _ RAW_FORM.dir.uri();
 
     IF RAW_FORM.create_ftp_account;
         SET is_ftp_optional = 0; # We are creating an FTP so we should perform the FTP quota check as a precondition
@@ -13,11 +8,17 @@
         SET is_ftp_optional = 1; # We are not creating an FTP so we should don't need FTP quota check as a precondition
     END;
 
+    SET random_data = "";
+    SET getranddata = Api2.exec("Rand" , "getranddata" , {});
+    IF getranddata.size;
+        SET random_data = getranddata.0.random;
+    END;
+
     Api2.pre_exec("AddonDomain", "addaddondomain");
     SET addon_results = Api2.exec("AddonDomain" , "addaddondomain" , {
-        "subdomain" => FORM.subdomain,
+        "subdomain" => random_data.html(),
         "newdomain" => FORM.domain,
-        "dir"       => docroot,
+        "dir"       => FORM.domain,
         "ftp_is_optional" => is_ftp_optional,
     });
     Api2.post_exec("AddonDomain", "addaddondomain");
@@ -32,7 +33,7 @@
         SET ftp_results = execute("Ftp", "add_ftp", {
             "user"    => RAW_FORM.ftpuser,
             "pass"    => RAW_FORM.pass,
-            "homedir" => docroot,
+            "homedir" => RAW_FORM.dir,
             "domain"  => RAW_FORM.domain,
         });
     END;
@@ -85,12 +86,6 @@
     [% END %]
 
     [% UNLESS addon_error %]
-        <div id="details" class="alert alert-info">
-            <span id="detailsInfoImg" class="glyphicon glyphicon-info-sign"></span>
-            <div class="alert-message" id="detailsInfoMsg">
-                [% locale.maketext("If you would like to manage the files for this domain, you can do so here: [output,url,_1,File Manager,target,_blank,class,ajaxfiles,id,_2]", url, "lnkFileManager") %]
-            </div>
-        </div>
     [% END %]
 
     [% INCLUDE _assets/return_link.html.tt return_location="index.html"  return_link_text=locale.maketext("Go Back" ) %]

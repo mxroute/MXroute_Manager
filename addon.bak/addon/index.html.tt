@@ -58,21 +58,21 @@
 
     [% IF CPANEL.feature("addondomains") %]
         <p id="descAddon" class="description">
-            [% locale.maketext("Here you can add additional domains. Please note that the subdomain and document root values are requirements for cPanel, and can be considered as irrelevant extras that must be added to fulfill the needs of the control panel. They should populate themselves. However, in some instances, the subdomain will not populate itself in a unique manner and may fail. In such an event, you can write anything you like there to satisfy the panel. This does not impact your email service in any way.") %]
+            [% locale.maketext("These are the domains that we host email for, as directed by you. Your primary domain is the one that you signed up with, and that one is not adjustable. Any additional domains you wish for us to host email for, you can add them here.") %]
         </p>
 
 
         [% resource_code %]
         [% IF !resource_usage_limits || !resource_usage_limits.is_maxed %]
             <div class="section">
-                <h2>[% locale.maketext("Create an Addon Domain") %]</h2>
+                <h2>[% locale.maketext("Add New Domain") %]</h2>
                 <form id="mainform" method="post" action="doadddomain.html" name="mainform">
                     <!-- prevent password autofill -->
                     <input type="text" style="display:none">
                     <input type="password" autocomplete='off' style="display:none">
                     <div class="form-group">
                         <label id="lblDomain" for="domain">
-                            [% locale.maketext("New Domain Name") %]
+                            [% locale.maketext("Domain Name:") %]
                         </label>
                         <div class="row">
                             <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
@@ -80,37 +80,6 @@
                             </div>
                             <div id="domain_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
                         </div>
-                    </div>
-                    <div class="form-group">
-                        <label id="lblSubdomain" for="subdomain">
-                            [% locale.maketext("Subdomain") %]
-                        </label>
-                        <div class="row">
-                            <div class="col-xs-12 col-sm-6 col-md-6 col-lg-6">
-                                <input id="subdomain" type="text" class="form-control" name="subdomain" />
-                            </div>
-                            <div id="subdomain_error" class="col-xs-12 col-sm-6 col-md-6 col-lg-6"></div>
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label id="lblDir" for="dir">
-                            [% locale.maketext("Document Root") %]
-                        </label>
-                        [%
-                            SET CPANEL.CPVAR.autodirsonly     = "1";
-                            SET CPANEL.CPVAR.autoskipreserved = "1";
-                            SET CPANEL.CPVAR.autoinput        = "dir";
-                            SET CPANEL.CPVAR.inputsize        = "150px";
-                            SET CPANEL.CPVAR.autofunc         = "dirComplete";
-                            SET input_group_text = '<span id="docrootImg" class="fas fa-home"></span> /';
-                            IF CPANEL.CPCONF.publichtmlsubsonly;
-                                input_group_text = input_group_text _ 'public_html/';
-                            END;
-                        %]
-                        <script type="text/javascript">
-                        function dirComplete(inputObj) {}
-                        </script>
-                        [% PROCESS 'autodir/dirbox.html.tt' input_group_addon_text=input_group_text restrict_autodir_to_docroot=CPANEL.CPCONF.publichtmlsubsonly %]
                     </div>
 
                     [% IF daemon_info.data.enabled %]
@@ -214,10 +183,7 @@
                 <table id="subdomaintbl" class="sortable table table-striped responsive-table">
                     <thead>
                         <tr>
-                            <th>[% locale.maketext("Addon Domains") %]</th>
-                            <th>[% locale.maketext("Document Root") %]</th>
-                            <th>[% locale.maketext("Subdomain") %]</th>
-                            <th class="sorttable_nosort">[% locale.maketext("Redirects to") %]</th>
+                            <th>[% locale.maketext("Domain") %]</th>
                             <th class="cell-end sorttable_nosort" colspan="2">[% locale.maketext("Actions") %]</th>
                         </tr>
                     </thead>
@@ -227,31 +193,10 @@
                             <td class="long-column" data-title="[% locale.maketext("Addon Domains") %]">
                                 [% domain.domain.html().replace('\.', '<wbr>.') %]
                             </td>
-                            <td class="long-column" data-title="[% locale.maketext("Document Root") %]">
-                                <a id="go_filemanger_home_[% domain.domain %]" href="../filemanager/index.html" target="_blank">
-                                    <span class="fas fa-home" title="[% locale.maketext("File Manager: Home Directory") %]"></span>
-                                </a>
-                                <a id="[% domain.domain %]_lnk" href="../filemanager/index.html?dir=[% domain.basedir.uri() %]" title="[% locale.maketext('File Manager: [_1]', domain.basedir.html()) %]">
-                                    /[% domain.basedir.html().replace('\.', '<wbr>.') %]
-                                </a>
-                                <a href="#" id="edit_domain_[% domain.domain %]" onClick="start_change_docroot('[% domain.domain %]','[% domain.subdomain %]','[% domain.rootdomain %]','[% domain.basedir %]'); return false;">
-                                    <span class="glyphicon glyphicon-pencil" title="[% locale.maketext("Edit Domain: [_1]", domain.domain) %]"></span>
-                                </a>
-                            </td>
-                            <td class="long-column" data-title="[% locale.maketext("Subdomain") %]">
-                                [% domain.subdomain.html().replace('\.', '<wbr>.') %]
-                            </td>
-                            <td data-title="[% locale.maketext("Redirects to") %]">
-                                [% domain.status | html %]
-                            </td>
                             <td data-title="[% locale.maketext("Actions") %]">
                                 <a id="lnkRemove_[% domain.domain %]" class="btn btn-link" href="confirmdodeldomain.html?domain=[% domain.domain.uri() %]&subdomain=[% domain.domainkey.uri() %]&user=[% domain.subdomain.uri() %]&fullsubdomain=[% domain.fullsubdomain.uri() %]">
                                     <span class="glyphicon glyphicon-trash"></span>
-                                    [% locale.maketext("Remove") %]
-                                </a>
-                                <a id="lnkManageRedirection_[% domain.domain %]" class="btn btn-link" href="doredirectdomain.html?domain=[% domain.domain.uri() %],[% domain.domainkey.uri() %]">
-                                    <span class="glyphicon glyphicon-pencil"></span>
-                                    [% locale.maketext("Manage Redirection") %]
+                                    Delete Domain
                                 </a>
                             </td>
                         </tr>
