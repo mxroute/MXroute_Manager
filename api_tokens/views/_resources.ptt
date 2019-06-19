@@ -1,0 +1,23 @@
+<section class="widget">
+    <h3 class="widget-title">[% locale.maketext('Need Help?')%]</h3>
+    <ul>
+        <li>
+            <a href="https://go.cpanel.net/ManageAPITokensIncPanel"
+                id="linkAboutTheInterface"
+                title="[% locale.maketext('Click here to read more about how to use the [asis,API] tokens interface.') %]"
+                target="cpanel_documentation">
+                <i class="fas fa-fw fa-external-link-alt" aria-hidden="true"></i>
+                [% locale.maketext("About This Interface") %]
+            </a>
+        </li>
+        <li>
+            <a href="https://go.cpanel.net/HowToUsecPanelAPITokens"
+                id="linkUsingAPITokens"
+                title="[% locale.maketext('Click here to read about how to use [asis,API] tokens.') %]"
+                target="cpanel_documentation">
+                <i class="fas fa-fw fa-external-link-alt" aria-hidden="true"></i>
+                [% locale.maketext("Using [asis,API] Tokens") %]
+            </a>
+        </li>
+    </ul>
+</section>

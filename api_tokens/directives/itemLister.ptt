@@ -1,0 +1,162 @@
+<div>
+    <section class="list-section">
+        <div class="row search-page-container"  ng-hide="loadingInitialState">
+            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-5">
+                <search
+                    id="{{ :: parentID }}_search"
+                    ng-model="filterValue"
+                    autocomplete="off"
+                    debounce="750"
+                    autofocus
+                    ng-change="fetch()">
+                </search>
+            </div>
+            <div class="col-xs-12 col-sm-12 col-md-6 col-lg-7">
+                <div class="pagination-container hidden-xs hidden-sm">
+                    <uib-pagination id="{{ :: parentID }}_paginate"
+                        total-items="totalItems"
+                        ng-model="currentPage"
+                        max-size="50"
+                        boundary-links="true"
+                        rotate="false"
+                        previous-text="<"
+                        next-text=">"
+                        first-text="<<"
+                        last-text=">>"
+                        items-per-page="pageSize"
+                        ng-change="fetch()">
+                    </uib-pagination>
+                    <table-showing
+                        id="{{ :: parentID }}_table_showing_top"
+                        class="text-right"
+                        start="start"
+                        limit="limit"
+                        total="totalItems"
+                        />
+                </div>
+            </div>
+        </div>
+
+        <div class="row action-bar" ng-hide="loadingInitialState">
+            <div class="col-xs-12">
+                <div class="pull-left flip hidden-xs" ng-if="canSelectAll">
+                    <div class="table-action-button-container">
+                        <label class="table-action-button-label table-action-button-sm">
+                            <input type="checkbox"
+                                name="checkAllInList"
+                                id="checkAllInList"
+                                aria-label="[% locale.maketext('Toggle Select All') %]"
+                                ng-model="checkAll.all"
+                                ng-change="toggleSelectAll()"
+                                indeterminate-state
+                                check-state="getIndeterminateState()">
+                        </label>
+                    </div>
+                </div>
+                <div class="pull-left hidden-xs">
+                    <div id="{{parentID}}_transcludedControls"></div>
+                </div>
+                <div class="pull-right flip">
+                    <a
+                        id="createButtonLink"
+                        class="btn btn-primary btn-sm"
+                        ng-href="{{createRoute}}">
+                            <span class="fas fa-plus" aria-hidden="true"></span>
+                            [% locale.maketext('Create') %]
+                    </a>
+                    <div class="btn-group" uib-dropdown auto-close="outsideClick">
+                        <button id="single-button" type="button" class="btn btn-default btn-sm" uib-dropdown-toggle >
+                            <i class="fas fa-cog"></i> <span class="caret"></span>
+                        </button>
+                        <ul uib-dropdown-menu class="dropdown-menu-right" role="menu" aria-labelledby="single-button">
+                            <li ng-repeat="config in tableConfigurations" role="menuItem">
+                                <a ng-click="tableConfigurationClicked(config)" ng-bind-html="config.label"></a>
+                            </li>
+                            <li ng-if="tableConfigurations && tableConfigurations.length" class="divider"></li>
+                            <li role="menuitem">
+                                <div class="text-small text-uppercase">[% locale.maketext("Entries Per Page") %]</div>
+                                <page-size-button id="pageSize"
+                                    allowed-sizes="pageSizes"
+                                    total-items="totalItems"
+                                    ng-model="pageSize"
+                                    show-all="false"
+                                    ng-show="true"
+                                    ng-change="fetch()">
+                                </page-size-button>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <cp-loading-panel id="loadingDomainsList" ng-show="loadingInitialState">[% locale.maketext('Loading Saved Configurations …') %]</cp-loading-panel>
+
+        <table ng-hide="loadingInitialState" class="table table-striped item-lister-table fixed-width-table" id="{{ :: parentID }}_items_table">
+            <thead>
+                <tr>
+                    <th class="hidden-xs check-column" ng-if="canSelectAll"></th>
+                    <th ng-repeat="item in ::headerItems" id="{{ :: parentID }}_items_table_th_{{ :: item.field }}" ng-class="{'hidden-xs':item.hiddenOnMobile}" >
+                        <span
+                            ng-if="!item.sortable" ng-bind-html=":: item.label"></span>
+                        <span
+                            id="{{ :: parentID }}_items_table_th_{{ :: item.field }}_sort"
+                            ng-if="item.sortable"
+                            toggle-sort
+                            sort-meta="sort"
+                            sort-field="{{ :: item.field }}"
+                            onSort="fetch"><span ng-bind-html=":: item.label"></span></span>
+                    </th>
+                </tr>
+            </thead>
+            <tbody ng-if="filteredItems.length" id="{{parentID}}_transcludePoint"></tbody>
+            <tbody ng-if="filteredItems.length === 0" id="{{parentID}}_transcludePoint_noResults">
+                <tr class="info empty-row">
+                    <td colspan="{{ headerItems.length + 1 }}">[% locale.maketext('No results match your query.') %]</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="row hidden-md hidden-lg">
+            <div class="col-xs-12">
+                <table-showing
+                    id="{{ :: parentID }}_table_showing_bottom"
+                    class="pull-right"
+                    start="start"
+                    limit="limit"
+                    total="totalItems"
+                    />
+            </div>
+        </div>
+        <div class="row search-page-container visible-sm-block visible-xs-block hidden-lg hidden-md">
+            <div class="col-xs-12 col-sm-12">
+                <div class="pagination-container">
+                    <uib-pagination id="{{ :: parentID }}_paginateItems_bottom"
+                        total-items="totalItems"
+                        ng-model="currentPage"
+                        max-size="50"
+                        boundary-links="true"
+                        rotate="false"
+                        previous-text="<"
+                        next-text=">"
+                        first-text="<<"
+                        last-text=">>"
+                        items-per-page="pageSize"
+                        ng-change="fetch()">
+                    </uib-pagination>
+                    <button
+                        id="{{ :: parentID }}_searchBtn_bottom"
+                        class="btn btn-default bottom-search-btn"
+                        ng-click="focusSearch()"
+                        type="button">
+                            <span class="glyphicon glyphicon-search" aria-hidden="true"></span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="transcluded" style="display:none" ng-transclude></div>
+
+    </section>
+
+</div>

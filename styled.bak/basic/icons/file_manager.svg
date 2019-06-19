@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 21.1.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 48 48" style="enable-background:new 0 0 48 48;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:#E0E0E0;}
+	.st1{fill:#262626;}
+	.st2{fill:#4F5B94;}
+	.st3{fill:#15587C;}
+	.st4{fill:none;}
+	.st5{fill:#BCBCBC;}
+	.st6{fill:#FFFFFF;}
+	.st7{fill:#D34231;}
+	.st8{fill:#666666;}
+	.st9{fill:#EDA72B;}
+	.st10{fill:#25323C;}
+	.st11{fill:#336792;}
+	.st12{fill:#32415B;}
+	.st13{fill:#84B556;}
+	.st14{fill:#6A9638;}
+	.st15{fill:#189BD8;}
+	.st16{fill:#BA342A;}
+	.st17{fill:#FF6C2C;}
+	.st18{fill:#8892BF;}
+	.st19{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:0.25;stroke-miterlimit:10;}
+	.st20{fill:#FFFFFF;stroke:#FFFFFF;stroke-miterlimit:10;}
+	.st21{fill:#FF6A1A;}
+	.st22{fill:#00AA17;}
+	.st23{fill:#FA741D;}
+	.st24{fill:none;stroke:#15587C;stroke-miterlimit:10;}
+	.st25{fill:none;stroke:#15587C;stroke-width:1.5;stroke-miterlimit:10;}
+	.st26{fill:none;stroke:#BA342A;stroke-width:5;stroke-miterlimit:10;}
+	.st27{fill:#000004;}
+	.st28{fill:#000004;stroke:#FFFFFF;stroke-width:0.5;stroke-miterlimit:10;}
+	.st29{fill:#017F00;}
+	.st30{fill:none;stroke:#BCBCBC;stroke-miterlimit:10;}
+	.st31{fill:#39FF2A;}
+	.st32{fill:#FF00B3;}
+	.st33{fill:#4DFF00;}
+	.st34{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:1.5;stroke-miterlimit:10;}
+	.st35{fill:#FFFFFF;stroke:#FFFFFF;stroke-width:0.5;stroke-miterlimit:10;}
+	.st36{fill:#FFFFFF;stroke:#BCBCBC;stroke-miterlimit:10;}
+</style>
+<g id="Layer_1">
+	<g>
+		<circle class="st2" cx="24" cy="24" r="24"/>
+		<polygon class="st0" points="40.203,13.433 23.731,7.443 7.537,12.49 25.339,18.701 		"/>
+		<path class="st8" d="M25.339,18.701v13.384c1.701-4.341,5.916-7.42,10.86-7.42c1.409,0,2.753,0.262,4.003,0.72V13.433
+			L25.339,18.701z"/>
+		<path class="st8" d="M25.339,41.606l0.384-0.152c-0.139-0.284-0.268-0.572-0.384-0.868V41.606z"/>
+		<path class="st5" d="M24.529,36.336c0-1.502,0.294-2.932,0.81-4.25V18.701L7.537,12.49v21.962l17.803,7.154v-1.02
+			C24.823,39.268,24.529,37.837,24.529,36.336z M22.816,39.166L9.006,33.62v-8.43l13.81,4.936V39.166z M22.955,28.74L8.868,23.859
+			v-8.652l14.087,4.714V28.74z"/>
+		<path class="st0" d="M8.868,23.859l14.087,4.881v-8.818L8.868,15.207V23.859z M12.389,19.755l6.655,2.44v1.387l-6.655-2.385
+			V19.755z"/>
+		<polygon class="st8" points="19.045,22.195 12.389,19.755 12.389,21.197 19.045,23.582 		"/>
+		<path class="st0" d="M9.006,33.62l13.81,5.546v-9.04L9.006,25.19V33.62z M12.389,30.265l6.655,2.44v1.387l-6.655-2.385V30.265z"/>
+		<polygon class="st8" points="19.045,32.705 12.389,30.265 12.389,31.707 19.045,34.092 		"/>
+		<path class="st8" d="M25.339,29.858c0,0.393,0,11.934,0,11.934l14.863-9.706v-9.047l-4.619-2.186L25.339,29.858z"/>
+		<polygon class="st5" points="25.339,30.265 25.339,41.606 23.213,36.59 		"/>
+	</g>
+</g>
+<g id="remote_x5F_mysql">
+</g>
+<g id="addon_x5F_domains">
+</g>
+<g id="mysql_x5F_database_x5F_wizard">
+</g>
+<g id="multiphp_x5F_ini_x5F_editor">
+</g>
+</svg>

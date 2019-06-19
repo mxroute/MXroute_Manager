@@ -1,0 +1,42 @@
+<div class="section">
+    <div callout callout-type="danger" callout-heading="[% locale.maketext('Revoke Selected [asis,API] Tokens') %]" ng-if="confirmingDelete">
+        <p ng-bind="confirmDeleteMessage()"></p>
+        <button
+            id="confirmDeleteBtn"
+            class="btn btn-primary"
+            type="button"
+            cp-action="deleteTokens(selectedItems)"
+            ng-disabled="!selectedItems.length" >
+                <span ng-bind="confirmDeleteButtonLabel();"></span>
+        </button>
+        <button
+            id="cancelDeleteBtn"
+            class="btn btn-default"
+            type="button"
+            ng-disabled="deletingTokens"
+            ng-click="hideDeletionConfirmationMessage()">
+                <span>[% locale.maketext('Cancel') %]</span>
+        </button>
+    </div>
+    <item-lister
+        ng-if="!confirmingDelete"
+        id="apiTokensItemLister"
+        items="getItems()"
+        can-select-all
+        create-route="#/create"
+        table-configurations="tableConfigurations"
+        header-items="tableHeaderItems">
+            <item-lister-view></item-lister-view>
+            <div class="lister-controls">
+                <button
+                    id="deleteSelectedBtn"
+                    class="btn btn-default btn-sm"
+                    type="button"
+                    ng-click="showDeletionConfirmationMessage()"
+                    ng-disabled="!selectedItems.length" >
+                        <i class="fas fa-trash" aria-hidden="true"></i>
+                        <span>[% locale.maketext('Revoke') %]</span>
+                </button>
+            </div>
+    </item-lister>
+</div>

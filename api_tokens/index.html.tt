@@ -1,0 +1,111 @@
+[%
+    USE JSON;
+
+    SET APP_KEY = "api_tokens";
+
+    SET CAN_CREATE_LIMITED = 0;
+
+    SET CPANEL.CPVAR.dprefix = "../";
+
+    SET page_styles_list = [ 'api_tokens/index.css'];
+    SET embeded_styles_list = [];
+
+    IF !CPANEL.ua_is_mobile;
+        embeded_styles_list.push("css/angular-chosen-spinner.css");
+        page_styles_list.push("libraries/chosen/1.5.1/chosen.min.css");
+    END;
+
+    SET resource_template = "views/_resources.ptt";
+
+    SET view_templates = [
+        "views/list.ptt",
+        resource_template
+    ];
+-%]
+
+[% js_code = PROCESS js_block %]
+
+[% WRAPPER '_assets/master.html.tt'
+    app_key = APP_KEY
+    page_js = js_code
+    include_legacy_stylesheets = 0
+    include_legacy_scripts = 0
+    include_cjt = 0
+    use_master_bootstrap = 0
+    focus_feature_search = 0
+    page_stylesheets = page_styles_list
+    embed_stylesheets = embeded_styles_list
+    show_breadcrumb = 1
+-%]
+
+<div class='body-content' id="mainContent" ng-controller="MainController" ng-cloak class="ng-cloak">
+
+    <cp-alert-list></cp-alert-list>
+
+    <p class="description">
+        [% locale.maketext("This feature lets you create and manage [asis,API] tokens for [asis,cPanel API 2] and [asis,UAPI].") %]
+        [% locale.maketext("For more information, read our [output,url,_1,documentation,class,external-link,target,_2,id,_3].", "//go.cpanel.net/ManageAPITokensIncPanel", "_blank", "lnkcPanelAPITokensDocumentation") %]
+    </p>
+
+    <div>
+        <div class="row">
+            <div class="col-xs-12 col-lg-8">
+
+                <div class="alert alert-warning">
+                    <span class="glyphicon glyphicon-exclamation-sign"></span>
+                    <div class="alert-message">
+                        <strong>[% locale.maketext('Warning:') %]</strong> [% locale.maketext('The [asis,API] Tokens feature is experimental.') %]
+                    </div>
+                </div>
+
+                <!-- loading panel -->
+                <cp-loading-panel id="loadingRoutePanel" ng-show="loading">[% locale.maketext('Loading …') %]</cp-loading-panel>
+                <!-- / loading panel -->
+
+                <!-- content wrapper -->
+                <div class="row ng-cloak" ng-if="!loading" ng-cloak>
+                    <!-- summary -->
+                    <div ng-class="sidePanelClasses" ng-if="showResourcePanel">
+                        <div class="section">
+                            <ng-include src="'[% resource_template %]'"></ng-include>
+                        </div>
+                    </div>
+                    <!-- / summary -->
+
+                    <!-- view content -->
+                    <div ng-class="mainPanelClasses">
+                        <div id="viewContent" class="section" ng-view></div>
+                    </div>
+                    <!-- / manage email -->
+
+                    <!-- summary -->
+                    <div class="col-xs-12 hidden-sm hidden-lg hidden-md" ng-if="showResourcePanel">
+                        <div class="section">
+                            <ng-include src="'[% resource_template %]'"></ng-include>
+                        </div>
+                    </div>
+                    <!-- / summary -->
+                </div>
+                <!-- /content wrapper -->
+            </div>
+        </div>
+    </div>
+
+    [% FOREACH ptt IN view_templates %]
+    <script id="[% ptt %]" type="text/ng-template">
+        [%- PROCESS $ptt -%]
+    </script>
+    [% END %]
+
+    [% PROCESS '_assets/cjt2_header_include.tt' %]
+
+</div>
+
+[% END #wrapper -%]
+
+[% BLOCK js_block %]
+<script type="text/javascript">
+    var PAGE = PAGE || {};
+    PAGE.canCreateLimited = '[% CAN_CREATE_LIMITED %]' === '1';
+</script>
+[% END #js_block %]

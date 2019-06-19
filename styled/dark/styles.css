@@ -237,7 +237,6 @@ footer .navbar-nav > li > a,
     transition: all 300ms ease;
 }
 
-#lblUserNameTxt,
 #caretImg,
 #lnkFooterHome,
 #quickLinks ul li:first-child {
@@ -1381,4 +1380,28 @@ input.form-control.dim-text,
 .ygtvlabel:visited,
 .ygtvlabel:hover {
     background-color: transparent !important;
+}
+
+@-webkit-keyframes highlight-changes {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: #555;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+@keyframes highlight-changes {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: #555;
+    }
+    100% {
+        background-color: transparent;
+    }
 }

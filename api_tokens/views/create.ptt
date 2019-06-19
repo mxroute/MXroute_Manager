@@ -1,0 +1,202 @@
+<div>
+    <form id="createTokenForm" name="createTokenForm">
+        <div class="panel panel-default" ng-class="{'panel-success': generatedToken}">
+            <div class="panel-heading">
+                <div class="widget-title pull-left flip" ng-bind="pageTitle"></div>
+                <div class="pull-right flip">
+                    <a id="lnkshowHideHelp" ng-click="toggleHelp()" href="javascript:void(0)">
+                        [% locale.maketext("Show/Hide Help") %]
+                        <i class="far fa-question-circle form-info-sign"></i>
+                    </a>
+                </div>
+                <div class="clearfix"></div>
+            </div>
+            [%# form creation %]
+            <div class="panel-body" ng-if="!generatedToken">
+                <div>
+                    <section>
+                        <div class="form-group" ng-class="{'has-error':createTokenForm.tokenName.$dirty && createTokenForm.tokenName.$invalid}">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                        for="tokenName"
+                                        label-text="[% locale.maketext("[asis,API] Token Name") %]"
+                                        label-id="lbl_tokenName"
+                                        info-icon-id="icon_tokenNameInfo"
+                                        info-block-id="infoBlk_tokenName"
+                                        show-info-block="{{showAllHelp}}">
+                                            [% locale.maketext("The name of the token that you are creating.") %]
+                                            [% locale.maketext("Enter a descriptive name. You will use this name when you update the token via [asis,API].") %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div>
+                                <input
+                                    placeholder="[% locale.maketext("Enter the [asis,API] token name.") %]"
+                                    token-name-is-unique
+                                    type="text" ng-required="true" class="form-control" pattern="^[A-Za-z0-9_-]+$" maxlength="50"
+                                    size="50" autocomplete="off" id="tokenName" name="tokenName" ng-model="working.name" />
+                                <span class="help-block">[% locale.maketext("[asis,API] token names can be alpha-numeric and can contain dashes and underscores.") %]</span>
+                            </div>
+                            <div>
+                                <ul validation-container field-name="tokenName" role="alert" id="tokenNameErrorPanel">
+                                    <li validation-item field-name="tokenName" validation-name="required" id="val_tokenName_required">
+                                        [% locale.maketext('You [output,strong,must] enter a name.') %]
+                                    </li>
+                                    <li validation-item field-name="tokenName" validation-name="maxlength" id="val_tokenName_maxLength">
+                                        [% locale.maketext("Your token name cannot contain more than [numf,_1] [numerate,_1,character,characters].", 50) %]
+                                    </li>
+                                    <li validation-item field-name="tokenName" validation-name="pattern" id="val_tokenName_invalidChars">
+                                        [% locale.maketext("Your token name can only contain letters [asis,(a-z)] and [asis,(A-Z)], numbers [asis,(0-9)], hyphens [asis,(-)], and underscores [asis,(_)].", 50) %]
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="form-group" ng-if="canCreateLimited" ng-class="{'has-error':createTokenForm.unrestrictedToggle.$dirty && createTokenForm.unrestrictedToggle.$invalid}">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                        for="unrestrictedToggle"
+                                        label-text="[% locale.maketext("Features") %]"
+                                        label-id="lbl_unrestrictedToggle"
+                                        info-icon-id="icon_unrestrictedToggleInfo"
+                                        info-block-id="infoBlk_unrestrictedToggle"
+                                        show-info-block="{{showAllHelp}}">
+                                            [% locale.maketext("Specify which features to assign to the the [asis,API] token.") %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div>
+                                <toggle-switch
+                                    id="unrestrictedToggle"
+                                    ng-model="working.unrestricted"
+                                    no-spinner="true"
+                                    enabled-label="[% locale.maketext("Unrestricted") %]"
+                                    disabled-label="[% locale.maketext("Limited") %]"
+                                    on-toggle="working.unrestricted = !working.unrestricted;" />
+                                <span class="help-block" ng-if="!working.unrestricted">[% locale.maketext("Click here to set the [asis,API] token to unrestricted.") %]</span>
+                                <span class="help-block" ng-if="working.unrestricted">[% locale.maketext("Click here to set the [asis,API] token to limited.") %]</span>
+                            </div>
+                        </div>
+                        <div callout callout-heading="[% locale.maketext('Danger:') %]" callout-type="danger" role="alert" ng-show="working.unrestricted">
+                            [% locale.maketext("The [asis,API] token can access every API that you can access.") %]
+                        </div>
+                        <div class="form-group" ng-if="canCreateLimited && !working.unrestricted">
+                            <div class="row">
+                                <div class="col-xs-12">
+                                    <toggle-label-info
+                                        for="selectedFeatures"
+                                        label-text="[% locale.maketext("Selected Features") %]"
+                                        label-id="lbl_selectedFeatures"
+                                        info-icon-id="icon_selectedFeatures"
+                                        info-block-id="infoBlk_selectedFeatures"
+                                        show-info-block="{{showAllHelp}}">
+                                            [% locale.maketext("Create an unrestricted [asis,API] token, or specify which features to include.") %]
+                                    </toggle-label-info>
+                                </div>
+                            </div>
+                            <div cp-loading-panel ng-show="!features">[% locale.maketext('Loading …') %]</div>
+                            <div class="feature-chooser[% CPANEL.ua_is_mobile ? ' is-mobile' : '' %]" ng-if="features">
+                                <div class="form-group">
+                                    <search
+                                        id="searchFeatures"
+                                        ng-model="featureFilterValue"
+                                        autocomplete="off">
+                                    </search>
+                                    <div>
+                                        <table class="table table-condensed header-table">
+                                            <thead>
+                                                <tr>
+                                                    <th class="check-column">
+                                                        <input type="checkbox"
+                                                            name="checkAllInList"
+                                                            id="checkAllInList"
+                                                            aria-label="[% locale.maketext('Toggle Select All') %]"
+                                                            ng-model="checkAll.all"
+                                                            ng-change="toggleSelectAllFeatures()"
+                                                            indeterminate-state
+                                                            check-state="getFeaturesIndeterminateState()">
+                                                    </th>
+                                                    <th class="name-column">
+                                                        [% locale.maketext("All") %]
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                        </table>
+                                    </div>
+                                    <div class="features-list">
+                                        <table class="table table-condensed">
+                                            <tbody>
+                                                <tr ng-repeat="feature in features | filter:featureFilterValue">
+                                                    <td class="check-column">
+                                                        <input type="checkbox" ng-model="working.features[feature.id]" ng-change="updateSelectedFeatures()"/>
+                                                    </td>
+                                                    <td>
+                                                        <span ng-bind="feature.label"></span>
+                                                        <span class="label label-info" ng-repeat="badge in feature.badges" ng-bind="badge"></span>
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+            <div class="panel-body" ng-if="generatedToken">
+                <p ng-if="working.unrestricted">[% locale.maketext('You successfully created an [output,strong,unrestricted] [asis,API] token “[_1]”.', '{{ working.name }}') %]</p>
+                <p ng-if="!working.unrestricted">[% locale.maketext('You successfully created a [output,strong,limited-access] [asis,API] token “[_1]”.', '{{ working.name }}') %]</p>
+                <p>
+                    [% locale.maketext('Copy the following token to a safe place:') %]
+                </p>
+                <copy-field label="[% locale.maketext('[asis,API] Token') %]" text="generatedToken"></copy-field>
+                <div callout callout-type="warning">
+                    <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
+                    [% locale.maketext('This is your only opportunity to copy this token!') %]
+                </div>
+                <p>[% locale.maketext('For more information about how to use this token to make [asis,API] calls, read our [output,url,_1,Developer Documentation].', 'https://go.cpanel.net/developerdocs') %]
+            </p>
+            </div>
+            [%# post creation messaging %]
+            <div class="panel-footer" class="text-right">
+                <div ng-if="!generatedToken">
+                    <button id="btnCreateAPIToken"
+                        type="submit"
+                        spinner-id="spinnerCreateAPIToken"
+                        ng-disabled="createTokenForm.$invalid"
+                        cp-action="create(working)"
+                        title="[% locale.maketext('Click here to create your new [asis,API] token.') %]">
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                        [% locale.maketext("Create") %]
+                    </button>
+                    <button id="btnCancelAPIToken"
+                        type="button"
+                        ng-if="apiTokens.length"
+                        class="btn btn-link pull-right flip"
+                        ng-click="backToListView()"
+                        title="[% locale.maketext('Go back to the list of [asis,API] tokens.') %]">
+                        <i class="fas" ng-class="{ 'fa-arrow-left': !RTL, 'fa-arrow-right': isRTL }" aria-hidden="true"></i>
+                        [% locale.maketext('Go Back') %]
+                    </button>
+                </div>
+                <div ng-if="generatedToken">
+                    <div class="checkbox copy-token-checkbox">
+                        <label>
+                            <input type="checkbox" name="stay" id="stay" ng-model="ui.stayAfterCopy" ng-change="stayAfterCopyChanged()">
+                            [% locale.maketext("Create another token after I click [output,em,_1].", locale.maketext('Yes, I saved my token')) %]
+                        </label>
+                    </div>
+                    <hr class="separator"/>
+                    <button id="confirmCopiedToken"
+                        type="button"
+                        ng-if="generatedToken"
+                        class="btn btn-primary"
+                        ng-click="tokenCopied(createTokenForm)">[% locale.maketext('Yes, I saved my token') %]</button>
+                </div>
+
+            </div>
+        </div>
+    </form>
+</div>

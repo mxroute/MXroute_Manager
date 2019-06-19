@@ -1,0 +1,30 @@
+<tbody>
+    <tr ng-repeat="item in getItems()" id="{{item.token}}" class="data-row no-animate">
+        <td class="hidden-xs check-column no-animate">
+            <div class="table-action-checkbox-item">
+                <input type="checkbox"
+                    id="checkbox_{{item.id}}"
+                    name="checkbox_{{item.id}}"
+                    ng-model="item.selected"
+                    ng-change="toggleSelection(item)"
+                    title="[% locale.maketext('Select “[_1]”', '{{item.label | htmlSafeString }}') %]">
+            </div>
+        </td>
+        <td id="{{item.token}}_label" class="name-column no-animate">
+            <div >
+                <label class="table-action-checkbox-label cutoff_with_ellipses" for="checkbox_{{item.id}}" ng-bind="item.label | htmlSafeString"></label>
+            </div>
+        </td>
+        <td id="{{item.token}}_createdOn" class="hidden-xs no-animate" ng-bind="getCreationLabel(item.createdOn)"></td>
+        <td id="{{item.token}}_actions" class="action-column">
+            <button
+                id="{{ :: item.token}}_manageBtn"
+                type="button"
+                class="btn btn-sm btn-outline-primary no-animate"
+                ng-click="manageToken(item)">
+                <i class="fas fa-wrench" aria-hidden="true"></i>
+                <span>[% locale.maketext('Manage') %]</span>
+            </button>
+        </td>
+    </tr>
+</tbody>

@@ -103,7 +103,6 @@ footer .navbar-nav > li > a,
     transition: all 300ms ease;
 }
 
-#lblUserNameTxt,
 #caretImg,
 #lnkFooterHome,
 #quickLinks ul li:first-child {
@@ -1041,4 +1040,28 @@ html[dir="rtl"] h1.page-header {
 
 .table-striped tbody tr:nth-of-type(even) {
     background-color: #fcfcfc;
+}
+
+@-webkit-keyframes highlight-changes {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: #faebcc;
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+@keyframes highlight-changes {
+    0% {
+        background-color: transparent;
+    }
+    50% {
+        background-color: #faebcc;
+    }
+    100% {
+        background-color: transparent;
+    }
 }

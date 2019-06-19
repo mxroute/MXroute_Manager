@@ -1,0 +1,67 @@
+@import (reference) "css/base.less";
+@import "css/ux-styles.less";
+
+#api_tokens {
+    .external-link:after {
+        font-family: "Font Awesome 5 Free";
+        font-weight: 600;
+        content: "\f35d";
+        display: inline-block;
+        padding: 0 3px 0 3px;
+        vertical-align: middle;
+    }
+
+    .fixed-width-table {
+        table-layout: fixed;
+    }
+
+    .cutoff_with_ellipses {
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        overflow: hidden;
+        max-width: 100%;
+    }
+
+    .table .check-column {
+        width: 30px;
+    }
+
+    .item-lister-table {
+        thead th:first-child {
+            max-width: 50%;
+        }
+        thead th:last-child {
+            width: 150px;
+        }
+        tbody tr {
+            vertical-align: middle;
+        }
+        tbody td.name-column {
+            max-width: 50%;
+        }
+    }
+
+    .bottom-search-btn {
+        vertical-align: top;
+        margin: 0;
+        box-shadow: none;
+    }
+
+    .feature-chooser {
+        .header-table {
+            margin-bottom: 0px;
+        }
+
+        &:not(.is-mobile) {
+            .features-list {
+                max-height: 250px;
+                overflow-y: scroll;
+                overflow-x: auto;
+            }
+        }
+
+        .table > thead > tr > th {
+            border-top: 0 !important;
+        }
+    }
+}
